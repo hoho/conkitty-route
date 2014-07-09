@@ -1,0 +1,40 @@
+'use strict';
+
+var gulp = require('gulp');
+
+var eslint = require('gulp-eslint');
+var rename = require('gulp-rename');
+var uglify = require('gulp-uglify');
+var qunit = require('gulp-qunit');
+
+
+gulp.task('jshint', function() {
+    return gulp.src(['gulpfile.js', 'croute.js'])
+        .pipe(eslint({
+            rules: {
+                'quotes': [2, 'single'],
+                'no-shadow-restricted-names': 0,
+                'no-underscore-dangle': 0
+            },
+            env: {
+                'node': true,
+                'browser': true
+            }
+        }))
+        .pipe(eslint.format());
+});
+
+gulp.task('uglify', function() {
+    return gulp.src(['croute.js'])
+        .pipe(uglify({preserveComments: 'some'}))
+        .pipe(rename('croute.min.js'))
+        .pipe(gulp.dest('.'));
+});
+
+gulp.task('qunit', ['uglify'], function() {
+    return gulp.src('./test/*.html')
+        .pipe(qunit());
+});
+
+
+gulp.task('default', ['jshint', 'uglify', 'qunit']);

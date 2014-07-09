@@ -1,0 +1,36 @@
+{
+    "name": "conkitty-route",
+    "version": "0.0.0",
+    "description": "Call Conkitty templates according to routing table",
+    "main": "croute.js",
+    "directories": {
+        "test": "test"
+    },
+    "scripts": {
+        "test": "gulp"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/hoho/conkitty-route.git"
+    },
+    "keywords": [
+        "conkitty",
+        "routing",
+        "history"
+    ],
+    "author": "Marat Abdullin <dakota@brokenpipe.ru>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/hoho/conkitty-route/issues"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "histery": "~0.6.0",
+        "gulp": "~3.8.5",
+        "gulp-eslint": "~0.1.7",
+        "gulp-rename": "~1.2.0",
+        "gulp-qunit": "~0.3.3",
+        "gulp-uglify": "~0.3.1",
+        "qunitjs": "~1.14.0"
+    }
+}

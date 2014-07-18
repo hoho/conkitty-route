@@ -1,4 +1,4 @@
-$C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
+$C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined) {
     'use strict';
 
     var defaultTitle,
@@ -57,29 +57,28 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
                     var newRootRoute,
                         newRoutes = {},
                         i,
+                        j,
                         route,
+                        froute,
                         flat;
 
                     for (i = 0; i < routes.length; i++) {
                         route = routes[i];
-                        if (route._a) { break; }
-                    }
-
-                    if (route && route._a) {
-                        newRootRoute = route;
-                        flat = route._flat;
-                        for (i = 0; i < flat.length; i++) {
-                            route = flat[i];
-                            if (route._a && (route._d || route._achild)) {
-                                // Active route with full path match.
-                                if (route.parent) { route.parent._achild = true; }
-                                newRoutes[route._id] = route;
+                        if (route._a) {
+                            flat = route._flat;
+                            for (j = 0; j < flat.length; j++) {
+                                froute = flat[j];
+                                if (froute._a && (froute._d || froute._achild)) {
+                                    // Active route with full path match.
+                                    newRootRoute = route;
+                                    if (froute.parent) { froute.parent._achild = true; }
+                                    newRoutes[froute._id] = froute;
+                                }
+                            }
+                            if (newRootRoute) {
+                                break;
                             }
                         }
-                    } else {
-                        // No matches.
-                        newRootRoute = undefined;
-                        newRoutes = {};
                     }
 
                     for (i in currentRoutes) {
@@ -172,6 +171,11 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
 
     function isString(val) {
         return typeof val === 'string';
+    }
+
+
+    function isNode(val) {
+        return val instanceof Node;
     }
 
 
@@ -326,6 +330,7 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
 
         self.parent = parent;
         self._id = 'r' + (++routeId);
+        self._n = {};
 
         if (action) {
             paramsConstraints = action.params;
@@ -363,7 +368,6 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
 
             return match ? currentParams : false;
         };
-
 
 
         if (uriSearch || uriHash) {
@@ -571,14 +575,74 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
     };
 
 
-    function processAction(goal, datas, defaultParent, route/**/, i, params) {
+    function getActionParent(route, parent1, parent2/**/, id) {
+        parent1 = parent1 || parent2 || document.body;
+        if (!isNode(parent1)) {
+            if (isFunction(parent1)) {
+                parent1 = parent1();
+            } else {
+                parent1 = document.querySelector(parent1);
+            }
+        }
+
+        parent1 = isNode(parent1) ? parent1 : null;
+        if (parent1) {
+            if (!((id = parent1._$Cid))) {
+                parent1._$Cid = id = routeId++;
+            }
+            // Add placeholder for this route in this parent node.
+            if (!(route._n[id])) {
+                route._n[id] = [(parent2 = document.createComment(''))];
+                parent1.appendChild(parent2);
+            }
+        }
+        return parent1;
+    }
+
+
+    function processAction(goal, datas, defaultActionParent, route) {
+        var i,
+            mem,
+            params,
+            node,
+            actionParent,
+            placeholder;
+
         if (isArray(goal)) {
             for (i = 0; i < goal.length; i++) {
-                processAction(goal[i], datas, defaultParent, route);
+                processAction(goal[i], datas, defaultActionParent, route);
             }
         } else if (goal) {
-            params = route._p;
-            console.log(5545545, goal, params, datas, defaultParent, route);
+            actionParent = getActionParent(route, goal.parent, defaultActionParent);
+            if (actionParent) {
+                mem = route._n[actionParent._$Cid];
+                placeholder = mem[0];
+                params = route._p;
+                i = isString(goal) ? goal : goal.template;
+
+                while (mem.length > 1) {
+                    // By default we are replacing everything from previous
+                    // action of this route in this parent.
+                    node = mem.pop();
+                    if (node.parentNode) {
+                        node.parentNode.removeChild(node);
+                    }
+                }
+
+                node = $C.tpl[i].apply(null, [].concat(params, datas));
+                node = node && node.firstChild;
+                while (node) {
+                    mem.push(node);
+                    i = node.nextSibling;
+                    node._$Croute = route;
+                    if (placeholder.parentNode) {
+                        placeholder.parentNode.insertBefore(node, placeholder);
+                    }
+                    node = i;
+                }
+
+                console.log(5545545, node, params, datas, defaultActionParent, route);
+            }
         }
     }
 
@@ -594,7 +658,7 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
             d,
             waiting = 0,
             action = route.action || '',
-            actionParent = action.parent,
+            defaultActionParent,
             done = function(index, data, /**/i, children, r, error) {
                 if (index !== undefined) {
                     datas[index] = data;
@@ -609,12 +673,12 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
                         route._data = datas;
 
                         if (error) {
-                            processAction(action.error, [], actionParent, route);
+                            processAction(action.error, [], defaultActionParent, route);
                         } else {
-                            processAction(isString(action) || action.template ? action : action.success, datas, actionParent, route);
+                            processAction(isString(action) || action.template ? action : action.success, datas, defaultActionParent, route);
                         }
 
-                        processAction(action.after, error ? [true] : [], actionParent, route);
+                        processAction(action.after, error ? [true] : [], defaultActionParent, route);
                     }
 
                     if (!error) {
@@ -631,7 +695,9 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
         if (!skip) {
             route._data = self;
 
-            processAction(action.before, [], actionParent, route);
+            defaultActionParent = getActionParent(route, action.parent);
+
+            processAction(action.before, [], defaultActionParent, route);
 
             if (dataSources !== undefined) {
                 if (!isArray(dataSources)) {
@@ -686,20 +752,42 @@ $C.route = (function(decodeURIComponent, encodeURIComponent, undefined) {
     };
 
 
-    function unprocessRoute(route/**/, children, r) {
+    function unprocessRoute(route/**/, children, i, j, nodes, node, leave) {
         children = route.children;
-        for (r in children) { unprocessRoute(children[r]); }
+        for (i = children.length; i--;) { unprocessRoute(children[i]); }
 
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
             route._data.reject();
         }
-        delete route._data;
-        delete route._dataError;
 
-        // Remove nodes.
+        if (route._data !== undefined) {
+            delete route._data;
+            delete route._dataError;
+
+            leave = route.action;
+            if (leave && ((leave = leave.leave))) {
+                if (!isArray(leave)) { leave = [leave]; }
+                for (i = 0; i < leave.length; i++) {
+                    leave[i].call(route);
+                }
+            }
+
+            // Remove nodes.
+            children = route._n;
+            for (i in children) {
+                nodes = children[i];
+                for (j = nodes.length; j--;) {
+                    node = nodes[j];
+                    if (node.parentNode) {
+                        node.parentNode.removeChild(node);
+                    }
+                }
+            }
+            route._n = {};
+        }
     }
 
 
     return API;
-})(decodeURIComponent, encodeURIComponent);
+})(document, decodeURIComponent, encodeURIComponent);

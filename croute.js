@@ -1,3 +1,7 @@
+/*!
+ * conkitty-route v0.0.0, https://github.com/hoho/conkitty-route
+ * (c) 2014 Marat Abdullin, MIT license
+ */
 $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined) {
     'use strict';
 
@@ -197,6 +201,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         pathParams && pathParams.push(part);
         return pathParams ? '(?:/([^/]+))' + (type === 2 ? '?' : '') : part;
     }
+
 
     function parseParameterizedURI(uri, isDataURI) {
         var pathname,
@@ -600,17 +605,19 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function processAction(goal, datas, defaultActionParent, route) {
+    function processAction(goal, datas, defaultActionParent, route, noRemove) {
         var i,
             mem,
             params,
             node,
+            parent,
             actionParent,
-            placeholder;
+            placeholder,
+            args;
 
         if (isArray(goal)) {
             for (i = 0; i < goal.length; i++) {
-                processAction(goal[i], datas, defaultActionParent, route);
+                processAction(goal[i], datas, defaultActionParent, route, i !== 0);
             }
         } else if (goal) {
             actionParent = getActionParent(route, goal.parent, defaultActionParent);
@@ -620,28 +627,41 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 params = route._p;
                 i = isString(goal) ? goal : goal.template;
 
-                while (mem.length > 1) {
+                if (!noRemove) {
+                    noRemove = goal.replace === false;
+                }
+
+                while (mem.length > 1 && !noRemove) {
                     // By default we are replacing everything from previous
                     // action of this route in this parent.
                     node = mem.pop();
-                    if (node.parentNode) {
-                        node.parentNode.removeChild(node);
+                    if ((parent = node.parentNode)) {
+                        parent.removeChild(node);
                     }
                 }
 
-                node = $C.tpl[i].apply(null, [].concat(params, datas));
-                node = node && node.firstChild;
+                args = [].concat(params, datas);
+                node = isFunction(goal) ? goal.apply(route, args) : $C.tpl[i].apply(null, args);
+
+                if (isNode(node)) {
+                    if (node.nodeType === 11) {
+                        node = node.firstChild;
+                    } else if ((parent = node.parentNode)) {
+                        parent.removeChild(node);
+                    }
+                } else {
+                    node = undefined;
+                }
+
                 while (node) {
                     mem.push(node);
                     i = node.nextSibling;
                     node._$Croute = route;
-                    if (placeholder.parentNode) {
-                        placeholder.parentNode.insertBefore(node, placeholder);
+                    if ((parent = placeholder.parentNode)) {
+                        parent.insertBefore(node, placeholder);
                     }
                     node = i;
                 }
-
-                console.log(5545545, node, params, datas, defaultActionParent, route);
             }
         }
     }
@@ -752,7 +772,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    function unprocessRoute(route/**/, children, i, j, nodes, node, leave) {
+    function unprocessRoute(route/**/, children, i, j, nodes, node, parent, leave) {
         children = route.children;
         for (i = children.length; i--;) { unprocessRoute(children[i]); }
 
@@ -779,15 +799,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 nodes = children[i];
                 for (j = nodes.length; j--;) {
                     node = nodes[j];
-                    if (node.parentNode) {
-                        node.parentNode.removeChild(node);
+                    if ((parent = node.parentNode)) {
+                        parent.removeChild(node);
                     }
                 }
             }
             route._n = {};
         }
     }
-
 
     return API;
 })(document, decodeURIComponent, encodeURIComponent);

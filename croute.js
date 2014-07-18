@@ -743,7 +743,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                             d.then(function (ok) {
                                 done(index, ok);
                             }, function () {
-                                delete route._data;
                                 route._dataError = true;
                                 done(index);
                             });

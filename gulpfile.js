@@ -5,6 +5,8 @@ var gulp = require('gulp');
 var eslint = require('gulp-eslint');
 var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
+var conkitty = require('gulp-conkitty');
+var concat = require('gulp-concat');
 var qunit = require('gulp-qunit');
 
 
@@ -14,7 +16,8 @@ gulp.task('jshint', function() {
             rules: {
                 'quotes': [2, 'single'],
                 'no-shadow-restricted-names': 0,
-                'no-underscore-dangle': 0
+                'no-underscore-dangle': 0,
+                'no-use-before-define': [2, 'nofunc']
             },
             env: {
                 'node': true,
@@ -34,6 +37,42 @@ gulp.task('uglify', function() {
 gulp.task('qunit', ['uglify'], function() {
     return gulp.src('./test/*.html')
         .pipe(qunit());
+});
+
+gulp.task('templates', function() {
+    return gulp.src('./test/*.ctpl')
+        .pipe(conkitty({
+            common: 'common.js',
+            templates: 'tpl.js'
+        }))
+        .pipe(concat('js.js'))
+        .pipe(gulp.dest('tmp'));
+});
+
+gulp.task('serve', ['templates'], function() {
+    var http = require('http'),
+        fs = require('fs'),
+        routes = {
+            '/qunit.css': 'node_modules/qunitjs/qunit/qunit.css',
+            '/qunit.js': 'node_modules/qunitjs/qunit/qunit.js',
+            '/histery.js': require.resolve('histery'),
+            '/tpl.js': 'tmp/js.js',
+            '/croute.js': 'croute.js',
+            '/croute.min.js': 'croute.min.js'
+        };
+
+    http.createServer(function serve(req, res) {
+        if (req.url.substring(0, 5) === '/api/') {
+            setTimeout(function() {
+                res.end(JSON.stringify({some: 'data', rnd: Math.random(), url: req.url}));
+            }, 1000);
+        } else {
+            var file = routes[req.url];
+            fs.createReadStream(file || 'test/index.html').pipe(res);
+        }
+    }).listen(3000, 'localhost');
+
+    console.log('Listening on port 3000');
 });
 
 

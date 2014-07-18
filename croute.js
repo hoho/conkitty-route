@@ -114,11 +114,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         };
 
 
-    proto.match = function(uri) {
-
-    };
-
-
     proto.on = function(event, handler) {
 
     };
@@ -614,7 +609,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         parent1 = isNode(parent1) ? parent1 : null;
         if (parent1) {
             if (!((id = parent1._$Cid))) {
-                parent1._$Cid = id = routeId++;
+                parent1._$Cid = id = ++routeId;
             }
             // Add placeholder for this route in this parent node.
             if (!(route._n[id])) {

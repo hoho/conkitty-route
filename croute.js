@@ -129,6 +129,27 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
+    proto.reload = function() {
+        var self = this,
+            parent;
+
+        if (self._id in currentRoutes) {
+            parent = self.parent;
+            while (parent) {
+                // Check if none of parent routes is in progress.
+                if (parent._data instanceof ProcessRoute) {
+                    break;
+                }
+                parent = parent.parent;
+            }
+            if (!parent) {
+                unprocessRoute(self, true);
+                new ProcessRoute(self);
+            }
+        }
+    };
+
+
     // To avoid multiple parsing of query params for each route, parse them
     // once here.
     $H.on(
@@ -771,7 +792,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    function unprocessRoute(route/**/, children, i, j, nodes, node, parent, leave) {
+    function unprocessRoute(route, keepPlaceholders) {
+        var children,
+            i,
+            j,
+            nodes,
+            node,
+            parent,
+            leave;
+
         children = route.children;
         for (i = children.length; i--;) { unprocessRoute(children[i]); }
 
@@ -794,16 +823,19 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             // Remove nodes.
             children = route._n;
+            keepPlaceholders = keepPlaceholders ? 1 : 0;
             for (i in children) {
                 nodes = children[i];
-                for (j = nodes.length; j--;) {
-                    node = nodes[j];
+                while (nodes.length > keepPlaceholders) {
+                    node = nodes.pop();
                     if ((parent = node.parentNode)) {
                         parent.removeChild(node);
                     }
                 }
             }
-            route._n = {};
+            if (!keepPlaceholders) {
+                route._n = {};
+            }
         }
     }
 

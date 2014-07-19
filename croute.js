@@ -87,7 +87,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                     for (i in currentRoutes) {
                         route = currentRoutes[i];
-                        if (!(i in newRoutes) || reloadCurrent || !route._s || route._dataError) {
+                        if (!(i in newRoutes) ||
+                            reloadCurrent ||
+                            !route._s ||
+                            route.keep === false ||
+                            route._dataError)
+                        {
                             unprocessRoute(route);
                         }
                     }
@@ -358,6 +363,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             self.title = action.title;
             self.action = action.action;
             self.data = action.data;
+            self.keep = action.keep;
         }
 
         if (!paramsOffset) { paramsOffset = 1; }
@@ -656,8 +662,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     }
                 }
 
-                args = [].concat(params, datas);
-                node = isFunction(goal) ? goal.apply(route, args) : $C.tpl[i].apply(null, args);
+                args = [].concat(datas, params, route);
+                node = isFunction(goal) ? goal.apply(null, args) : $C.tpl[i].apply(null, args);
 
                 if (isNode(node)) {
                     if (node.nodeType === 11) {

@@ -601,7 +601,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     function getActionParent(route, parent1, parent2/**/, id) {
-        parent1 = parent1 || parent2 || document.body;
+        parent1 = parent1 === undefined && parent2 === undefined ?
+            document.body
+            :
+            parent1 || parent2;
+
         if (!isNode(parent1)) {
             if (isFunction(parent1)) {
                 parent1 = parent1();
@@ -621,6 +625,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 parent1.appendChild(parent2);
             }
         }
+
         return parent1;
     }
 
@@ -715,7 +720,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         if (error) {
                             processAction(action.error, [], defaultActionParent, route);
                         } else {
-                            processAction(isString(action) || action.template ? action : action.success, datas, defaultActionParent, route);
+                            processAction(isString(action) || action.template || isFunction(action) ? action : action.success, datas, defaultActionParent, route);
                         }
 
                         processAction(action.after, error ? [true] : [], defaultActionParent, route);

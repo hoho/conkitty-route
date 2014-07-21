@@ -304,13 +304,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 ok = true;
                 break;
 
-            case typeof constraint === 'function':
-                if ((ok = (((newvalue = constraint(value))) !== undefined))) {
-                    value = newvalue;
-                    break;
-                }
+            case isFunction(constraint):
+                ok = (((value = constraint(value))) !== undefined) || expected.optional;
+                break;
 
-            case value === undefined && expected.optional:
+            case (value === undefined) && expected.optional:
                 ok = true;
                 break;
 

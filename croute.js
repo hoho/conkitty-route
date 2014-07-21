@@ -150,6 +150,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
+    proto.params = function() {
+        return this._a ? this._p : this._data;
+    };
+
+
+    proto.data = function() {
+        var d = this._data;
+        return isArray(d) ? (d.length < 2 ? d[0] : d) : undefined;
+    };
+
+
     // To avoid multiple parsing of query params for each route, parse them
     // once here.
     $H.on(
@@ -360,7 +371,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             paramsConstraints = action.params;
             self.title = action.title;
             self.action = action.action;
-            self.data = action.data;
+            self.dataSource = action.data;
             self.keep = action.keep;
         }
 
@@ -698,7 +709,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         var skip = (route._data !== undefined) && !route._dataError,
             self = this,
             datas = self.datas = [],
-            dataSources = route.data,
+            dataSource = route.dataSource,
             i,
             d,
             waiting = 0,
@@ -720,7 +731,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         if (error) {
                             processAction(action.error, [], defaultActionParent, route);
                         } else {
-                            processAction(isString(action) || action.template || isFunction(action) ? action : action.success, datas, defaultActionParent, route);
+                            processAction(
+                                isString(action) ||
+                                isFunction(action) ||
+                                isArray(action) ||
+                                action.template
+                                ?
+                                action
+                                :
+                                action.success,
+
+                                datas,
+                                defaultActionParent,
+                                route
+                            );
                         }
 
                         processAction(action.after, error ? [true] : [], defaultActionParent, route);
@@ -744,13 +768,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             processAction(action.before, [], defaultActionParent, route);
 
-            if (dataSources !== undefined) {
-                if (!isArray(dataSources)) {
-                    dataSources = [dataSources];
+            if (dataSource !== undefined) {
+                if (!isArray(dataSource)) {
+                    dataSource = [dataSource];
                 }
 
-                for (i = 0; i < dataSources.length; i++) {
-                    d = dataSources[i];
+                for (i = 0; i < dataSource.length; i++) {
+                    d = dataSource[i];
 
                     if (isString(d)) {
                         d = new AjaxGet(d, route._p);

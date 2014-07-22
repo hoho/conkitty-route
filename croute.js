@@ -57,7 +57,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                 defaultTitle = title;
 
-                $H.on(/^.*$/, {go: function() {
+                $H.on(undefined, function() {
                     var newRootRoute,
                         newRoutes = {},
                         i,
@@ -69,19 +69,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     for (i = 0; i < routes.length; i++) {
                         route = routes[i];
                         if (route._a) {
+                            newRootRoute = route;
                             flat = route._flat;
                             for (j = 0; j < flat.length; j++) {
                                 froute = flat[j];
-                                if (froute._a && (froute._d || froute._achild)) {
-                                    // Active route with full path match.
-                                    newRootRoute = route;
-                                    if (froute.parent) { froute.parent._achild = true; }
+                                if (froute._a) {
                                     newRoutes[froute._id] = froute;
                                 }
                             }
-                            if (newRootRoute) {
-                                break;
-                            }
+                            break;
                         }
                     }
 
@@ -103,7 +99,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     if (newRootRoute) {
                         new ProcessRoute(newRootRoute);
                     }
-                }});
+                });
 
                 running = true;
                 $H.run();
@@ -151,13 +147,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     proto.params = function() {
-        return this._a ? this._p : this._data;
+        return this._p || undefined;
     };
 
 
     proto.data = function() {
         var d = this._data;
-        return isArray(d) ? (d.length < 2 ? d[0] : d) : undefined;
+        return isArray(d) ? (isArray(this.dataSource) ? d : d[0]) : undefined;
     };
 
 
@@ -165,8 +161,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     // once here.
     $H.on(
         {
-            pathname: /^.*$/,
-            search: function(search/**/, i, name, value, cur) {
+            search: function(search/**/, i, j, name, value, cur, flat) {
+                // Reset active flags.
+                for (i = 0; i < routes.length; i++) {
+                    cur = routes[i];
+                    flat = cur._flat;
+                    for (j = 0; j < flat.length; j++) {
+                        flat[j]._a = 0;
+                    }
+                }
+
+                // Parse querystring.
                 currentQueryParams = {};
                 search = search.split('&');
                 for (i = 0; i < search.length; i++) {
@@ -188,7 +193,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         currentQueryParams[name] = cur;
                     }
                 }
-                return true;
             }
         },
         {}
@@ -356,6 +360,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             frames,
             f,
             route,
+            childRoute,
             pathnameExpr = new RegExp(pathExpr.join('') + '(?:/(.*))?'),
             pathParams = uri.pathname[1],
             uriSearch = uri.search,
@@ -384,9 +389,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 i;
 
             if (match) {
-                // self._d means that there are no further pathname components.
-                self._d = !match[paramsOffset + pathParams.length];
-
                 for (i = pathParams.length; i--;) {
                     if (!checkAndSetParam(
                             undefined,
@@ -400,9 +402,22 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         return false;
                     }
                 }
+
+                // self._d means that there are no further pathname components.
+                // self._a means active route.
+                if ((self._d = (!match[paramsOffset + pathParams.length] && self.action))) {
+                    // Deepest matched frame and there is action for this route.
+                    self._a = 1;
+                    i = parent;
+                    while (i) {
+                        // Tell parents about it.
+                        i._a++;
+                        i = i.parent;
+                    }
+                }
             }
 
-            return match ? currentParams : false;
+            return self._a ? currentParams : false;
         };
 
 
@@ -412,7 +427,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             if (uriSearch) {
                 route.search = function() {
                     var queryparams = {},
-                        queryparam;
+                        queryparam,
+                        i;
 
                     for (queryparam in uriSearch) {
                         if (!checkAndSetParam(
@@ -424,6 +440,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                 currentParams)
                             )
                         {
+                            if (self._d && self._a) {
+                                i = self;
+                                while (i) {
+                                    // Tell parents about it.
+                                    i._a--;
+                                    i = i.parent;
+                                }
+
+                            }
                             return false;
                         }
                     }
@@ -434,37 +459,38 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             if (uriHash) {
                 route.hash = function(hash) {
-                    return checkAndSetParam(
+                    var i = checkAndSetParam(
                             undefined,
                             hash || undefined,
                             uriHash,
                             paramsConstraints,
                             undefined,
                             currentParams
-                        ) ?
+                        )
+                        ?
                         hash || true
                         :
                         false;
+
+                    if (!i && self._d && self._a) {
+                        i = self;
+                        while (i) {
+                            // Tell parents about it.
+                            i._a--;
+                            i = i.parent;
+                        }
+                    }
+
+                    return i;
                 };
             }
         }
-
-        $H.on(route, {
-            go: function(same) {
-                self._a = self.parent ? self.parent._a : true;
-                self._p = currentParams;
-                self._s = same;
-            },
-            leave: function() {
-                self._a = self._achild = self._p = null;
-            }
-        });
 
         self.children = [];
 
         if ((frames = action && action.frames)) {
             for (f in frames) {
-                route = new Route(
+                childRoute = new Route(
                     f,
                     frames[f],
                     pathExpr,
@@ -472,10 +498,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     self
                 );
 
-                routesFlat.push(route);
-                self.children.push(route);
+                routesFlat.push(childRoute);
+                self.children.push(childRoute);
             }
         }
+
+        $H.on(route, {
+            go: function(same) {
+                self._p = currentParams;
+                self._s = same;
+            },
+            leave: function() {
+                self._p = null;
+            }
+        });
     }
 
 
@@ -823,7 +859,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     function unprocessRoute(route, keepPlaceholders) {
         var children,
             i,
-            j,
             nodes,
             node,
             parent,

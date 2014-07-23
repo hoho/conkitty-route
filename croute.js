@@ -38,11 +38,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 return API;
             },
 
-            //redirect: function() {
-            //
-            //},
-
-            get: function(uri) {
+            get: function() {
 
             },
 
@@ -360,22 +356,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     function Route(uri, action, pathExpr, paramsOffset, parent) {
-        uri = parseParameterizedURI(uri);
-        pathExpr = [].concat(pathExpr || [], uri.pathname[0]);
-
         var self = this,
             frames,
             f,
-            route,
+            route = null,
             childRoute,
-            pathnameExpr = new RegExp(pathExpr.join('') + '(?:/(.*))?'),
-            pathParams = uri.pathname[1],
-            uriSearch = uri.search,
-            uriHash = uri.hash,
+            pathnameExpr,
+            pathParams,
+            uriSearch,
+            uriHash,
             paramsConstraints,
             currentParams = {};
 
         self.parent = parent;
+        self.children = [];
         self._id = 'r' + (++routeId);
         self._n = {};
 
@@ -387,131 +381,144 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             self.keep = action.keep;
         }
 
-        if (!paramsOffset) { paramsOffset = 1; }
+        if (uri) {
+            uri = parseParameterizedURI(uri);
+            pathExpr = [].concat(pathExpr || [], uri.pathname[0]);
 
-        route = function(pathname) {
-            currentParams = {};
+            pathnameExpr = new RegExp(pathExpr.join('') + '(?:/(.*))?');
+            pathParams = uri.pathname[1];
+            uriSearch = uri.search;
+            uriHash = uri.hash;
 
-            var match = pathname.match(pathnameExpr),
-                i;
+            if (!paramsOffset) { paramsOffset = 1; }
 
-            if (match) {
-                for (i = pathParams.length; i--;) {
-                    if (!checkAndSetParam(
-                            undefined,
-                            match[paramsOffset + i],
-                            pathParams[i],
-                            paramsConstraints,
-                            undefined,
-                            currentParams)
-                        )
-                    {
-                        return false;
-                    }
-                }
+            route = function(pathname) {
+                currentParams = {};
 
-                // self._d means that there are no further pathname components.
-                // self._a means active route.
-                if ((self._d = (!match[paramsOffset + pathParams.length] && self.action))) {
-                    // Deepest matched frame and there is action for this route.
-                    self._a = 1;
-                    i = parent;
-                    while (i) {
-                        // Tell parents about it.
-                        i._a++;
-                        i = i.parent;
-                    }
-                }
-            }
+                var match = pathname.match(pathnameExpr),
+                    i;
 
-            return self._a ? currentParams : false;
-        };
-
-
-        if (uriSearch || uriHash) {
-            route = {pathname: route};
-
-            if (uriSearch) {
-                route.search = function() {
-                    var queryparams = {},
-                        queryparam,
-                        i;
-
-                    for (queryparam in uriSearch) {
+                if (match) {
+                    for (i = pathParams.length; i--;) {
                         if (!checkAndSetParam(
-                                queryparam,
-                                currentQueryParams[queryparam],
-                                uriSearch[queryparam],
+                                undefined,
+                                match[paramsOffset + i],
+                                pathParams[i],
                                 paramsConstraints,
-                                queryparams,
+                                undefined,
                                 currentParams)
                             )
                         {
-                            if (self._d && self._a) {
-                                i = self;
-                                while (i) {
-                                    // Tell parents about it.
-                                    i._a--;
-                                    i = i.parent;
-                                }
-
-                            }
                             return false;
                         }
                     }
 
-                    return queryparams;
-                };
-            }
-
-            if (uriHash) {
-                route.hash = function(hash) {
-                    var i = checkAndSetParam(
-                            undefined,
-                            hash || undefined,
-                            uriHash,
-                            paramsConstraints,
-                            undefined,
-                            currentParams
-                        )
-                        ?
-                        hash || true
-                        :
-                        false;
-
-                    if (!i && self._d && self._a) {
-                        i = self;
+                    // self._d means that there are no further pathname components.
+                    // self._a means active route.
+                    if ((self._d = (!match[paramsOffset + pathParams.length] && self.action))) {
+                        // Deepest matched frame and there is action for this route.
+                        self._a = 1;
+                        i = parent;
                         while (i) {
                             // Tell parents about it.
-                            i._a--;
+                            i._a++;
                             i = i.parent;
                         }
                     }
+                }
 
-                    return i;
-                };
+                return self._a ? currentParams : false;
+            };
+
+
+            if (uriSearch || uriHash) {
+                route = {pathname: route};
+
+                if (uriSearch) {
+                    route.search = function() {
+                        var queryparams = {},
+                            queryparam,
+                            i;
+
+                        for (queryparam in uriSearch) {
+                            if (!checkAndSetParam(
+                                    queryparam,
+                                    currentQueryParams[queryparam],
+                                    uriSearch[queryparam],
+                                    paramsConstraints,
+                                    queryparams,
+                                    currentParams)
+                                )
+                            {
+                                if (self._d && self._a) {
+                                    i = self;
+                                    while (i) {
+                                        // Tell parents about it.
+                                        i._a--;
+                                        i = i.parent;
+                                    }
+
+                                }
+                                return false;
+                            }
+                        }
+
+                        return queryparams;
+                    };
+                }
+
+                if (uriHash) {
+                    route.hash = function(hash) {
+                        var i = checkAndSetParam(
+                                undefined,
+                                hash || undefined,
+                                uriHash,
+                                paramsConstraints,
+                                undefined,
+                                currentParams
+                            )
+                            ?
+                            hash || true
+                            :
+                            false;
+
+                        if (!i && self._d && self._a) {
+                            i = self;
+                            while (i) {
+                                // Tell parents about it.
+                                i._a--;
+                                i = i.parent;
+                            }
+                        }
+
+                        return i;
+                    };
+                }
             }
-        }
 
-        self.children = [];
+            if ((frames = action && action.frames)) {
+                for (f in frames) {
+                    childRoute = new Route(
+                        f,
+                        frames[f],
+                        pathExpr,
+                        paramsOffset + pathParams.length,
+                        self
+                    );
 
-        if ((frames = action && action.frames)) {
-            for (f in frames) {
-                childRoute = new Route(
-                    f,
-                    frames[f],
-                    pathExpr,
-                    paramsOffset + pathParams.length,
-                    self
-                );
-
-                routesFlat.push(childRoute);
-                self.children.push(childRoute);
+                    routesFlat.push(childRoute);
+                    self.children.push(childRoute);
+                }
             }
         }
 
         $H.on(route, {
             go: function(same) {
+                if (!route) {
+                    // It's not found target, no URI matching functions have
+                    // called, set active flag here.
+                    self._a = 1;
+                }
                 self._p = currentParams;
                 self._s = same;
             },

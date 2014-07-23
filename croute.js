@@ -241,7 +241,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         }
         params[part] = type;
         part = {param: part, optional: type === 2, parent: parent};
-        console.log(part);
         pathParams && pathParams.push(part);
         return pathParams ? '(?:/([^/]+))' + (type === 2 ? '?' : '') : part;
     }

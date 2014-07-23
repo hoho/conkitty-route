@@ -226,14 +226,22 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function pushParam(part, params, allowDuplicates, pathParams/**/, type) {
-        type = part.charAt(1) === '?' ? 2 : 1;
-        part = part.substring(type);
+    function pushParam(part, params, allowDuplicates, pathParams/**/, type, parent) {
+        parent = 1;
+        if (allowDuplicates) {
+            // Allow parent route params in data URIs.
+            while (part.charAt(parent) === ':') {
+                parent++;
+            }
+        }
+        type = part.charAt(parent--) === '?' ? 2 : 1;
+        part = part.substring(parent + type);
         if ((part in params) && !allowDuplicates) {
             throw new Error('Duplicate param');
         }
         params[part] = type;
-        part = {param: part, optional: type === 2};
+        part = {param: part, optional: type === 2, parent: parent};
+        console.log(part);
         pathParams && pathParams.push(part);
         return pathParams ? '(?:/([^/]+))' + (type === 2 ? '?' : '') : part;
     }
@@ -515,7 +523,18 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function AjaxGet(uri, params) {
+    function getAjaxParam(route, param/**/, i) {
+        i = param.parent;
+        while (route && i) {
+            route = route.parent;
+            i--;
+        }
+        i = route && route._p;
+        return i[param.param];
+    }
+
+
+    function AjaxGet(uri, route) {
         // TODO: Test params and throw errors when necessary.
         var ajaxPathname,
             ajaxQueryparams,
@@ -536,14 +555,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         for (i = 0; i < pathObj.length; i++) {
             part = pathObj[i];
             if (part.param) {
-                part = params[part.param];
-                if (part !== undefined) { part = encodeURIComponent(part); }
+                val = getAjaxParam(route, part);
             } else {
-                part = encodeURIComponent(part);
+                val = part;
             }
 
-            if (part !== undefined) {
-                ajaxPathname.push(part);
+            if (val !== undefined) {
+                ajaxPathname.push(encodeURIComponent(val));
             }
         }
 
@@ -552,7 +570,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 part = pathObj[i];
                 i = encodeURIComponent(i);
                 if (part.param) {
-                    val = params[part.param];
+                    val = getAjaxParam(route, part);
                     if (isArray(val)) {
                         for (j = 0; j < val.length; j++) {
                             ajaxQueryparams.push(i + '=' + encodeURIComponent(val[j]));
@@ -813,7 +831,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     d = dataSource[i];
 
                     if (isString(d)) {
-                        d = new AjaxGet(d, route._p);
+                        d = new AjaxGet(d, route);
                     }
 
                     if (isFunction(d)) {

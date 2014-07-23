@@ -2,6 +2,9 @@
  * conkitty-route v0.0.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
+
+/* global $C */
+/* global $H */
 $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined) {
     'use strict';
 
@@ -26,6 +29,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             add: function(uri, action) {
                 checkRunning();
                 if (isString(uri) && isString(action)) {
+                    // It's a rewrite.
                     $H.on(uri, action);
                 } else {
                     routesFlat = []; // Depth-first flat subroutes list.
@@ -237,7 +241,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         }
         params[part] = type;
         part = {param: part, optional: type === 2, parent: parent};
-        pathParams && pathParams.push(part);
+        if (pathParams) { pathParams.push(part); }
         return pathParams ? '(?:/([^/]+))' + (type === 2 ? '?' : '') : part;
     }
 
@@ -308,7 +312,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function checkAndSetParam(name, value, expected, constraints, queryparams, params/**/, constraint, newvalue, ok) {
+    function checkAndSetParam(name, value, expected, constraints, queryparams, params/**/, constraint, ok) {
         if (expected.param && constraints) {
             constraint = constraints[expected.param];
         }
@@ -631,8 +635,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
     proto.then = function(ok, error) {
         var self = this;
-        ok && self.ok.push(ok);
-        error && self.error.push(error);
+        if (ok) { self.ok.push(ok); }
+        if (error) { self.error.push(error); }
         self.done();
     };
 
@@ -775,6 +779,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             waiting = 0,
             action = route.action || '',
             defaultActionParent,
+            resolve,
             done = function(index, data, /**/i, children, r, error) {
                 if (index !== undefined) {
                     datas[index] = data;
@@ -833,6 +838,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     dataSource = [dataSource];
                 }
 
+                resolve = function(index) {
+                    waiting++;
+                    d.then(function (ok) {
+                        done(index, ok);
+                    }, function () {
+                        route._dataError = true;
+                        done(index);
+                    });
+                };
+
                 for (i = 0; i < dataSource.length; i++) {
                     d = dataSource[i];
 
@@ -847,16 +862,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     datas.push(d);
 
                     if (d && isFunction(d.then)) {
-                        (function (index) {
-                            waiting++;
-                            d.then(function (ok) {
-                                done(index, ok);
-                            }, function () {
-                                route._dataError = true;
-                                done(index);
-                            });
-                        })(i);
+                        resolve(i);
                     }
+
                 }
             }
         }

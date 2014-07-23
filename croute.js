@@ -13,14 +13,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         running,
 
         currentQueryParams,
-
         currentRoutes = {},
 
         reloadCurrent,
 
         routes = [],
         routesFlat,
-
         routeId = 0,
 
         proto = Route.prototype,
@@ -49,13 +47,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             set: function(uri, reload) {
                 checkRunning(true);
                 reloadCurrent = reload;
-                $H.go(uri);
+                return $H.go(uri);
             },
 
             run: function(title) {
                 checkRunning();
 
-                defaultTitle = title;
+                defaultTitle = title || '';
 
                 $H.on(undefined, function() {
                     var newRootRoute,
@@ -105,24 +103,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 $H.run();
             },
 
-            on: function(event, handler) {
+            on: function(event, handler, route) {
 
             },
 
-            off: function(event, handler) {
+            off: function(event, handler, route) {
 
             }
         };
-
-
-    proto.on = function(event, handler) {
-
-    };
-
-
-    proto.off = function(event, handler) {
-
-    };
 
 
     proto.reload = function() {
@@ -379,7 +367,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         if (action) {
             paramsConstraints = action.params;
-            self.title = action.title;
+            self.title = action.title || (parent && parent.title);
             self.action = action.action;
             self.dataSource = action.data;
             self.keep = action.keep;
@@ -830,6 +818,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             route._data = self;
 
             defaultActionParent = getActionParent(route, action.parent);
+
+            document.title = (i = (isFunction((i = route.title)) ? i() : i)) === undefined
+                ?
+                defaultTitle
+                :
+                i;
 
             processAction(action.before, [], defaultActionParent, route);
 

@@ -25,17 +25,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         API = {
             add: function(uri, action) {
                 checkRunning();
-                routesFlat = []; // Depth-first flat subroutes list.
-                var route = new Route(uri, action);
-                routes.push(route);
-                routesFlat.push(route);
-                route._flat = routesFlat;
-                routesFlat = undefined;
+                if (isString(uri) && isString(action)) {
+                    $H.on(uri, action);
+                } else {
+                    routesFlat = []; // Depth-first flat subroutes list.
+                    var route = new Route(uri, action);
+                    routes.push(route);
+                    routesFlat.push(route);
+                    route._flat = routesFlat;
+                    routesFlat = undefined;
+                }
                 return API;
-            },
-
-            skip: function(route) {
-                return API.add(route);
             },
 
             //redirect: function() {
@@ -163,10 +163,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         {
             search: function(search/**/, i, j, name, value, cur, flat) {
                 // Reset active flags.
-                for (i = 0; i < routes.length; i++) {
+                for (i = routes.length; i--;) {
                     cur = routes[i];
                     flat = cur._flat;
-                    for (j = 0; j < flat.length; j++) {
+                    for (j = flat.length; j--;) {
                         flat[j]._a = 0;
                     }
                 }

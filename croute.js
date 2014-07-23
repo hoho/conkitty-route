@@ -21,6 +21,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         routesFlat,
         routeId = 0,
 
+        eventHandlers = {
+            before: {},
+            success: {},
+            error: {},
+            after: {},
+            leave: {}
+        },
+
+        whitespace = /[\x20\t\r\n\f]+/,
+
         proto = Route.prototype,
 
         API = {
@@ -38,10 +48,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     routesFlat = undefined;
                 }
                 return API;
-            },
-
-            get: function() {
-
             },
 
             set: function(uri, reload) {
@@ -104,11 +110,55 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             },
 
             on: function(event, handler, route) {
+                var i,
+                    handlers,
+                    currentHandlers;
 
+                if (isString(event) && isFunction(handler)) {
+                    event = event.split(whitespace);
+                    if (event.length === 1) {
+                        event += '';
+                        if ((handlers = eventHandlers[event])) {
+                            i = (route && route._id) || '';
+                            if (!((currentHandlers = handlers[i]))) {
+                                currentHandlers = handlers[i] = [];
+                            }
+                            currentHandlers.push(handler);
+                        }
+                    } else {
+                        for (i = event.length; i--;) {
+                            API.on(event[i], handler, route);
+                        }
+                    }
+                }
+                return API;
             },
 
             off: function(event, handler, route) {
+                var i,
+                    currentHandlers;
 
+                if (isString(event) && isFunction(handler)) {
+                    event = event.split(whitespace);
+                    if (event.length === 1) {
+                        event += '';
+                        i = (route && route._id) || '';
+                        if (((currentHandlers = eventHandlers[event])) &&
+                            ((currentHandlers = currentHandlers[i])))
+                        {
+                            for (i = currentHandlers.length; i--;) {
+                                if (currentHandlers[i] === handler) {
+                                    currentHandlers.splice(i, 1);
+                                }
+                            }
+                        }
+                    } else {
+                        for (i = event.length; i--;) {
+                            API.on(event[i], handler, route);
+                        }
+                    }
+                }
+                return API;
             }
         };
 
@@ -210,6 +260,25 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     function checkRunning(yes) {
         if (!!running !== !!yes) {
             throw new Error('Running: ' + !!running);
+        }
+    }
+
+
+    function emitEvent(event, route, args/**/, handlers, cur, i) {
+        if ((handlers = eventHandlers[event])) {
+            args = [].concat(event, args || []);
+
+            if ((cur = handlers[route._id])) {
+                for (i = 0; i < cur.length; i++) {
+                    cur[i].apply(route, args);
+                }
+            }
+
+            if ((cur = handlers[''])) {
+                for (i = 0; i < cur.length; i++) {
+                    cur[i].apply(route, args);
+                }
+            }
         }
     }
 
@@ -349,6 +418,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
     function Route(uri, action, pathExpr, paramsOffset, parent) {
         var self = this,
+            i,
             frames,
             f,
             route = null,
@@ -368,9 +438,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (action) {
             paramsConstraints = action.params;
             self.title = action.title || (parent && parent.title);
-            self.action = action.action;
+            self.action = f = action.action;
             self.dataSource = action.data;
             self.keep = action.keep;
+
+            if (f && ((f = f.leave))) {
+                if (!isArray(f)) { f = [f]; }
+                for (i = 0; i < f.length; i++) {
+                    API.on('leave', f[i], self);
+                }
+            }
         }
 
         if (uri) {
@@ -671,7 +748,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         if (!isNode(parent1)) {
             if (isFunction(parent1)) {
-                parent1 = parent1();
+                parent1 = parent1.call(route);
             } else {
                 parent1 = document.querySelector(parent1);
             }
@@ -729,7 +806,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
 
                 args = [].concat(datas, params, route);
-                node = isFunction(goal) ? goal.apply(null, args) : $C.tpl[i].apply(null, args);
+                node = isFunction(goal) ? goal.apply(route, args) : $C.tpl[i].apply(null, args);
 
                 if (isNode(node)) {
                     if (node.nodeType === 11) {
@@ -783,6 +860,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                         if (error) {
                             processAction(action.error, [], defaultActionParent, route);
+                            emitEvent('error', route);
                         } else {
                             processAction(
                                 isString(action) ||
@@ -798,9 +876,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                 defaultActionParent,
                                 route
                             );
+                            emitEvent('success', route);
                         }
 
                         processAction(action.after, error ? [true] : [], defaultActionParent, route);
+                        emitEvent('after', route);
                     }
 
                     if (!error) {
@@ -826,6 +906,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 i;
 
             processAction(action.before, [], defaultActionParent, route);
+            emitEvent('before', route);
 
             if (dataSource !== undefined) {
                 if (!isArray(dataSource)) {
@@ -850,7 +931,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     }
 
                     if (isFunction(d)) {
-                        d = d();
+                        d = d.call(route);
                     }
 
                     datas.push(d);
@@ -902,13 +983,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             delete route._data;
             delete route._dataError;
 
-            leave = route.action;
-            if (leave && ((leave = leave.leave))) {
-                if (!isArray(leave)) { leave = [leave]; }
-                for (i = 0; i < leave.length; i++) {
-                    leave[i].call(route);
-                }
-            }
+            emitEvent('leave', route);
 
             // Remove nodes.
             children = route._n;

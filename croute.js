@@ -21,6 +21,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         routesFlat,
         routeId = 0,
 
+        notFoundRoute,
+
         eventHandlers = {
             before: {},
             success: {},
@@ -40,12 +42,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     // It's a rewrite.
                     $H.on(uri, action);
                 } else {
-                    routesFlat = []; // Depth-first flat subroutes list.
-                    var route = new Route(uri, action);
-                    routes.push(route);
-                    routesFlat.push(route);
-                    route._flat = routesFlat;
-                    routesFlat = undefined;
+                    if (uri) {
+                        addRoute(uri, action);
+                    } else if (!notFoundRoute) {
+                        notFoundRoute = action;
+                    }
                 }
                 return API;
             },
@@ -60,6 +61,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 checkRunning();
 
                 defaultTitle = title || '';
+
+                if (notFoundRoute) {
+                    addRoute(undefined, notFoundRoute);
+                }
 
                 $H.on(undefined, function() {
                     var newRootRoute,
@@ -237,6 +242,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     );
 
 
+    function addRoute(uri, action/**/, route) {
+        routesFlat = []; // Depth-first flat subroutes list.
+        route = new Route(uri, action);
+        routes.push(route);
+        routesFlat.push(route);
+        route._flat = routesFlat;
+    }
+
+
     function isFunction(val) {
         return typeof val === 'function';
     }
@@ -322,8 +336,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             hash = h;
         });
 
-        for (i = 0; i < pathname.length; i++) {
-            if ((name = decodeURIComponent(pathname[i]))) {
+        value = pathname.length;
+        for (i = 0; i < value; i++) {
+            if ((name = decodeURIComponent(pathname[i])) || (isDataURI && (i === value - 1))) {
                 pathExpr.push(
                         name.charAt(0) === ':' ?
                         pushParam(name, params, isDataURI, isDataURI ? undefined : pathParams)
@@ -416,12 +431,23 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
+    function deactivateRoute(route/**/, a) {
+        if ((a = route._a)) {
+            while (route) {
+                // Tell parents about it.
+                route._a -= a;
+                route = route.parent;
+            }
+        }
+    }
+
+
     function Route(uri, action, pathExpr, paramsOffset, parent) {
         var self = this,
             i,
             frames,
             f,
-            route = null,
+            route = /.*/,
             childRoute,
             pathnameExpr,
             pathParams,
@@ -478,6 +504,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                 currentParams)
                             )
                         {
+                            deactivateRoute(self);
                             return false;
                         }
                     }
@@ -519,15 +546,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                     currentParams)
                                 )
                             {
-                                if (self._d && self._a) {
-                                    i = self;
-                                    while (i) {
-                                        // Tell parents about it.
-                                        i._a--;
-                                        i = i.parent;
-                                    }
-
-                                }
+                                deactivateRoute(self);
                                 return false;
                             }
                         }
@@ -551,13 +570,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                             :
                             false;
 
-                        if (!i && self._d && self._a) {
-                            i = self;
-                            while (i) {
-                                // Tell parents about it.
-                                i._a--;
-                                i = i.parent;
-                            }
+                        if (!i) {
+                            deactivateRoute(self);
                         }
 
                         return i;
@@ -583,7 +597,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         $H.on(route, {
             go: function(same) {
-                if (!route) {
+                if (!uri) {
                     // It's not found target, no URI matching functions have
                     // called, set active flag here.
                     self._a = 1;

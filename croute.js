@@ -476,7 +476,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }
         }
 
-        if (uri) {
+        if (uri !== undefined) {
             uri = parseParameterizedURI(uri);
             pathExpr = [].concat(pathExpr || [], uri.pathname[0]);
 

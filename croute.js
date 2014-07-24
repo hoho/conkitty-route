@@ -113,6 +113,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 });
 
                 running = true;
+                document.body.addEventListener('click', function(e) {
+                    var elem = e.target;
+                    while (elem && !(elem instanceof HTMLAnchorElement)) {
+                        elem = elem.parentNode;
+                    }
+                    if (elem && (elem.host === location.host)) {
+                        e.preventDefault();
+                        API.set(elem.href);
+                    }
+                }, false);
                 $H.run();
             },
 

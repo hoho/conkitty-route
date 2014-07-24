@@ -394,11 +394,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         }
 
         switch (true) {
-            case value !== undefined && !constraint:
-                ok = true;
-                break;
-
-            case ('value' in expected) && (expected.value === value):
+            case 'value' in expected ? expected.value === value : (value !== undefined && !constraint):
                 ok = true;
                 break;
 
@@ -801,6 +797,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 processAction(goal[i], datas, defaultActionParent, route, i !== 0);
             }
         } else if ((goal = (goal === undefined ? undefined : goal || {}))) {
+            // null-value goal could be used to remove previous action nodes.
             actionParent = getActionParent(route, goal.parent, defaultActionParent);
             if (actionParent) {
                 mem = route._n[actionParent._$Cid];

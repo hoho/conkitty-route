@@ -134,7 +134,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 if (isString(event) && isFunction(handler)) {
                     event = event.split(whitespace);
                     if (event.length === 1) {
-                        event += '';
                         if ((handlers = eventHandlers[event])) {
                             i = (route && route._id) || '';
                             if (!((currentHandlers = handlers[i]))) {
@@ -158,7 +157,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 if (isString(event) && isFunction(handler)) {
                     event = event.split(whitespace);
                     if (event.length === 1) {
-                        event += '';
                         i = (route && route._id) || '';
                         if (((currentHandlers = eventHandlers[event])) &&
                             ((currentHandlers = currentHandlers[i])))

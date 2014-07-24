@@ -29,8 +29,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             error: {},
             after: {},
             stop: {},
-            leave: {}
+            leave: {},
+            busy: {},
+            idle: {}
         },
+
+        busy = false,
+        busyCount = 0,
+        busyTimer,
 
         whitespace = /[\x20\t\r\n\f]+/,
 
@@ -111,6 +117,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     if (newRootRoute) {
                         new ProcessRoute(newRootRoute);
                     }
+                });
+
+                API.on('before after stop', function(e) {
+                    busyCount += e === 'before' ? 1 : -1;
+                    if (busyTimer) { clearTimeout(busyTimer); }
+                    busyTimer = setTimeout(function() {
+                        e = busy;
+                        busy = !!busyCount;
+                        busyTimer = undefined;
+                        if (e !== busy) {
+                            // Busy state has changed, emit event.
+                            emitEvent(busyCount ? 'busy' : 'idle', API);
+                        }
+                    }, 0);
                 });
 
                 running = true;

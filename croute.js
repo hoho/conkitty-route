@@ -45,6 +45,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     if (uri) {
                         addRoute(uri, action);
                     } else if (!notFoundRoute) {
+                        // NotFound route needs to be last, we'll add it in
+                        // run() method.
                         notFoundRoute = action;
                     }
                 }
@@ -282,12 +284,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if ((handlers = eventHandlers[event])) {
             args = [].concat(event, args || []);
 
+            // Specific route handlers.
             if ((cur = handlers[route._id])) {
                 for (i = 0; i < cur.length; i++) {
                     cur[i].apply(route, args);
                 }
             }
 
+            // General route handlers.
             if ((cur = handlers[''])) {
                 for (i = 0; i < cur.length; i++) {
                     cur[i].apply(route, args);
@@ -442,12 +446,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function Route(uri, action, pathExpr, paramsOffset, parent) {
+    function Route(uri, settings, pathExpr, paramsOffset, parent) {
         var self = this,
             i,
             frames,
             f,
-            route = /.*/,
+            route = /.*/, // Default value is for NotFound route.
             childRoute,
             pathnameExpr,
             pathParams,
@@ -461,12 +465,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         self._id = 'r' + (++routeId);
         self._n = {};
 
-        if (action) {
-            paramsConstraints = action.params;
-            self.title = action.title || (parent && parent.title);
-            self.action = f = action.action;
-            self.dataSource = action.data;
-            self.keep = action.keep;
+        if (settings) {
+            paramsConstraints = settings.params;
+            self.title = settings.title || (parent && parent.title);
+            self.actionParent = settings.parent || (parent && parent.actionParent) || document.body;
+            self.action = f = settings.action;
+            self.dataSource = settings.data;
+            self.keep = settings.keep;
 
             if (f && ((f = f.leave))) {
                 if (!isArray(f)) { f = [f]; }
@@ -579,7 +584,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
             }
 
-            if ((frames = action && action.frames)) {
+            if ((frames = settings && settings.frames)) {
                 for (f in frames) {
                     childRoute = new Route(
                         f,
@@ -599,7 +604,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             go: function(same) {
                 if (!uri) {
                     // It's not found target, no URI matching functions have
-                    // called, set active flag here.
+                    // been called, set active flag here.
                     self._a = 1;
                 }
                 self._p = currentParams;
@@ -689,7 +694,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (val) {
             val.open('GET', ajaxPathname, true);
             val.onreadystatechange = function() {
-                if (val.readyState === 4 /* complete */) {
+                if (val.readyState === 4) { // Completed.
                     self._done = self._error = true;
                     self._r = undefined;
                     if (val.status === 200) {
@@ -755,10 +760,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     function getActionParent(route, parent1, parent2/**/, id) {
-        parent1 = parent1 === undefined && parent2 === undefined ?
-            document.body
-            :
-            parent1 || parent2;
+        parent1 = parent1 || parent2;
 
         if (!isNode(parent1)) {
             if (isFunction(parent1)) {
@@ -911,7 +913,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (!skip) {
             route._data = self;
 
-            defaultActionParent = getActionParent(route, action.parent);
+            defaultActionParent = getActionParent(route, action.parent, route.actionParent);
 
             document.title = (i = (isFunction((i = route.title)) ? i() : i)) === undefined
                 ?
@@ -982,8 +984,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             i,
             nodes,
             node,
-            parent,
-            leave;
+            parent;
 
         children = route.children;
         for (i = children.length; i--;) { unprocessRoute(children[i]); }

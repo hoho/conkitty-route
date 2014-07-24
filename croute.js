@@ -800,7 +800,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             for (i = 0; i < goal.length; i++) {
                 processAction(goal[i], datas, defaultActionParent, route, i !== 0);
             }
-        } else if (goal) {
+        } else if ((goal = (goal === undefined ? undefined : goal || {}))) {
             actionParent = getActionParent(route, goal.parent, defaultActionParent);
             if (actionParent) {
                 mem = route._n[actionParent._$Cid];
@@ -822,7 +822,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
 
                 args = [].concat(datas, params, route);
-                node = isFunction(goal) ? goal.apply(route, args) : $C.tpl[i].apply(null, args);
+                node = isFunction(goal) ? goal.apply(route, args) : (i && $C.tpl[i].apply(null, args));
 
                 if (isNode(node)) {
                     if (node.nodeType === 11) {

@@ -28,6 +28,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             success: {},
             error: {},
             after: {},
+            stop: {},
             leave: {}
         },
 
@@ -997,6 +998,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
             route._data.reject();
+            emitEvent('stop', route);
         }
 
         if (route._data !== undefined) {

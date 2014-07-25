@@ -492,6 +492,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         if (settings) {
             paramsConstraints = settings.params;
+            self.id = settings.id;
             self.title = settings.title || (parent && parent.title);
             self.actionParent = settings.parent || (parent && parent.actionParent) || document.body;
             self.action = f = settings.action;

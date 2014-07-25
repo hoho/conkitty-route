@@ -314,7 +314,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             args = [].concat(event, args || []);
 
             // Specific route handlers.
-            if ((cur = handlers[route._id])) {
+            if (((i = route._id)) && ((cur = handlers[i]))) {
                 for (i = 0; i < cur.length; i++) {
                     cur[i].apply(route, args);
                 }

@@ -659,19 +659,19 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     function getURIParam(route, param, overrideParams/**/, i, name) {
-        i = param.parent;
-
-        while (route && i) {
-            route = route.parent;
-            i--;
-        }
-
         name = param.param;
 
         if (overrideParams && (name in overrideParams)) {
             i = overrideParams[name];
-        } else if ((i = route && route._p)) {
-            i = i[name];
+        } else {
+            i = param.parent;
+
+            while (route && i) {
+                route = route.parent;
+                i--;
+            }
+
+            i = ((i = route && route._p)) ? i[name] : undefined;
         }
 
         return i;

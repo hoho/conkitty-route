@@ -668,9 +668,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         name = param.param;
 
-        i = overrideParams ? overrideParams[name] : undefined;
-
-        if (i === undefined && ((i = route && route._p))) {
+        if (overrideParams && (name in overrideParams)) {
+            i = overrideParams[name];
+        } else if ((i = route && route._p)) {
             i = i[name];
         }
 

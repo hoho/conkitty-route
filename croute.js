@@ -558,7 +558,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                     // self._d means that there are no further pathname components.
                     // self._a means active route.
-                    if ((self._d = (!match[paramsOffset + pathParams.length] && (self.action || !self.children.length)))) {
+                    if ((self._d = !match[paramsOffset + pathParams.length])) {
                         // Deepest matched frame and there is action for this route.
                         self._a = 1;
                         i = parent;

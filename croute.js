@@ -317,8 +317,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
     function checkRunning(yes) {
         if (!!running !== !!yes) {
-            throw new Error('Running: ' + !!running);
+            throwError('Running: ' + !!running);
         }
+    }
+
+
+    function throwError(message) {
+        throw new Error(message);
     }
 
 
@@ -354,7 +359,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         type = part.charAt(parent--) === '?' ? 2 : 1;
         part = part.substring(parent + type);
         if ((part in params) && !allowDuplicates) {
-            throw new Error('Duplicate param');
+            throwError('Duplicate param');
         }
         params[part] = type;
         part = {param: part, optional: type === 2, parent: parent};
@@ -373,8 +378,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             params = {},
             pathExpr = [],
             pathParams = [],
-            queryParams,
-            error;
+            queryParams;
 
         (uri || '').replace(/^((?:(?:\:\?)|[^?#])*)(?:\?([^#]*))?(?:#(.*))?$/, function(_, p, s, h) {
             pathname = (p || '').split('/');
@@ -405,10 +409,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     value = null;
                 }
 
-                error = '';
-                if (name.charAt(0) === ':') { error = 'Invalid queryparam name'; }
-                if (name in queryParams) { error = 'Duplicate queryparam'; }
-                if (error) { throw new Error(error); }
+                if (name.charAt(0) === ':') { throwError('Invalid queryparam name'); }
+                if (name in queryParams) { throwError('Duplicate queryparam'); }
 
                 queryParams[name] = value && value.charAt(0) === ':' ?
                     pushParam(value, params, isDataURI)
@@ -507,6 +509,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (settings) {
             paramsConstraints = settings.params;
             if ((i = self.id = settings.id)) {
+                if (i in routeById) { throwError('Duplicate id: ' + i); }
                 routeById[i] = self;
             }
             self.title = settings.title || (parent && parent.title);
@@ -698,11 +701,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         for (i = pathObj.length; i--;) {
             part = pathObj[i];
-            if (part.param) {
-                val = getURIParam(route, part, overrideParams);
-            } else {
-                val = part;
-            }
+            val = part.param ? getURIParam(route, part, overrideParams) : part;
 
             if (val !== undefined) {
                 pathname.unshift(encodeURIComponent(val));

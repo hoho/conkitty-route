@@ -21,6 +21,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         routesFlat,
         routeId = 0,
 
+        routeById = {},
+
         notFoundRoute,
 
         eventHandlers = {
@@ -195,6 +197,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     }
                 }
                 return API;
+            },
+
+            makeURI: function(id, params) {
+                if ((id = routeById[id])) {
+                    return id.makeURI(params);
+                }
             }
         };
 
@@ -228,6 +236,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     proto.data = function() {
         var d = this._data;
         return isArray(d) ? (isArray(this.dataSource) ? d : d[0]) : undefined;
+    };
+
+
+    proto.makeURI = function(params) {
+        return makeURI(this, this.uri, params || {});
     };
 
 
@@ -350,7 +363,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function parseParameterizedURI(uri, isDataURI) {
+    function parseParameterizedURI(uri, isDataURI, keepLastSlash) {
         var pathname,
             search,
             hash,
@@ -371,7 +384,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         value = pathname.length;
         for (i = 0; i < value; i++) {
-            if ((name = decodeURIComponent(pathname[i])) || (isDataURI && (i === value - 1))) {
+            if ((name = decodeURIComponent(pathname[i])) || (keepLastSlash && (i === value - 1))) {
                 pathExpr.push(
                         name.charAt(0) === ':' ?
                         pushParam(name, params, isDataURI, isDataURI ? undefined : pathParams)
@@ -487,12 +500,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         self.parent = parent;
         self.children = [];
+        self.uri = uri;
         self._id = 'r' + (++routeId);
         self._n = {};
 
         if (settings) {
             paramsConstraints = settings.params;
-            self.id = settings.id;
+            if ((i = self.id = settings.id)) {
+                routeById[i] = self;
+            }
             self.title = settings.title || (parent && parent.title);
             self.actionParent = settings.parent || (parent && parent.actionParent) || document.body;
             self.action = f = settings.action;
@@ -542,7 +558,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                     // self._d means that there are no further pathname components.
                     // self._a means active route.
-                    if ((self._d = (!match[paramsOffset + pathParams.length] && self.action))) {
+                    if ((self._d = (!match[paramsOffset + pathParams.length] && (self.action || !self.children.length)))) {
                         // Deepest matched frame and there is action for this route.
                         self._a = 1;
                         i = parent;
@@ -564,8 +580,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 if (uriSearch) {
                     route.search = function() {
                         var queryparams = {},
-                            queryparam,
-                            i;
+                            queryparam;
 
                         for (queryparam in uriSearch) {
                             if (!checkAndSetParam(
@@ -643,74 +658,112 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function getAjaxParam(route, param/**/, i) {
+    function getURIParam(route, param, overrideParams/**/, i, name) {
         i = param.parent;
+
         while (route && i) {
             route = route.parent;
             i--;
         }
-        i = route && route._p;
-        return i[param.param];
+
+        name = param.param;
+
+        i = overrideParams ? overrideParams[name] : undefined;
+
+        if (i === undefined && ((i = route && route._p))) {
+            i = i[name];
+        }
+
+        return i;
     }
 
 
-    function AjaxGet(uri, route) {
+    function makeURI(route, uri, overrideParams, pathname, queryparams, processedQueryparams, hash, child) {
         // TODO: Test params and throw errors when necessary.
-        var ajaxPathname,
-            ajaxQueryparams,
-            i,
+        var i,
             j,
             pathObj,
             part,
-            val,
-            self = this;
+            val;
 
-        uri = parseParameterizedURI(uri, true);
+        if (!processedQueryparams) {
+            pathname = [];
+            queryparams = [];
+            processedQueryparams = {};
+        }
 
-        ajaxPathname = [];
-        ajaxQueryparams = [];
+        uri = parseParameterizedURI(uri, true, !overrideParams);
 
         pathObj = uri.pathname[0];
 
-        for (i = 0; i < pathObj.length; i++) {
+        for (i = pathObj.length; i--;) {
             part = pathObj[i];
             if (part.param) {
-                val = getAjaxParam(route, part);
+                val = getURIParam(route, part, overrideParams);
             } else {
                 val = part;
             }
 
             if (val !== undefined) {
-                ajaxPathname.push(encodeURIComponent(val));
+                pathname.unshift(encodeURIComponent(val));
             }
         }
 
         if ((pathObj = uri.search)) {
             for (i in pathObj) {
-                part = pathObj[i];
-                i = encodeURIComponent(i);
-                if (part.param) {
-                    val = getAjaxParam(route, part);
-                    if (isArray(val)) {
-                        for (j = 0; j < val.length; j++) {
-                            ajaxQueryparams.push(i + '=' + encodeURIComponent(val[j]));
-                        }
-                        continue;
-                    }
-                } else {
-                    val = part.value;
-                }
+                if (!(i in processedQueryparams)) {
+                    processedQueryparams[i] = true;
 
-                if (val !== undefined) {
-                    ajaxQueryparams.push(i + '=' + encodeURIComponent(val));
+                    part = pathObj[i];
+                    i = encodeURIComponent(i);
+
+                    if (part.param) {
+                        val = getURIParam(route, part, overrideParams);
+                        if (isArray(val)) {
+                            for (j = 0; j < val.length; j++) {
+                                queryparams.push(i + '=' + encodeURIComponent(val[j]));
+                            }
+                            continue;
+                        }
+                    } else {
+                        val = part.value;
+                    }
+
+                    if (val !== undefined) {
+                        queryparams.push(i + '=' + encodeURIComponent(val));
+                    }
                 }
             }
         }
 
-        ajaxPathname = '/' + ajaxPathname.join('/');
-        if (ajaxQueryparams.length) {
-            ajaxPathname += '?' + ajaxQueryparams.join('&');
+        if (!hash && ((pathObj = uri.hash))) {
+            hash = pathObj.param ? getURIParam(route, pathObj, overrideParams) : pathObj.value;
         }
+
+        if (overrideParams && ((i = route.parent))) {
+            // Building route URI from routes tree, current state and params to override.
+            makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true);
+        }
+
+        if (!child) {
+            // Skip this part for recursive call.
+            pathname = ('/' + pathname.join('/')).replace(/\/+/g, '/');
+
+            if (queryparams.length) {
+                pathname += '?' + queryparams.join('&');
+            }
+
+            if (hash) {
+                pathname += '#' + encodeURIComponent(hash);
+            }
+
+            return pathname;
+        }
+    }
+
+
+    function AjaxGet(uri, route/**/, val, self) {
+        self = this;
 
         self.ok = [];
         self.error = [];
@@ -718,7 +771,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         self._r = val = new XMLHttpRequest();
 
         if (val) {
-            val.open('GET', ajaxPathname, true);
+            val.open('GET', makeURI(route, uri), true);
             val.onreadystatechange = function() {
                 if (val.readyState === 4) { // Completed.
                     self._done = self._error = true;

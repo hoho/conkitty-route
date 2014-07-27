@@ -27,7 +27,7 @@ $C.route
 
 In this example we render template named `WelcomeTemplate` for `/` URI and
 template named `AboutTemplate` for `/about` URI, setting page title to 
-`Welcome` and `About` respectively. For different URI paths we render template
+`Welcome` and `About` respectively. For different URIs we render template
 named `NotFoundTemplate`.
 
 Templates are being rendered into `document.body` by default.
@@ -82,6 +82,14 @@ $C.route
                     }
                 }
             },
+            '?param2=:param': {
+                parent: 'div#param-parent',
+                action: 'Param2Template'
+            },
+            '?param3=:param': {
+                parent: 'div#param-parent',
+                action: 'Param3Template'
+            },
             '/deeper?param2=:p&param3=hello': {
                 data: '/api/get?what=:p', // Data will be passed to template as first argument.
                 parent: 'div#deeper',
@@ -104,13 +112,19 @@ following URIs:
   previous one, but, in addition, render `Hash1Template` or `Hash2Template` to
   `<div id="hashes">` node in case AJAX request to `/api/get?what=test` is
   successful.
++ `/hello?param2=test2` — `HelloTemplate` will be rendered, `Param2Template`
+  will be rendered to `<div id="param-parent">`.
++ `/hello?param3=test3` — `HelloTemplate` will be rendered, `Param3Template`
+  will be rendered to `<div id="param-parent">`.
++ `/hello?param1=test1&param2=test2&param3=test3` — `HelloTemplate` will be
+  rendered, `Param1Template`, `Param2Template` and `Param3Template` will be
+  rendered to `<div id="param-parent">`.
 + `/hello/deeper?param2=world&param3=hello` — `HelloTemplate`, AJAX request to
   `/api/get?what=world`, `DeeperTemplate` to `<div id="deeper">` in case of
   successful request.
 + `/hello/deeper?param1=test&param2=world&param3=hello#hash1` — `HelloTemplate`,
-  AJAX request to `/api/get?what=test`, AJAX request to `/api/get?what=world`,
-  `Param1Template`, `Hash1Template` and `DeeperTemplate` in case of successful
-  requests.
+  AJAX request to `/api/get?what=world`, `DeeperTemplate` in case of successful
+  request.
 
 You can use unlimited combination of frames. And accepted values for `data` and
 `action` are much more variable. You can pass object (no request will be

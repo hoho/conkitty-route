@@ -26,13 +26,13 @@
     "dependencies": {},
     "devDependencies": {
         "histery": "~0.7.3",
-        "gulp": "~3.8.5",
-        "gulp-eslint": "~0.1.7",
+        "gulp": "~3.8.6",
+        "gulp-eslint": "~0.1.8",
         "gulp-rename": "~1.2.0",
         "gulp-qunit": "~0.3.3",
         "gulp-uglify": "~0.3.1",
         "gulp-conkitty": "~0.5.8",
-        "gulp-concat": "~2.3.3",
+        "gulp-concat": "~2.3.4",
         "qunitjs": "~1.14.0"
     }
 }

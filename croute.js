@@ -150,7 +150,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             },
 
             on: function(event, handler, route) {
-                var i,
+                var i = '',
                     handlers,
                     currentHandlers;
 
@@ -158,7 +158,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     event = event.split(whitespace);
                     if (event.length === 1) {
                         if ((handlers = eventHandlers[event])) {
-                            i = (route && route._id) || '';
+                            if (route) {
+                                if ((i = routeById[route])) { route = i; }
+                                i = route._id;
+                            }
                             if (!((currentHandlers = handlers[i]))) {
                                 currentHandlers = handlers[i] = [];
                             }
@@ -174,13 +177,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             },
 
             off: function(event, handler, route) {
-                var i,
+                var i = '',
                     currentHandlers;
 
                 if (isString(event) && isFunction(handler)) {
                     event = event.split(whitespace);
                     if (event.length === 1) {
-                        i = (route && route._id) || '';
+                        if (route) {
+                            if ((i = routeById[route])) { route = i; }
+                            i = route._id;
+                        }
                         if (((currentHandlers = eventHandlers[event])) &&
                             ((currentHandlers = currentHandlers[i])))
                         {

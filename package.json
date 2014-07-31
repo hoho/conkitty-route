@@ -1,6 +1,6 @@
 {
     "name": "conkitty-route",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "description": "Call Conkitty templates according to routing tree",
     "main": "croute.js",
     "directories": {

@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.0.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.0.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -205,10 +205,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 return API;
             },
 
-            makeURI: function(id, params) {
-                if ((id = routeById[id])) {
-                    return id.makeURI(params);
-                }
+            get: function(id) {
+                return routeById[id];
             }
         };
 
@@ -234,19 +232,38 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    proto.params = function() {
-        return this._p || undefined;
+    proto.params = function(parent) {
+        var p = this;
+        parent = parent || 0;
+        while (p && parent > 0) {
+            p = p.parent;
+            parent--;
+        }
+
+        return p && p._p || undefined;
     };
 
 
-    proto.data = function() {
-        var d = this._data;
+    proto.data = function(parent) {
+        var p = this,
+            d;
+        parent = parent || 0;
+        while (p && parent > 0) {
+            p = p.parent;
+            parent--;
+        }
+        d = p && p._data;
         return isArray(d) ? (isArray(this.dataSource) ? d : d[0]) : undefined;
     };
 
 
     proto.makeURI = function(params) {
         return makeURI(this, this.uri, params || {});
+    };
+
+
+    proto.active = function() {
+        return this._id in currentRoutes;
     };
 
 

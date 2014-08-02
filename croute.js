@@ -45,18 +45,18 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         proto = Route.prototype,
 
         API = {
-            add: function(uri, action) {
+            add: function(uri, destination) {
                 checkRunning();
-                if (isString(uri) && isString(action)) {
+                if (isString(uri) && isString(destination)) {
                     // It's a rewrite.
-                    $H.on(uri, action);
+                    $H.on(uri, destination);
                 } else {
                     if (uri) {
-                        addRoute(uri, action);
+                        addRoute(uri, destination);
                     } else if (!notFoundRoute) {
                         // NotFound route needs to be last, we'll add it in
                         // run() method.
-                        notFoundRoute = action;
+                        notFoundRoute = destination;
                     }
                 }
                 return API;
@@ -309,9 +309,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     );
 
 
-    function addRoute(uri, action/**/, route) {
+    function addRoute(uri, destination/**/, route) {
         routesFlat = []; // Depth-first flat subroutes list.
-        route = new Route(uri, action);
+        route = new Route(uri, destination);
         routes.push(route);
         routesFlat.push(route);
         route._flat = routesFlat;

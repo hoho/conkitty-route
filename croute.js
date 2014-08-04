@@ -45,18 +45,18 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         proto = Route.prototype,
 
         API = {
-            add: function(uri, destination) {
+            add: function(uri, frame) {
                 checkRunning();
-                if (isString(uri) && isString(destination)) {
+                if (isString(uri) && isString(frame)) {
                     // It's a rewrite.
-                    $H.on(uri, destination);
+                    $H.on(uri, frame);
                 } else {
                     if (uri) {
-                        addRoute(uri, destination);
+                        addRoute(uri, frame);
                     } else if (!notFoundRoute) {
                         // NotFound route needs to be last, we'll add it in
                         // run() method.
-                        notFoundRoute = destination;
+                        notFoundRoute = frame;
                     }
                 }
                 return API;
@@ -309,9 +309,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     );
 
 
-    function addRoute(uri, destination/**/, route) {
+    function addRoute(uri, frame/**/, route) {
         routesFlat = []; // Depth-first flat subroutes list.
-        route = new Route(uri, destination);
+        route = new Route(uri, frame);
         routes.push(route);
         routesFlat.push(route);
         route._flat = routesFlat;
@@ -509,7 +509,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function Route(uri, settings, pathExpr, paramsOffset, parent) {
+    function Route(uri, frame, pathExpr, paramsOffset, parent) {
         var self = this,
             i,
             frames,
@@ -529,17 +529,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         self._id = 'r' + (++routeId);
         self._n = {};
 
-        if (settings) {
-            paramsConstraints = settings.params;
-            if ((i = self.id = settings.id)) {
+        if (frame) {
+            paramsConstraints = frame.params;
+            if ((i = self.id = frame.id)) {
                 if (i in routeById) { throwError('Duplicate id: ' + i); }
                 routeById[i] = self;
             }
-            self.title = settings.title || (parent && parent.title);
-            self.actionParent = settings.parent || (parent && parent.actionParent) || document.body;
-            self.action = f = settings.action;
-            self.dataSource = settings.data;
-            self.keep = settings.keep;
+            self.title = frame.title || (parent && parent.title);
+            self.actionParent = frame.parent || (parent && parent.actionParent) || document.body;
+            self.action = f = frame.action;
+            self.dataSource = frame.data;
+            self.keep = frame.keep;
 
             if (f && ((f = f.leave))) {
                 if (!isArray(f)) { f = [f]; }
@@ -651,7 +651,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
             }
 
-            if ((frames = settings && settings.frames)) {
+            if ((frames = frame && frame.frames)) {
                 for (f in frames) {
                     childRoute = new Route(
                         f,

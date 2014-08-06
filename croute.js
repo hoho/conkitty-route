@@ -44,171 +44,171 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         proto = Route.prototype,
 
-        API = {
-            add: function(uri, frame) {
-                checkRunning();
-                if (isString(uri) && isString(frame)) {
-                    // It's a rewrite.
-                    $H.on(uri, frame);
-                } else {
-                    if (uri) {
-                        addRoute(uri, frame);
-                    } else if (!notFoundRoute) {
-                        // NotFound route needs to be last, we'll add it in
-                        // run() method.
-                        notFoundRoute = frame;
-                    }
+        API = function add(uri, frame) {
+            checkRunning();
+            if (isString(uri) && isString(frame)) {
+                // It's a rewrite.
+                $H.on(uri, frame);
+            } else {
+                if (uri) {
+                    addRoute(uri, frame);
+                } else if (!notFoundRoute) {
+                    // NotFound route needs to be last, we'll add it in
+                    // run() method.
+                    notFoundRoute = frame;
                 }
-                return API;
-            },
-
-            set: function(uri, reload) {
-                checkRunning(true);
-                reloadCurrent = reload;
-                return $H.go(uri);
-            },
-
-            run: function(title) {
-                checkRunning();
-
-                defaultTitle = title || '';
-
-                if (notFoundRoute) {
-                    addRoute(undefined, notFoundRoute);
-                }
-
-                $H.on(undefined, function() {
-                    var newRootRoute,
-                        newRoutes = {},
-                        i,
-                        j,
-                        route,
-                        froute,
-                        flat;
-
-                    for (i = 0; i < routes.length; i++) {
-                        route = routes[i];
-                        if (route._a) {
-                            newRootRoute = route;
-                            flat = route._flat;
-                            for (j = 0; j < flat.length; j++) {
-                                froute = flat[j];
-                                if (froute._a) {
-                                    newRoutes[froute._id] = froute;
-                                }
-                            }
-                            break;
-                        }
-                    }
-
-                    for (i in currentRoutes) {
-                        route = currentRoutes[i];
-                        if (!(i in newRoutes) ||
-                            reloadCurrent ||
-                            !route._s ||
-                            route.keep === false ||
-                            route._dataError)
-                        {
-                            unprocessRoute(route);
-                        }
-                    }
-
-                    currentRoutes = newRoutes;
-                    reloadCurrent = undefined;
-
-                    if (newRootRoute) {
-                        new ProcessRoute(newRootRoute);
-                    }
-                });
-
-                API.on('before after stop', function(e) {
-                    busyCount += e === 'before' ? 1 : -1;
-                    if (busyTimer) { clearTimeout(busyTimer); }
-                    busyTimer = setTimeout(function() {
-                        e = busy;
-                        busy = !!busyCount;
-                        busyTimer = undefined;
-                        if (e !== busy) {
-                            // Busy state has changed, emit event.
-                            emitEvent(busyCount ? 'busy' : 'idle', API);
-                        }
-                    }, 0);
-                });
-
-                running = true;
-                document.body.addEventListener('click', function(e) {
-                    var elem = e.target;
-                    while (elem && !(elem instanceof HTMLAnchorElement)) {
-                        elem = elem.parentNode;
-                    }
-                    if (elem && (elem.host === location.host)) {
-                        e.preventDefault();
-                        API.set(elem.href);
-                    }
-                }, false);
-                $H.run();
-            },
-
-            on: function(event, handler, route) {
-                var i = '',
-                    handlers,
-                    currentHandlers;
-
-                if (isString(event) && isFunction(handler)) {
-                    event = event.split(whitespace);
-                    if (event.length === 1) {
-                        if ((handlers = eventHandlers[event])) {
-                            if (route) {
-                                if ((i = routeById[route])) { route = i; }
-                                i = route._id;
-                            }
-                            if (!((currentHandlers = handlers[i]))) {
-                                currentHandlers = handlers[i] = [];
-                            }
-                            currentHandlers.push(handler);
-                        }
-                    } else {
-                        for (i = event.length; i--;) {
-                            API.on(event[i], handler, route);
-                        }
-                    }
-                }
-                return API;
-            },
-
-            off: function(event, handler, route) {
-                var i = '',
-                    currentHandlers;
-
-                if (isString(event) && isFunction(handler)) {
-                    event = event.split(whitespace);
-                    if (event.length === 1) {
-                        if (route) {
-                            if ((i = routeById[route])) { route = i; }
-                            i = route._id;
-                        }
-                        if (((currentHandlers = eventHandlers[event])) &&
-                            ((currentHandlers = currentHandlers[i])))
-                        {
-                            for (i = currentHandlers.length; i--;) {
-                                if (currentHandlers[i] === handler) {
-                                    currentHandlers.splice(i, 1);
-                                }
-                            }
-                        }
-                    } else {
-                        for (i = event.length; i--;) {
-                            API.on(event[i], handler, route);
-                        }
-                    }
-                }
-                return API;
-            },
-
-            get: function(id) {
-                return routeById[id];
             }
+            return API;
         };
+
+    API.add = API;
+
+    API.set = function set(uri, reload) {
+        checkRunning(true);
+        reloadCurrent = reload;
+        return $H.go(uri);
+    };
+
+    API.run = function run(title) {
+        checkRunning();
+
+        defaultTitle = title || '';
+
+        if (notFoundRoute) {
+            addRoute(undefined, notFoundRoute);
+        }
+
+        $H.on(undefined, function() {
+            var newRootRoute,
+                newRoutes = {},
+                i,
+                j,
+                route,
+                froute,
+                flat;
+
+            for (i = 0; i < routes.length; i++) {
+                route = routes[i];
+                if (route._a) {
+                    newRootRoute = route;
+                    flat = route._flat;
+                    for (j = 0; j < flat.length; j++) {
+                        froute = flat[j];
+                        if (froute._a) {
+                            newRoutes[froute._id] = froute;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            for (i in currentRoutes) {
+                route = currentRoutes[i];
+                if (!(i in newRoutes) ||
+                    reloadCurrent ||
+                    !route._s ||
+                    route.keep === false ||
+                    route._dataError)
+                {
+                    unprocessRoute(route);
+                }
+            }
+
+            currentRoutes = newRoutes;
+            reloadCurrent = undefined;
+
+            if (newRootRoute) {
+                new ProcessRoute(newRootRoute);
+            }
+        });
+
+        API.on('before after stop', function(e) {
+            busyCount += e === 'before' ? 1 : -1;
+            if (busyTimer) { clearTimeout(busyTimer); }
+            busyTimer = setTimeout(function() {
+                e = busy;
+                busy = !!busyCount;
+                busyTimer = undefined;
+                if (e !== busy) {
+                    // Busy state has changed, emit event.
+                    emitEvent(busyCount ? 'busy' : 'idle', API);
+                }
+            }, 0);
+        });
+
+        running = true;
+        document.body.addEventListener('click', function(e) {
+            var elem = e.target;
+            while (elem && !(elem instanceof HTMLAnchorElement)) {
+                elem = elem.parentNode;
+            }
+            if (elem && (elem.host === location.host)) {
+                e.preventDefault();
+                API.set(elem.href);
+            }
+        }, false);
+        $H.run();
+    };
+
+    API.on = function on(event, handler, route) {
+        var i = '',
+            handlers,
+            currentHandlers;
+
+        if (isString(event) && isFunction(handler)) {
+            event = event.split(whitespace);
+            if (event.length === 1) {
+                if ((handlers = eventHandlers[event])) {
+                    if (route) {
+                        if ((i = routeById[route])) { route = i; }
+                        i = route._id;
+                    }
+                    if (!((currentHandlers = handlers[i]))) {
+                        currentHandlers = handlers[i] = [];
+                    }
+                    currentHandlers.push(handler);
+                }
+            } else {
+                for (i = event.length; i--;) {
+                    API.on(event[i], handler, route);
+                }
+            }
+        }
+        return API;
+    };
+
+    API.off = function off(event, handler, route) {
+        var i = '',
+            currentHandlers;
+
+        if (isString(event) && isFunction(handler)) {
+            event = event.split(whitespace);
+            if (event.length === 1) {
+                if (route) {
+                    if ((i = routeById[route])) { route = i; }
+                    i = route._id;
+                }
+                if (((currentHandlers = eventHandlers[event])) &&
+                    ((currentHandlers = currentHandlers[i])))
+                {
+                    for (i = currentHandlers.length; i--;) {
+                        if (currentHandlers[i] === handler) {
+                            currentHandlers.splice(i, 1);
+                        }
+                    }
+                }
+            } else {
+                for (i = event.length; i--;) {
+                    API.on(event[i], handler, route);
+                }
+            }
+        }
+        return API;
+    };
+
+    API.get = function get(id) {
+        return routeById[id];
+    };
 
 
     proto.reload = function() {

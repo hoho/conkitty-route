@@ -79,4 +79,15 @@ gulp.task('serve', ['templates'], function() {
 });
 
 
-gulp.task('default', ['eslint', 'uglify']);
+gulp.task('assert-version', ['uglify'], function(err) {
+    var assertVersion = require('assert-version');
+
+    err(assertVersion({
+        'croute.js': '',
+        'croute.min.js': '',
+        'bower.json': ''
+    }));
+});
+
+
+gulp.task('default', ['eslint', 'uglify', 'assert-version']);

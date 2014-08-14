@@ -1,6 +1,6 @@
 {
     "name": "conkitty-route",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Call Conkitty templates according to routing tree",
     "main": "croute.js",
     "directories": {
@@ -34,6 +34,6 @@
         "gulp-conkitty": "~0.5.9",
         "gulp-concat": "~2.3.4",
         "qunitjs": "~1.15.0",
-        "assert-version": "~0.0.1"
+        "assert-version": "~0.0.3"
     }
 }

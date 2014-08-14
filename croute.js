@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.0.2, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.0.3, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -287,8 +287,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 for (i = 0; i < search.length; i++) {
                     if ((name = search[i])) {
                         if (((value = name.indexOf('='))) >= 0) {
-                            value = decodeURIComponent(name.substring(value + 1));
+                            value = name.substring(value + 1);
                             name = decodeURIComponent(name.substring(0, name.length - value.length - 1));
+                            value = decodeURIComponent(value);
                         } else {
                             value = null;
                         }

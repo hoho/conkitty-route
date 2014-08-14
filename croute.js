@@ -286,7 +286,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 search = search.split('&');
                 for (i = 0; i < search.length; i++) {
                     if ((name = search[i])) {
-                        if (((value = name.indexOf('='))) >= 0) {
+                        if (~((value = name.indexOf('=')))) {
                             value = name.substring(value + 1);
                             name = decodeURIComponent(name.substring(0, name.length - value.length - 1));
                             value = decodeURIComponent(value);
@@ -426,14 +426,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             if ((name = search[i])) {
                 if (!queryParams) { queryParams = {}; }
 
-                if (((value = name.indexOf('='))) >= 0) {
+                if (~((value = name.indexOf('=')))) {
                     value = name.substring(value + 1);
-                    name = name.substring(0, name.length - value.length - 1);
+                    name = decodeURIComponent(name.substring(0, name.length - value.length - 1));
+                    value = decodeURIComponent(value);
                 } else {
                     value = null;
                 }
 
-                if (name.charAt(0) === ':') { throwError('Invalid queryparam name'); }
+                if (name.charAt(0) === ':') { throwError('Invalid queryparam'); }
                 if (name in queryParams) { throwError('Duplicate queryparam'); }
 
                 queryParams[name] = value && value.charAt(0) === ':' ?

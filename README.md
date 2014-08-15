@@ -19,9 +19,9 @@ The most simple example:
 
 ```js
 $C.route
-    .add('/', {title: 'Welcome', action: 'WelcomeTemplate'})
-    .add('/about', {title: 'About', action: 'AboutTemplate'})
-    .add(null, {title: 'Not Found', action: 'NotFoundTemplate'})
+    .add('/', {title: 'Welcome', render: 'WelcomeTemplate'})
+    .add('/about', {title: 'About', render: 'AboutTemplate'})
+    .add(null, {title: 'Not Found', render: 'NotFoundTemplate'})
     .run();
 ```
 
@@ -39,7 +39,7 @@ $C.route
     .add('/some', {
         title: 'With Data',
         data: '/api/something',
-        action: {
+        render: {
             before: 'LoadingTemplate', // Render before data is loaded.
             success: 'DataTemplate',   // Render after data is successfully loaded.
             error: 'ErrorTemplate'     // Render in case of error.
@@ -48,7 +48,7 @@ $C.route
     .add('/another', {
         title: 'About',
         data: '/api/another',
-        action: 'AboutTemplate' // Render after data is successfully loaded (nothing
+        render: 'AboutTemplate' // Render after data is successfully loaded (nothing
                                 // will be rendered in case of error). 
     })
     .run();
@@ -65,35 +65,35 @@ Deeper example:
 $C.route
     .add('/hello', {
         title: 'Hello',
-        action: 'HelloTemplate',
+        render: 'HelloTemplate',
         frames: {
             '?param1=:param': {
                 data: '/api/get?what=:param', // We can capture params and use them.
                 parent: 'div#param-parent', // CSS selector for parent element to 
-                action: 'Param1Template',   // render Param1Template to.
+                render: 'Param1Template',   // render Param1Template to.
                 frames: {
                     '#hash1': {
                         parent: 'div#hashes',
-                        action: 'Hash1Template'
+                        render: 'Hash1Template'
                     },
                     '#hash2': {
                         parent: 'div#hashes',
-                        action: 'Hash2Template'
+                        render: 'Hash2Template'
                     }
                 }
             },
             '?param2=:param': {
                 parent: 'div#param-parent',
-                action: 'Param2Template'
+                render: 'Param2Template'
             },
             '?param3=:param': {
                 parent: 'div#param-parent',
-                action: 'Param3Template'
+                render: 'Param3Template'
             },
             '/deeper?param2=:p&param3=hello': {
                 data: '/api/get?what=:p', // Data will be passed to template as first argument.
                 parent: 'div#deeper',
-                action: 'DeeperTemplate'
+                render: 'DeeperTemplate'
             }
         }
     })
@@ -127,10 +127,10 @@ following URIs:
   request.
 
 You can use unlimited combination of frames. And accepted values for `data` and
-`action` are much more variable. You can pass object (no request will be
+`render` are much more variable. You can pass object (no request will be
 performed) or Promise or function returning data or function returning Promise
 to `data`. You can pass not just template name, but function returning DOM node
-as `action`. And much more. Check for API docs below.
+as `render`. And much more. Check for API docs below.
 
 
 ## API

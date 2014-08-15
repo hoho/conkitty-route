@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.0.3, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -538,8 +538,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 routeById[i] = self;
             }
             self.title = frame.title || (parent && parent.title);
-            self.actionParent = frame.parent || (parent && parent.actionParent) || document.body;
-            self.action = f = frame.action;
+            self.renderParent = frame.parent || (parent && parent.renderParent) || document.body;
+            self.render = f = frame.render;
             self.dataSource = frame.data;
             self.keep = frame.keep;
 
@@ -587,7 +587,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     // self._d means that there are no further pathname components.
                     // self._a means active route.
                     if ((self._d = !match[paramsOffset + pathParams.length])) {
-                        // Deepest matched frame and there is action for this route.
+                        // Deepest matched frame and there is render for this route.
                         self._a = 1;
                         i = parent;
                         while (i) {
@@ -862,7 +862,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    function getActionParent(route, parent1, parent2/**/, id) {
+    function getRenderParent(route, parent1, parent2/**/, id) {
         parent1 = parent1 || parent2;
 
         if (!isNode(parent1)) {
@@ -889,25 +889,25 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function processAction(goal, datas, defaultActionParent, route, noRemove) {
+    function processRender(goal, datas, defaultRenderParent, route, noRemove) {
         var i,
             mem,
             params,
             node,
             parent,
-            actionParent,
+            renderParent,
             placeholder,
             args;
 
         if (isArray(goal)) {
             for (i = 0; i < goal.length; i++) {
-                processAction(goal[i], datas, defaultActionParent, route, i !== 0);
+                processRender(goal[i], datas, defaultRenderParent, route, i !== 0);
             }
         } else if ((goal = (goal === undefined ? undefined : goal || {}))) {
-            // null-value goal could be used to remove previous action nodes.
-            actionParent = getActionParent(route, goal.parent, defaultActionParent);
-            if (actionParent) {
-                mem = route._n[actionParent._$Cid];
+            // null-value goal could be used to remove previous render nodes.
+            renderParent = getRenderParent(route, goal.parent, defaultRenderParent);
+            if (renderParent) {
+                mem = route._n[renderParent._$Cid];
                 placeholder = mem[0];
                 params = route._p;
                 i = isString(goal) ? goal : goal.template;
@@ -918,7 +918,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                 while (mem.length > 1 && !noRemove) {
                     // By default we are replacing everything from previous
-                    // action of this route in this parent.
+                    // render of this route in this parent.
                     node = mem.pop();
                     if ((parent = node.parentNode)) {
                         parent.removeChild(node);
@@ -962,8 +962,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             i,
             d,
             waiting = 0,
-            action = route.action || '',
-            defaultActionParent,
+            render = route.render || '',
+            defaultRenderParent,
             resolve,
             done = function(index, data, /**/i, children, r, error) {
                 if (index !== undefined) {
@@ -979,27 +979,27 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         route._data = datas;
 
                         if (error) {
-                            processAction(action.error, [], defaultActionParent, route);
+                            processRender(render.error, [], defaultRenderParent, route);
                             emitEvent('error', route);
                         } else {
-                            processAction(
-                                isString(action) ||
-                                isFunction(action) ||
-                                isArray(action) ||
-                                action.template
+                            processRender(
+                                isString(render) ||
+                                isFunction(render) ||
+                                isArray(render) ||
+                                render.template
                                 ?
-                                action
+                                render
                                 :
-                                action.success,
+                                render.success,
 
                                 datas,
-                                defaultActionParent,
+                                defaultRenderParent,
                                 route
                             );
                             emitEvent('success', route);
                         }
 
-                        processAction(action.after, error ? [true] : [], defaultActionParent, route);
+                        processRender(render.after, error ? [true] : [], defaultRenderParent, route);
                         emitEvent('after', route);
                     }
 
@@ -1017,7 +1017,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (!skip) {
             route._data = self;
 
-            defaultActionParent = getActionParent(route, action.parent, route.actionParent);
+            defaultRenderParent = getRenderParent(route, render.parent, route.renderParent);
 
             document.title = (i = (isFunction((i = route.title)) ? i() : i)) === undefined
                 ?
@@ -1025,7 +1025,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 :
                 i;
 
-            processAction(action.before, [], defaultActionParent, route);
+            processRender(render.before, [], defaultRenderParent, route);
             emitEvent('before', route);
 
             if (dataSource !== undefined) {

@@ -104,13 +104,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             for (i in currentRoutes) {
                 route = currentRoutes[i];
-                if (!(i in newRoutes) ||
+                if (!((j = (i in newRoutes))) ||
                     reloadCurrent ||
                     !route._s ||
                     route.keep === false ||
                     route._dataError)
                 {
-                    unprocessRoute(route);
+                    unprocessRoute(route, j);
                 }
             }
 
@@ -225,7 +225,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 parent = parent.parent;
             }
             if (!parent) {
-                unprocessRoute(self, true);
+                unprocessRoute(self, true, true);
                 new ProcessRoute(self);
             }
         }
@@ -903,38 +903,48 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             for (i = 0; i < goal.length; i++) {
                 processRender(goal[i], datas, defaultRenderParent, route, i !== 0);
             }
-        } else if ((goal = (goal === undefined ? undefined : goal || {}))) {
+        } else if (goal || goal === null) {
             // null-value goal could be used to remove previous render nodes.
-            renderParent = getRenderParent(route, goal.parent, defaultRenderParent);
+            renderParent = getRenderParent(route, goal && goal.parent, defaultRenderParent);
             if (renderParent) {
                 mem = route._n[renderParent._$Cid];
                 placeholder = mem[0];
                 params = route._p;
-                i = isString(goal) ? goal : goal.template;
 
-                if (!noRemove) {
-                    noRemove = goal.replace === false;
+                if (goal) {
+                    i = isString(goal) ? goal : goal.template;
+                    args = [].concat(datas, params, route);
+                    node = isFunction(goal) ? goal.apply(route, args) : (i && $C.tpl[i].apply(null, args));
                 }
 
-                while (mem.length > 1 && !noRemove) {
-                    // By default we are replacing everything from previous
-                    // render of this route in this parent.
-                    node = mem.pop();
-                    if ((parent = node.parentNode)) {
-                        parent.removeChild(node);
+                if (!goal || isNode(node)) {
+                    if (route._dom) {
+                        removeNodes(route, true, true);
+                    }
+
+                    if (!noRemove) {
+                        noRemove = goal && (goal.replace === false);
+                    }
+
+                    while (mem.length > 1 && !noRemove) {
+                        // By default we are replacing everything from previous
+                        // render of this route in this parent.
+                        i = mem.pop();
+                        if ((parent = i.parentNode)) {
+                            parent.removeChild(i);
+                        }
+                    }
+
+                    if (goal) {
+                        if (node.nodeType === 11) {
+                            node = node.firstChild;
+                        } else if ((parent = node.parentNode)) {
+                            parent.removeChild(node);
+                        }
                     }
                 }
 
-                args = [].concat(datas, params, route);
-                node = isFunction(goal) ? goal.apply(route, args) : (i && $C.tpl[i].apply(null, args));
-
-                if (isNode(node)) {
-                    if (node.nodeType === 11) {
-                        node = node.firstChild;
-                    } else if ((parent = node.parentNode)) {
-                        parent.removeChild(node);
-                    }
-                } else {
+                if (!isNode(node)) {
                     node = undefined;
                 }
 
@@ -1083,15 +1093,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    function unprocessRoute(route, keepPlaceholders) {
+    function unprocessRoute(route, keepDOM, keepPlaceholders) {
         var children,
-            i,
-            nodes,
-            node,
-            parent;
+            i;
 
         children = route.children;
-        for (i = children.length; i--;) { unprocessRoute(children[i]); }
+        for (i = children.length; i--;) {
+            unprocessRoute(children[i], keepDOM);
+        }
 
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
@@ -1105,23 +1114,49 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             emitEvent('leave', route);
 
-            // Remove nodes.
-            children = route._n;
-            keepPlaceholders = keepPlaceholders ? 1 : 0;
-            for (i in children) {
-                nodes = children[i];
-                while (nodes.length > keepPlaceholders) {
-                    node = nodes.pop();
-                    if ((parent = node.parentNode)) {
-                        parent.removeChild(node);
-                    }
-                }
-            }
-            if (!keepPlaceholders) {
-                route._n = {};
+            if (keepDOM) {
+                // Indicate that route still has DOM.
+                route._dom = true;
+            } else {
+                removeNodes(route, keepPlaceholders);
             }
         }
     }
+
+
+    function removeNodes(route, keepPlaceholders, recursive) {
+        var children,
+            i,
+            nodes,
+            node,
+            parent;
+
+        route._dom = false;
+        children = route._n;
+        keepPlaceholders = keepPlaceholders ? 1 : 0;
+
+        for (i in children) {
+            nodes = children[i];
+            while (nodes.length > keepPlaceholders) {
+                node = nodes.pop();
+                if ((parent = node.parentNode)) {
+                    parent.removeChild(node);
+                }
+            }
+        }
+
+        if (!keepPlaceholders) {
+            route._n = {};
+        }
+
+        if (recursive) {
+            children = route.children;
+            for (i = children.length; i--;) {
+                removeNodes(children[i], false, true);
+            }
+        }
+    }
+
 
     return API;
 })(document, decodeURIComponent, encodeURIComponent);

@@ -25,6 +25,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         notFoundRoute,
 
+        oldDOM = [],
+
         eventHandlers = {
             before: {},
             success: {},
@@ -104,13 +106,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             for (i in currentRoutes) {
                 route = currentRoutes[i];
-                if (!((j = (i in newRoutes))) ||
+                if (!(i in newRoutes) ||
                     reloadCurrent ||
                     !route._s ||
                     route.keep === false ||
                     route._dataError)
                 {
-                    unprocessRoute(route, j);
+                    unprocessRoute(route);
                 }
             }
 
@@ -225,7 +227,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 parent = parent.parent;
             }
             if (!parent) {
-                unprocessRoute(self, true, true);
+                unprocessRoute(self, true);
                 new ProcessRoute(self);
             }
         }
@@ -918,21 +920,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
 
                 if (!goal || isNode(node)) {
-                    if (route._dom) {
-                        removeNodes(route, true, true);
-                    }
+                    // Remove nodes from previous routes if any.
+                    removeNodes(oldDOM, 0);
 
                     if (!noRemove) {
                         noRemove = goal && (goal.replace === false);
                     }
 
-                    while (mem.length > 1 && !noRemove) {
+                    if (!noRemove) {
                         // By default we are replacing everything from previous
                         // render of this route in this parent.
-                        i = mem.pop();
-                        if ((parent = i.parentNode)) {
-                            parent.removeChild(i);
-                        }
+                        removeNodes(mem, 1);
                     }
 
                     if (goal) {
@@ -1093,13 +1091,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    function unprocessRoute(route, keepDOM, keepPlaceholders) {
+    function unprocessRoute(route, keepPlaceholders) {
         var children,
             i;
 
         children = route.children;
         for (i = children.length; i--;) {
-            unprocessRoute(children[i], keepDOM);
+            unprocessRoute(children[i]);
         }
 
         // Stop processing route and remove associated nodes.
@@ -1111,48 +1109,38 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (route._data !== undefined) {
             delete route._data;
             delete route._dataError;
-
             emitEvent('leave', route);
-
-            if (keepDOM) {
-                // Indicate that route still has DOM.
-                route._dom = true;
-            } else {
-                removeNodes(route, keepPlaceholders);
-            }
+            rememberOldDOM(route, keepPlaceholders);
         }
     }
 
 
-    function removeNodes(route, keepPlaceholders, recursive) {
-        var children,
+    function rememberOldDOM(route, keepPlaceholders) {
+        var nodesets,
             i,
-            nodes,
-            node,
-            parent;
+            nodes;
 
-        route._dom = false;
-        children = route._n;
+        nodesets = route._n;
         keepPlaceholders = keepPlaceholders ? 1 : 0;
 
-        for (i in children) {
-            nodes = children[i];
+        for (i in nodesets) {
+            nodes = nodesets[i];
             while (nodes.length > keepPlaceholders) {
-                node = nodes.pop();
-                if ((parent = node.parentNode)) {
-                    parent.removeChild(node);
-                }
+                oldDOM.push(nodes.pop());
             }
         }
 
         if (!keepPlaceholders) {
             route._n = {};
         }
+    }
 
-        if (recursive) {
-            children = route.children;
-            for (i = children.length; i--;) {
-                removeNodes(children[i], false, true);
+
+    function removeNodes(nodes, stop/**/, parent, node) {
+        while (nodes.length > stop) {
+            node = nodes.pop();
+            if ((parent = node.parentNode)) {
+                parent.removeChild(node);
             }
         }
     }

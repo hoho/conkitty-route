@@ -43,6 +43,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         busyTimer,
 
         whitespace = /[\x20\t\r\n\f]+/,
+        routeNodeKey = '_$Croute',
+        dataSourceKey = 'dataSource',
+
+        FORM_STATE_VALID = 'valid',
+        FORM_STATE_INVALID = 'invalid',
+        FORM_STATE_SENDING = 'sending',
+
+        strSubmit = 'submit',
 
         proto = Route.prototype,
 
@@ -63,13 +71,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             return API;
         };
 
+
     API.add = API;
+
 
     API.set = function set(uri, reload) {
         checkRunning(true);
         reloadCurrent = reload;
         return $H.go(uri);
     };
+
 
     API.run = function run(title) {
         checkRunning();
@@ -138,7 +149,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }, 0);
         });
 
-        running = true;
         document.body.addEventListener('click', function(e) {
             var elem = e.target;
             while (elem && !(elem instanceof HTMLAnchorElement)) {
@@ -149,8 +159,77 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 API.set(elem.href);
             }
         }, false);
+
+        document.body.addEventListener(strSubmit, function(e) {
+            var target = e.target,
+                formNode = target,
+                route,
+                form,
+                data;
+
+            while (target) {
+                if (((route = target[routeNodeKey])) && ((form = route.form))) {
+                    e.preventDefault();
+                    data = serializeForm(formNode);
+
+                    currentRoutes[form._id] = form;
+                    form._n = route._n;
+                    form._f = data[1];
+
+                    if (form.checkForm((data = data[0]))) {
+                        unprocessRoute(form, true);
+                        form[dataSourceKey] = form.action || formNode.action;
+                        form.method = form._method || formNode.method;
+                        /* eslint no-loop-func: 0 */
+                        form._b = function(xhr/**/, type, submit) {
+                            type = form.type;
+                            xhr.setRequestHeader(
+                                'Content-Type',
+                                type === 'text' ?
+                                    'text/plain'
+                                    :
+                                    (type === 'json' ?
+                                        'application/json'
+                                        :
+                                        'application/x-www-form-urlencoded'));
+
+                            return makeResponseBody(
+                                (submit = form[strSubmit]) ? submit.call(route, data, xhr) : data,
+                                type
+                            );
+                        };
+                        setFormState(route, form, FORM_STATE_SENDING);
+                        new ProcessRoute(form);
+                    }
+
+                    break;
+                }
+                target = target.parentNode;
+            }
+        });
+
+        running = true;
         $H.run();
     };
+
+
+    function makeResponseBody(data, type/**/, i, ret, param) {
+        if (type === 'json') {
+            return JSON.stringify(data);
+        } else if (data) {
+            if (type === 'text') {
+                return data + '';
+            } else {
+                ret = [];
+                for (i = 0; i < data.length; i++) {
+                    param = data[i];
+                    ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
+                }
+                return ret.join('&');
+            }
+        }
+    }
+
 
     API.on = function on(event, handler, route) {
         var i = '',
@@ -178,6 +257,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         }
         return API;
     };
+
 
     API.off = function off(event, handler, route) {
         var i = '',
@@ -207,6 +287,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         }
         return API;
     };
+
 
     API.get = function get(id) {
         return routeById[id];
@@ -255,7 +336,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             parent--;
         }
         d = p && p._data;
-        return isArray(d) ? (isArray(this.dataSource) ? d : d[0]) : undefined;
+        return isArray(d) ? (isArray(this[dataSourceKey]) ? d : d[0]) : undefined;
     };
 
 
@@ -267,6 +348,70 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     proto.active = function() {
         return this._id in currentRoutes;
     };
+
+
+    proto.checkForm = function(data) {
+        var self = this,
+            fields = self._f || [],
+            i,
+            route = self.parent,
+            check = self.check,
+            field,
+            error,
+            hasError;
+
+        for (i = 0; i < fields.length; i++) {
+            field = fields[i];
+            error = check ? check.call(route, field[0], field[1], data) : undefined;
+            setFieldState(
+                route,
+                self,
+                field,
+                error ? ((hasError = true), FORM_STATE_INVALID) : FORM_STATE_VALID,
+                error
+            );
+        }
+
+        return !hasError;
+    };
+
+
+    function setFieldState(route, form, field, stateValue, msg) {
+        var state = form.state,
+            input = field[0],
+            s = state ? state.call(route, input, stateValue, msg) : undefined,
+            oldState = field[2];
+
+        field[2] = stateValue;
+
+        if (s === undefined) {
+            if (stateValue === FORM_STATE_VALID) {
+                if (oldState === FORM_STATE_SENDING) {
+                    input.disabled = false;
+                }
+            }
+
+            // No default action for invalid field.
+
+            if (stateValue === FORM_STATE_SENDING) {
+                if (input.disabled) {
+                    field[2] = oldState;
+                } else {
+                    input.disabled = true;
+                }
+            }
+        }
+    }
+
+
+    function setFormState(route, form, state) {
+        var fields = form._f,
+            i;
+
+        for (i = 0; i < fields.length; i++) {
+            setFieldState(route, form, fields[i], state);
+        }
+    }
 
 
     // To avoid multiple parsing of query params for each route, parse them
@@ -513,7 +658,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function Route(uri, frame, pathExpr, paramsOffset, parent) {
+    function Route(uri, frame, pathExpr, paramsOffset, parent, form) {
         var self = this,
             i,
             frames,
@@ -542,8 +687,23 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             self.title = frame.title || (parent && parent.title);
             self.renderParent = frame.parent || (parent && parent.renderParent) || document.body;
             self.render = f = frame.render;
-            self.dataSource = frame.data;
-            self.keep = frame.keep;
+
+            if (form) {
+                self.isForm = true;
+                self.action = frame.action;
+                self._method = frame.method;
+                self.check = frame.check;
+                self.state = frame.state;
+                self.type = frame.type;
+                self[strSubmit] = frame[strSubmit];
+            } else {
+                self.keep = frame.keep;
+                self[dataSourceKey] = frame.data;
+            }
+
+            if (frame.form) {
+                self.form = new Route(undefined, frame.form, undefined, undefined, self, true);
+            }
 
             if (f && ((f = f.leave))) {
                 if (!isArray(f)) { f = [f]; }
@@ -788,7 +948,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function AjaxGet(uri, route/**/, val, self) {
+    function AJAX(uri, route/**/, val, self, body) {
         self = this;
 
         self.ok = [];
@@ -797,7 +957,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         self._r = val = new XMLHttpRequest();
 
         if (val) {
-            val.open('GET', makeURI(route, uri), true);
+            val.open(route.method || 'GET', makeURI(route, uri), true);
             val.onreadystatechange = function() {
                 if (val.readyState === 4) { // Completed.
                     self._done = self._error = true;
@@ -811,7 +971,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     self.done();
                 }
             };
-            val.send();
+
+            if ((body = route._b)) {
+                body = body(val);
+                route._b = undefined;
+            }
+
+            val.send(body);
         } else {
             self._done = self._error = true;
             self.done();
@@ -819,7 +985,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    proto = AjaxGet.prototype;
+    proto = AJAX.prototype;
 
 
     proto.then = function(ok, error) {
@@ -938,7 +1104,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                             i = node.firstChild;
                             while (i) {
                                 mem.push(i);
-                                i._$Croute = route;
+                                i[routeNodeKey] = route;
                                 i = i.nextSibling;
                             }
                         } else {
@@ -946,7 +1112,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                 parent.removeChild(node);
                             }
                             mem.push(node);
-                            node._$Croute = route;
+                            node[routeNodeKey] = route;
                         }
                     }
                 }
@@ -965,7 +1131,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         var skip = (route._data !== undefined) && !route._dataError,
             self = this,
             datas = self.datas = [],
-            dataSource = route.dataSource,
+            dataSource = route[dataSourceKey],
             i,
             d,
             waiting = 0,
@@ -984,6 +1150,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                     if (!skip) {
                         route._data = datas;
+
+                        if (route.isForm) {
+                            setFormState(route.parent, route, FORM_STATE_VALID);
+                        }
 
                         if (error) {
                             processRender(render.error, [], defaultRenderParent, route);
@@ -1054,7 +1224,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     d = dataSource[i];
 
                     if (isString(d)) {
-                        d = new AjaxGet(d, route);
+                        d = new AJAX(d, route);
                     }
 
                     if (isFunction(d)) {
@@ -1106,8 +1276,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         }
 
         if (route._data !== undefined) {
-            delete route._data;
-            delete route._dataError;
+            route._data = route._dataError = undefined;
             emitEvent('leave', route);
             rememberOldDOM(route, keepPlaceholders);
         }
@@ -1142,6 +1311,69 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 parent.removeChild(node);
             }
         }
+    }
+
+
+    function serializeForm(node) {
+        var i,
+            j,
+            elems,
+            elem,
+            name,
+            opts,
+            val,
+            serialized = [],
+            fields = [];
+
+        if (node instanceof HTMLFormElement) {
+            elems = node.elements;
+
+            for (i = 0; i < elems.length; i++) {
+                elem = elems[i];
+                val = undefined;
+
+                if ((name = elem.name)) {
+                    switch (elem.type) {
+                        case strSubmit:
+                        case 'reset':
+                        case 'button':
+                        case 'file':
+                            break;
+
+                        case 'checkbox':
+                        case 'radio':
+                            if (elem.checked) {
+                                val = elem.value || '';
+                            }
+                            break;
+
+                        case 'select-multiple':
+                            opts = elem.options;
+                            val = [];
+                            for (j = 0; j < opts.length; j++) {
+                                if (opts[j].selected) {
+                                    val.push(opts[j].value);
+                                }
+                            }
+                            break;
+
+                        default:
+                            val = elem.value || '';
+                    }
+                }
+
+                fields.push([elem, val]);
+
+                if (!elem.disabled && val !== undefined) {
+                    if (!isArray(val)) { val = [val]; }
+                    for (j = 0; j < val.length; j++) {
+                        serialized.push({name: name, value: val[j]});
+                    }
+                }
+            }
+        }
+
+        return [serialized, fields];
     }
 
 

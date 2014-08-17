@@ -935,25 +935,24 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                     if (goal) {
                         if (node.nodeType === 11) {
-                            node = node.firstChild;
-                        } else if ((parent = node.parentNode)) {
-                            parent.removeChild(node);
+                            i = node.firstChild;
+                            while (i) {
+                                mem.push(i);
+                                i._$Croute = route;
+                                i = i.nextSibling;
+                            }
+                        } else {
+                            if ((parent = node.parentNode)) {
+                                parent.removeChild(node);
+                            }
+                            mem.push(node);
+                            node._$Croute = route;
                         }
                     }
                 }
 
-                if (!isNode(node)) {
-                    node = undefined;
-                }
-
-                while (node) {
-                    mem.push(node);
-                    i = node.nextSibling;
-                    node._$Croute = route;
-                    if ((parent = placeholder.parentNode)) {
-                        parent.insertBefore(node, placeholder);
-                    }
-                    node = i;
+                if (isNode(node) && ((parent = placeholder.parentNode))) {
+                    parent.insertBefore(node, placeholder);
                 }
             }
         }

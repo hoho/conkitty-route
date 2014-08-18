@@ -187,41 +187,44 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                             action;
                         form.method = formNode.getAttribute('method') || form._method;
                         /* eslint no-loop-func: 0 */
-                        form._b = function(xhr/**/, type, submit, ret, i, param) {
-                            type = form.type;
-                            xhr.setRequestHeader(
-                                'Content-Type',
-                                type === 'text' ?
-                                    'text/plain'
-                                    :
-                                    (type === 'json' ?
-                                        'application/json'
+                        setFormState(route, form, FORM_STATE_SENDING);
+                        new ProcessRoute(
+                            form,
+                            formNode,
+                            function(xhr/**/, type, submit, ret, i, param) {
+                                type = form.type;
+                                xhr.setRequestHeader(
+                                    'Content-Type',
+                                        type === 'text' ?
+                                        'text/plain'
                                         :
-                                        'application/x-www-form-urlencoded')
-                            );
+                                        (type === 'json' ?
+                                            'application/json'
+                                            :
+                                            'application/x-www-form-urlencoded')
+                                );
 
-                            data = (submit = form[strSubmit]) ?
-                                submit.call(formNode, data, xhr, route)
-                                :
-                                data;
+                                data = (submit = form[strSubmit]) ?
+                                    submit.call(formNode, data, xhr, route)
+                                    :
+                                    data;
 
-                            if (type === 'json') {
-                                return JSON.stringify(data);
-                            } else if (data) {
-                                if (type === 'text') {
-                                    return data + '';
-                                } else {
-                                    ret = [];
-                                    for (i = 0; i < data.length; i++) {
-                                        param = data[i];
-                                        ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
+                                if (type === 'json') {
+                                    return JSON.stringify(data);
+                                } else if (data) {
+                                    if (type === 'text') {
+                                        return data + '';
+                                    } else {
+                                        ret = [];
+                                        for (i = 0; i < data.length; i++) {
+                                            param = data[i];
+                                            ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
+                                        }
+                                        return ret.join('&');
                                     }
-                                    return ret.join('&');
                                 }
                             }
-                        };
-                        setFormState(route, form, FORM_STATE_SENDING);
-                        new ProcessRoute(form);
+                        );
                     }
 
                     break;
@@ -952,7 +955,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function AJAX(uri, route/**/, val, self, body) {
+    function AJAX(uri, route, body/**/, val, self) {
         self = this;
 
         self.ok = [];
@@ -976,9 +979,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
             };
 
-            if ((body = route._b)) {
+            if (body) {
                 body = body(val);
-                route._b = undefined;
             }
 
             val.send(body);
@@ -1061,7 +1063,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function processRender(goal, datas, defaultRenderParent, route, noRemove) {
+    function processRender(goal, datas, defaultRenderParent, route, formNode, noRemove) {
         var i,
             mem,
             params,
@@ -1073,7 +1075,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         if (isArray(goal)) {
             for (i = 0; i < goal.length; i++) {
-                if (processRender(goal[i], datas, defaultRenderParent, route, i !== 0) === false) {
+                if (processRender(goal[i], datas, defaultRenderParent, route, formNode, i !== 0) === false) {
                     break;
                 }
             }
@@ -1088,6 +1090,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 if (goal) {
                     i = isString(goal) ? goal : goal.template;
                     args = [].concat(datas, params, route);
+                    if (formNode) { args.push(formNode); }
                     if (isFunction(goal)) {
                         node = goal.apply(route, args);
                         if (node === false) { return node; }
@@ -1137,7 +1140,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function ProcessRoute(route) {
+    function ProcessRoute(route, formNode, formBody) {
         if (route._data instanceof ProcessRoute) { return; }
 
         var skip = (route._data !== undefined) && !route._dataError,
@@ -1168,7 +1171,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         }
 
                         if (error) {
-                            processRender(render.error, [], defaultRenderParent, route);
+                            processRender(render.error, [], defaultRenderParent, route, formNode);
                             emitEvent('error', route);
                         } else {
                             processRender(
@@ -1183,12 +1186,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                                 datas,
                                 defaultRenderParent,
-                                route
+                                route,
+                                formNode
                             );
                             emitEvent('success', route);
                         }
 
-                        processRender(render.after, error ? [true] : [], defaultRenderParent, route);
+                        processRender(render.after, error ? [true] : [], defaultRenderParent, route, formNode);
                         emitEvent('after', route);
                     }
 
@@ -1214,7 +1218,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 :
                 i;
 
-            processRender(render.before, [], defaultRenderParent, route);
+            processRender(render.before, [], defaultRenderParent, route, formNode);
             emitEvent('before', route);
 
             if (dataSource !== undefined) {
@@ -1236,7 +1240,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     d = dataSource[i];
 
                     if (isString(d)) {
-                        d = new AJAX(d, route);
+                        d = new AJAX(d, route, formBody);
                     }
 
                     if (isFunction(d)) {

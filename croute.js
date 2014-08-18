@@ -165,7 +165,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 formNode = target,
                 route,
                 form,
-                data;
+                data,
+                action;
 
             while (target) {
                 if (((route = target[routeNodeKey])) && ((form = route.form))) {
@@ -178,8 +179,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                     if (form.checkForm((data = data[0]))) {
                         unprocessRoute(form, true);
-                        form[dataSourceKey] = form.action || formNode.action;
-                        form.method = form._method || formNode.method;
+                        form[dataSourceKey] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                            action.call(formNode, data, route)
+                            :
+                            action;
+                        form.method = formNode.getAttribute('method') || form._method;
                         /* eslint no-loop-func: 0 */
                         form._b = function(xhr/**/, type, submit, ret, i, param) {
                             type = form.type;
@@ -194,7 +198,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                         'application/x-www-form-urlencoded')
                             );
 
-                            data = (submit = form[strSubmit]) ? submit.call(route, data, xhr) : data;
+                            data = (submit = form[strSubmit]) ?
+                                submit.call(formNode, data, xhr, route)
+                                :
+                                data;
 
                             if (type === 'json') {
                                 return JSON.stringify(data);

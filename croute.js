@@ -50,6 +50,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         FORM_STATE_INVALID = 'invalid',
         FORM_STATE_SENDING = 'sending',
 
+        NULL = null,
+
         strSubmit = 'submit',
 
         proto = Route.prototype,
@@ -440,7 +442,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                             name = decodeURIComponent(name.substring(0, name.length - value.length - 1));
                             value = decodeURIComponent(value);
                         } else {
-                            value = null;
+                            value = NULL;
                         }
 
                         if ((cur = currentQueryParams[name])) {
@@ -580,7 +582,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     name = decodeURIComponent(name.substring(0, name.length - value.length - 1));
                     value = decodeURIComponent(value);
                 } else {
-                    value = null;
+                    value = NULL;
                 }
 
                 if (name.charAt(0) === ':') { throwError('Invalid queryparam'); }
@@ -844,7 +846,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 self._s = same;
             },
             leave: function() {
-                self._p = null;
+                self._p = NULL;
             }
         });
     }
@@ -1043,7 +1045,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }
         }
 
-        parent1 = isNode(parent1) ? parent1 : null;
+        parent1 = isNode(parent1) ? parent1 : NULL;
         if (parent1) {
             if (!((id = parent1._$Cid))) {
                 parent1._$Cid = id = ++routeId;
@@ -1071,9 +1073,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         if (isArray(goal)) {
             for (i = 0; i < goal.length; i++) {
-                processRender(goal[i], datas, defaultRenderParent, route, i !== 0);
+                if (processRender(goal[i], datas, defaultRenderParent, route, i !== 0) === false) {
+                    break;
+                }
             }
-        } else if (goal || goal === null) {
+        } else if (goal || goal === NULL) {
             // null-value goal could be used to remove previous render nodes.
             renderParent = getRenderParent(route, goal && goal.parent, defaultRenderParent);
             if (renderParent) {
@@ -1084,7 +1088,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 if (goal) {
                     i = isString(goal) ? goal : goal.template;
                     args = [].concat(datas, params, route);
-                    node = isFunction(goal) ? goal.apply(route, args) : (i && $C.tpl[i].apply(null, args));
+                    if (isFunction(goal)) {
+                        node = goal.apply(route, args);
+                        if (node === false) { return node; }
+                        if (node === NULL) { goal = NULL; }
+                    } else {
+                        node = i && $C.tpl[i].apply(NULL, args);
+                    }
                 }
 
                 if (!goal || isNode(node)) {

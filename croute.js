@@ -181,7 +181,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         form[dataSourceKey] = form.action || formNode.action;
                         form.method = form._method || formNode.method;
                         /* eslint no-loop-func: 0 */
-                        form._b = function(xhr/**/, type, submit) {
+                        form._b = function(xhr/**/, type, submit, ret, i, param) {
                             type = form.type;
                             xhr.setRequestHeader(
                                 'Content-Type',
@@ -191,12 +191,25 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                     (type === 'json' ?
                                         'application/json'
                                         :
-                                        'application/x-www-form-urlencoded'));
-
-                            return makeResponseBody(
-                                (submit = form[strSubmit]) ? submit.call(route, data, xhr) : data,
-                                type
+                                        'application/x-www-form-urlencoded')
                             );
+
+                            data = (submit = form[strSubmit]) ? submit.call(route, data, xhr) : data;
+
+                            if (type === 'json') {
+                                return JSON.stringify(data);
+                            } else if (data) {
+                                if (type === 'text') {
+                                    return data + '';
+                                } else {
+                                    ret = [];
+                                    for (i = 0; i < data.length; i++) {
+                                        param = data[i];
+                                        ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
+                                    }
+                                    return ret.join('&');
+                                }
+                            }
                         };
                         setFormState(route, form, FORM_STATE_SENDING);
                         new ProcessRoute(form);
@@ -211,24 +224,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         running = true;
         $H.run();
     };
-
-
-    function makeResponseBody(data, type/**/, i, ret, param) {
-        if (type === 'json') {
-            return JSON.stringify(data);
-        } else if (data) {
-            if (type === 'text') {
-                return data + '';
-            } else {
-                ret = [];
-                for (i = 0; i < data.length; i++) {
-                    param = data[i];
-                    ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
-                }
-                return ret.join('&');
-            }
-        }
-    }
 
 
     API.on = function on(event, handler, route) {

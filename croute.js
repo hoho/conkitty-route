@@ -60,6 +60,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
 
+        KEY_PARENT = 'parent',
         KEY_RENDER_PARENT = 'renderParent',
 
         NULL = null,
@@ -103,7 +104,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         defaultTitle = defaults.title || '';
         defaultRender = normalizeRender(defaults.render);
-        defaultParent = defaults.parent || document.body;
+        defaultParent = defaults[KEY_PARENT] || document.body;
 
         if (notFoundRoute) {
             addRoute(undefined, notFoundRoute);
@@ -331,13 +332,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             parent;
 
         if (self._id in currentRoutes) {
-            parent = self.parent;
+            parent = self[KEY_PARENT];
             while (parent) {
                 // Check if none of parent routes is in progress.
                 if (parent._data instanceof ProcessRoute) {
                     break;
                 }
-                parent = parent.parent;
+                parent = parent[KEY_PARENT];
             }
             if (!parent) {
                 unprocessRoute(self, true);
@@ -351,7 +352,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         var p = this;
         parent = parent || 0;
         while (p && parent > 0) {
-            p = p.parent;
+            p = p[KEY_PARENT];
             parent--;
         }
 
@@ -364,7 +365,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             d;
         parent = parent || 0;
         while (p && parent > 0) {
-            p = p.parent;
+            p = p[KEY_PARENT];
             parent--;
         }
         d = p && p._data;
@@ -386,7 +387,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         var self = this,
             fields = self._f || [],
             i,
-            route = self.parent,
+            route = self[KEY_PARENT],
             check = self.check,
             field,
             error,
@@ -677,7 +678,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             while (route) {
                 // Tell parents about it.
                 route._a -= a;
-                route = route.parent;
+                route = route[KEY_PARENT];
             }
         }
     }
@@ -697,7 +698,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             paramsConstraints,
             currentParams = {};
 
-        self.parent = parent;
+        self[KEY_PARENT] = parent;
         self.children = [];
         self.uri = uri;
         self._id = 'r' + (++routeId);
@@ -710,7 +711,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 routeById[i] = self;
             }
             self.title = frame.title || (parent && parent.title);
-            self[KEY_RENDER_PARENT] = frame.parent || (parent && parent[KEY_RENDER_PARENT]);
+            self[KEY_RENDER_PARENT] = frame[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
             self.render = f = normalizeRender(frame.render);
             self.final = frame.final;
 
@@ -774,7 +775,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         while (i) {
                             // Tell parents about it.
                             i._a++;
-                            i = i.parent;
+                            i = i[KEY_PARENT];
                         }
                     }
                 }
@@ -901,10 +902,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (overrideParams && (name in overrideParams)) {
             i = overrideParams[name];
         } else {
-            i = param.parent;
+            i = param[KEY_PARENT];
 
             while (route && i) {
-                route = route.parent;
+                route = route[KEY_PARENT];
                 i--;
             }
 
@@ -973,7 +974,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             hash = pathObj.param ? getURIParam(route, pathObj, overrideParams) : pathObj.value;
         }
 
-        if (overrideParams && ((i = route.parent))) {
+        if (overrideParams && ((i = route[KEY_PARENT]))) {
             // Building route URI from routes tree, current state and params to override.
             makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true);
         }
@@ -1128,7 +1129,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }
         } else if (target || target === NULL) {
             // null-value target could be used to remove previous render nodes.
-            renderParent = getRenderParent(route, target && target.parent, defaultRenderParent);
+            renderParent = getRenderParent(route, target && target[KEY_PARENT], defaultRenderParent);
             if (renderParent) {
                 mem = route._n[renderParent._$Cid];
                 placeholder = mem[0];
@@ -1218,7 +1219,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         route._data = datas;
 
                         if (route.isForm) {
-                            setFormState(route.parent, route, FORM_STATE_VALID);
+                            setFormState(route[KEY_PARENT], route, FORM_STATE_VALID);
                         }
 
                         if (error) {

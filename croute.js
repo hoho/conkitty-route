@@ -20,7 +20,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         reloadCurrent,
 
         routes = [],
-        routesFlat,
         routeId = 0,
 
         routeById = {},
@@ -60,6 +59,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         STR_EXCEPT = 'except',
 
         RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
+
+        KEY_RENDER_PARENT = 'renderParent',
 
         NULL = null,
 
@@ -112,22 +113,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             var newRootRoute,
                 newRoutes = {},
                 i,
-                j,
-                route,
-                froute,
-                flat;
+                route;
 
             for (i = 0; i < routes.length; i++) {
                 route = routes[i];
                 if (route._a) {
-                    newRootRoute = route;
-                    flat = route._flat;
-                    for (j = 0; j < flat.length; j++) {
-                        froute = flat[j];
-                        if (froute._a) {
-                            newRoutes[froute._id] = froute;
+                    traverseRoute((newRootRoute = route), function(r/**/, final) {
+                        if (r._a) {
+                            newRoutes[r._id] = r;
+                            if (isFunction((final = r.final))) {
+                                final = final.call(r);
+                            }
+                            return !!final;
                         }
-                    }
+                    });
                     break;
                 }
             }
@@ -251,6 +250,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         running = true;
         $H.run();
     };
+
+
+    function traverseRoute(route, callback/**/, i, children) {
+        children = route.children;
+        for (i = 0; i < children.length; i++) {
+            if (traverseRoute(children[i], callback)) {
+                break;
+            }
+        }
+        return callback(route);
+    }
 
 
     API.on = function on(event, handler, route) {
@@ -440,14 +450,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     // once here.
     $H.on(
         {
-            search: function(search/**/, i, j, name, value, cur, flat) {
+            search: function(search/**/, i, j, name, value, cur) {
                 // Reset active flags.
                 for (i = routes.length; i--;) {
-                    cur = routes[i];
-                    flat = cur._flat;
-                    for (j = flat.length; j--;) {
-                        flat[j]._a = 0;
-                    }
+                    traverseRoute(routes[i], function(r) { r._a = 0; });
                 }
 
                 // Parse querystring.
@@ -480,11 +486,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     function addRoute(uri, frame/**/, route) {
-        routesFlat = []; // Depth-first flat subroutes list.
         route = new Route(uri, frame);
         routes.push(route);
-        routesFlat.push(route);
-        route._flat = routesFlat;
     }
 
 
@@ -707,8 +710,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 routeById[i] = self;
             }
             self.title = frame.title || (parent && parent.title);
-            self.renderParent = frame.parent || (parent && parent.renderParent);
+            self[KEY_RENDER_PARENT] = frame.parent || (parent && parent[KEY_RENDER_PARENT]);
             self.render = f = normalizeRender(frame.render);
+            self.final = frame.final;
 
             if (form) {
                 self.isForm = true;
@@ -840,7 +844,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         self
                     );
 
-                    routesFlat.push(childRoute);
                     self.children.push(childRoute);
                 }
             }
@@ -1244,7 +1247,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (!skip) {
             route._data = self;
 
-            defaultRenderParent = getRenderParent(route, route.renderParent);
+            defaultRenderParent = getRenderParent(route, route[KEY_RENDER_PARENT]);
 
             document.title = (i = (isFunction((i = route.title)) ? i() : i)) === undefined
                 ?

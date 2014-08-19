@@ -9,6 +9,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     'use strict';
 
     var defaultTitle,
+        defaultRender,
+        defaultParent,
 
         running,
 
@@ -33,6 +35,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             error: {},
             after: {},
             stop: {},
+            except: {},
             leave: {},
             busy: {},
             idle: {}
@@ -50,9 +53,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         FORM_STATE_INVALID = 'invalid',
         FORM_STATE_SENDING = 'sending',
 
+        STR_BEFORE = 'before',
+        STR_SUCCESS = 'success',
+        STR_ERROR = 'error',
+        STR_AFTER = 'after',
+        STR_EXCEPT = 'except',
+
+        RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
+
         NULL = null,
 
-        strSubmit = 'submit',
+        STR_SUBMIT = 'submit',
 
         proto = Route.prototype,
 
@@ -84,10 +95,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    API.run = function run(title) {
+    API.run = function run(defaults) {
         checkRunning();
 
-        defaultTitle = title || '';
+        defaults = defaults || {};
+
+        defaultTitle = defaults.title || '';
+        defaultRender = normalizeRender(defaults.render);
+        defaultParent = defaults.parent || document.body;
 
         if (notFoundRoute) {
             addRoute(undefined, notFoundRoute);
@@ -138,7 +153,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         });
 
         API.on('before after stop', function(e) {
-            busyCount += e === 'before' ? 1 : -1;
+            busyCount += e === STR_BEFORE ? 1 : -1;
             if (busyTimer) { clearTimeout(busyTimer); }
             busyTimer = setTimeout(function() {
                 e = busy;
@@ -162,7 +177,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }
         }, false);
 
-        document.body.addEventListener(strSubmit, function(e) {
+        document.body.addEventListener(STR_SUBMIT, function(e) {
             var target = e.target,
                 formNode = target,
                 route,
@@ -204,7 +219,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                                             'application/x-www-form-urlencoded')
                                 );
 
-                                data = (submit = form[strSubmit]) ?
+                                data = (submit = form[STR_SUBMIT]) ?
                                     submit.call(formNode, data, xhr, route)
                                     :
                                     data;
@@ -692,8 +707,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 routeById[i] = self;
             }
             self.title = frame.title || (parent && parent.title);
-            self.renderParent = frame.parent || (parent && parent.renderParent) || document.body;
-            self.render = f = frame.render;
+            self.renderParent = frame.parent || (parent && parent.renderParent);
+            self.render = f = normalizeRender(frame.render);
 
             if (form) {
                 self.isForm = true;
@@ -702,7 +717,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 self.check = frame.check;
                 self.state = frame.state;
                 self.type = frame.type;
-                self[strSubmit] = frame[strSubmit];
+                self[STR_SUBMIT] = frame[STR_SUBMIT];
             } else {
                 self.keep = frame.keep;
                 self[dataSourceKey] = frame.data;
@@ -710,13 +725,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
             if (frame.form) {
                 self.form = new Route(undefined, frame.form, undefined, undefined, self, true);
-            }
-
-            if (f && ((f = f.leave))) {
-                if (!isArray(f)) { f = [f]; }
-                for (i = 0; i < f.length; i++) {
-                    API.on('leave', f[i], self);
-                }
             }
         }
 
@@ -852,6 +860,35 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 self._p = NULL;
             }
         });
+    }
+
+
+    function normalizeRender(render) {
+        render = isString(render) ||
+                 isFunction(render) ||
+                 isArray(render) ||
+                 render === NULL ||
+                 (render && render.template)
+            ?
+            {success: render}
+            :
+            render || {};
+
+        var ret = {},
+            i,
+            key,
+            val;
+
+        for (i = RENDER_KEYS.length; i--;) {
+            if (!isArray((val = render[(key = RENDER_KEYS[i])])) && val !== undefined) {
+                val = [val];
+            }
+            if (val) {
+                ret[key] = val;
+            }
+        }
+
+        return ret;
     }
 
 
@@ -1037,9 +1074,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     function getRenderParent(route, parent1, parent2/**/, id) {
-        parent1 = parent1 || parent2;
+        parent1 = parent1 || parent2 || defaultParent;
 
-        if (!isNode(parent1)) {
+        if (parent1 && !isNode(parent1)) {
             if (isFunction(parent1)) {
                 parent1 = parent1.call(route);
             } else {
@@ -1047,8 +1084,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }
         }
 
-        parent1 = isNode(parent1) ? parent1 : NULL;
-        if (parent1) {
+        if ((parent1 = isNode(parent1) ? parent1 : NULL)) {
             if (!((id = parent1._$Cid))) {
                 parent1._$Cid = id = ++routeId;
             }
@@ -1063,7 +1099,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     }
 
 
-    function processRender(goal, datas, defaultRenderParent, route, formNode, noRemove) {
+    function processRender(stage, render, datas, defaultRenderParent, route, formNode, noRemove, target) {
         var i,
             mem,
             params,
@@ -1073,39 +1109,51 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             placeholder,
             args;
 
-        if (isArray(goal)) {
-            for (i = 0; i < goal.length; i++) {
-                if (processRender(goal[i], datas, defaultRenderParent, route, formNode, i !== 0) === false) {
-                    break;
+        if (target === undefined) {
+            target = render[stage] || defaultRender[stage];
+        }
+
+        if (isArray(target)) {
+            try {
+                for (i = 0; i < target.length; i++) {
+                    if (processRender(stage, render, datas, defaultRenderParent, route, formNode, i !== 0, target[i]) === false) {
+                        break;
+                    }
                 }
+            } catch(e) {
+                processRender(STR_EXCEPT, render, [e, stage, i, target[i]], defaultRenderParent, route, formNode);
             }
-        } else if (goal || goal === NULL) {
-            // null-value goal could be used to remove previous render nodes.
-            renderParent = getRenderParent(route, goal && goal.parent, defaultRenderParent);
+        } else if (target || target === NULL) {
+            // null-value target could be used to remove previous render nodes.
+            renderParent = getRenderParent(route, target && target.parent, defaultRenderParent);
             if (renderParent) {
                 mem = route._n[renderParent._$Cid];
                 placeholder = mem[0];
                 params = route._p;
 
-                if (goal) {
-                    i = isString(goal) ? goal : goal.template;
+                if (target) {
                     args = [].concat(datas, params, route);
                     if (formNode) { args.push(formNode); }
-                    if (isFunction(goal)) {
-                        node = goal.apply(route, args);
+                    if (isFunction(target)) {
+                        node = target.apply(route, args);
                         if (node === false) { return node; }
-                        if (node === NULL) { goal = NULL; }
+                        if (node === NULL) { target = NULL; }
+                        if (isString(node)) { i = node; }
                     } else {
-                        node = i && $C.tpl[i].apply(NULL, args);
+                        i = isString(target) ? target : target.template;
+                    }
+
+                    if (isString(i)) {
+                        node = $C.tpl[i].apply(NULL, args);
                     }
                 }
 
-                if (!goal || isNode(node)) {
+                if (!target || isNode(node)) {
                     // Remove nodes from previous routes if any.
                     removeNodes(oldDOM, 0);
 
                     if (!noRemove) {
-                        noRemove = goal && (goal.replace === false);
+                        noRemove = target && (target.replace === false);
                     }
 
                     if (!noRemove) {
@@ -1114,7 +1162,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         removeNodes(mem, 1);
                     }
 
-                    if (goal) {
+                    if (target) {
                         if (node.nodeType === 11) {
                             i = node.firstChild;
                             while (i) {
@@ -1150,7 +1198,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             i,
             d,
             waiting = 0,
-            render = route.render || '',
+            render = route.render,
             defaultRenderParent,
             resolve,
             done = function(index, data, /**/i, children, r, error) {
@@ -1171,29 +1219,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         }
 
                         if (error) {
-                            processRender(render.error, [], defaultRenderParent, route, formNode);
-                            emitEvent('error', route);
+                            processRender(STR_ERROR, render, [], defaultRenderParent, route, formNode);
+                            emitEvent(STR_ERROR, route);
                         } else {
-                            processRender(
-                                isString(render) ||
-                                isFunction(render) ||
-                                isArray(render) ||
-                                render.template
-                                ?
-                                render
-                                :
-                                render.success,
-
-                                datas,
-                                defaultRenderParent,
-                                route,
-                                formNode
-                            );
-                            emitEvent('success', route);
+                            processRender(STR_SUCCESS, render, datas, defaultRenderParent, route, formNode);
+                            emitEvent(STR_SUCCESS, route);
                         }
 
-                        processRender(render.after, error ? [true] : [], defaultRenderParent, route, formNode);
-                        emitEvent('after', route);
+                        processRender(STR_AFTER, render, error ? [true] : [], defaultRenderParent, route, formNode);
+                        emitEvent(STR_AFTER, route);
                     }
 
                     if (!error) {
@@ -1210,7 +1244,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         if (!skip) {
             route._data = self;
 
-            defaultRenderParent = getRenderParent(route, render.parent, route.renderParent);
+            defaultRenderParent = getRenderParent(route, route.renderParent);
 
             document.title = (i = (isFunction((i = route.title)) ? i() : i)) === undefined
                 ?
@@ -1218,8 +1252,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 :
                 i;
 
-            processRender(render.before, [], defaultRenderParent, route, formNode);
-            emitEvent('before', route);
+            processRender(STR_BEFORE, render, [], defaultRenderParent, route, formNode);
+            emitEvent(STR_BEFORE, route);
 
             if (dataSource !== undefined) {
                 if (!isArray(dataSource)) {
@@ -1350,7 +1384,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
                 if ((name = elem.name)) {
                     switch (elem.type) {
-                        case strSubmit:
+                        case STR_SUBMIT:
                         case 'reset':
                         case 'button':
                         case 'file':

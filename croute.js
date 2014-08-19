@@ -166,18 +166,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             }, 0);
         });
 
-        document.body.addEventListener('click', function(e) {
+        var addEvent = addEventListener.bind(document.body);
+
+        addEvent('click', function(e) {
             var elem = e.target;
             while (elem && !(elem instanceof HTMLAnchorElement)) {
                 elem = elem.parentNode;
             }
-            if (elem && (elem.host === location.host)) {
+            if (elem && !elem.target && (elem.host === location.host) && !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.which !== 1))) {
                 e.preventDefault();
                 API.set(elem.href);
             }
         }, false);
 
-        document.body.addEventListener(STR_SUBMIT, function(e) {
+        addEvent(STR_SUBMIT, function(e) {
             var target = e.target,
                 formNode = target,
                 route,

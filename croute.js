@@ -1126,6 +1126,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 }
             } catch(e) {
                 processRender(STR_EXCEPT, render, [e, stage, i, target[i]], defaultRenderParent, route, formNode);
+                return true;
             }
         } else if (target || target === NULL) {
             // null-value target could be used to remove previous render nodes.
@@ -1223,14 +1224,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                         }
 
                         if (error) {
-                            processRender(STR_ERROR, render, [], defaultRenderParent, route, formNode);
+                            if (processRender(STR_ERROR, render, [], defaultRenderParent, route, formNode)) { return; }
                             emitEvent(STR_ERROR, route);
                         } else {
-                            processRender(STR_SUCCESS, render, datas, defaultRenderParent, route, formNode);
+                            if (processRender(STR_SUCCESS, render, datas, defaultRenderParent, route, formNode)) { return; }
                             emitEvent(STR_SUCCESS, route);
                         }
 
-                        processRender(STR_AFTER, render, error ? [true] : [], defaultRenderParent, route, formNode);
+                        if (processRender(STR_AFTER, render, error ? [true] : [], defaultRenderParent, route, formNode)) { return; }
                         emitEvent(STR_AFTER, route);
                     }
 
@@ -1256,7 +1257,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 :
                 i;
 
-            processRender(STR_BEFORE, render, [], defaultRenderParent, route, formNode);
+            if (processRender(STR_BEFORE, render, [], defaultRenderParent, route, formNode)) { return; }
             emitEvent(STR_BEFORE, route);
 
             if (dataSource !== undefined) {

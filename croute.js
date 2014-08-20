@@ -1329,6 +1329,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
             route._data.reject();
+            if (route.isForm) { unprocessRoute(route[KEY_PARENT], true); }
             emitEvent('stop', route);
         }
 

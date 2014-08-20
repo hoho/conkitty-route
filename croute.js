@@ -173,7 +173,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             while (elem && !(elem instanceof HTMLAnchorElement)) {
                 elem = elem.parentNode;
             }
-            if (elem && !elem.target && (elem.host === location.host) && !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.which !== 1))) {
+            if (elem &&
+                !elem.target &&
+                (elem.host === location.host) &&
+                !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.which !== 1)))
+            {
                 e.preventDefault();
                 API.set(elem.href);
             }
@@ -190,6 +194,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             while (target) {
                 if (((route = target[routeNodeKey])) && ((form = route.form))) {
                     e.preventDefault();
+
+                    form = new Route(undefined, form, undefined, undefined, route, true);
+
                     data = serializeForm(formNode);
 
                     currentRoutes[form._id] = form;
@@ -707,10 +714,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
         if (frame) {
             paramsConstraints = frame.params;
-            if ((i = self.id = frame.id)) {
-                if (i in routeById) { throwError('Duplicate id: ' + i); }
-                routeById[i] = self;
-            }
             self.title = frame.title || (parent && parent.title);
             self[KEY_RENDER_PARENT] = frame[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
             self.render = f = normalizeRender(frame.render);
@@ -725,12 +728,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 self.type = frame.type;
                 self[STR_SUBMIT] = frame[STR_SUBMIT];
             } else {
+                if ((i = self.id = frame.id)) {
+                    if (i in routeById) { throwError('Duplicate id: ' + i); }
+                    routeById[i] = self;
+                }
                 self.keep = frame.keep;
                 self[dataSourceKey] = frame.data;
-            }
-
-            if (frame.form) {
-                self.form = new Route(undefined, frame.form, undefined, undefined, self, true);
+                self.form = frame.form;
             }
         }
 

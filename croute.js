@@ -193,7 +193,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                     data = serializeForm(formNode);
 
                     currentRoutes[form._id] = form;
-                    form._n = route._n;
                     form._f = data[1];
 
                     if (form.checkForm((data = data[0]))) {
@@ -1079,7 +1078,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
     };
 
 
-    function getRenderParent(route, parent1, parent2/**/, id) {
+    function getRenderParent(route, parent1, parent2/**/, id, n) {
         parent1 = parent1 || parent2 || defaultParent;
 
         if (parent1 && !isNode(parent1)) {
@@ -1095,8 +1094,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 parent1._$Cid = id = ++routeId;
             }
             // Add placeholder for this route in this parent node.
-            if (!(route._n[id])) {
-                route._n[id] = [(parent2 = document.createComment(''))];
+            n = (route.isForm ? route[KEY_PARENT] : route)._n;
+            if (!(n[id])) {
+                n[id] = [(parent2 = document.createComment(''))];
                 parent1.appendChild(parent2);
             }
         }
@@ -1134,7 +1134,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             // null-value target could be used to remove previous render nodes.
             renderParent = getRenderParent(route, target && target[KEY_PARENT], defaultRenderParent);
             if (renderParent) {
-                mem = route._n[renderParent._$Cid];
+                mem = (route.isForm ? route[KEY_PARENT] : route)._n[renderParent._$Cid];
                 placeholder = mem[0];
                 params = route._p;
 

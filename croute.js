@@ -5,7 +5,7 @@
 
 /* global $C */
 /* global $H */
-$C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined) {
+$C.route = (function(document, decodeURIComponent, encodeURIComponent, location, undefined) {
     'use strict';
 
     var defaultTitle,
@@ -114,20 +114,21 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
             var newRootRoute,
                 newRoutes = {},
                 i,
-                route;
+                route,
+                traverseCallback = function(r/**/, final) {
+                    if (r._a) {
+                        newRoutes[r._id] = r;
+                        if (isFunction((final = r.final))) {
+                            final = final.call(r);
+                        }
+                        return !!final;
+                    }
+                };
 
             for (i = 0; i < routes.length; i++) {
                 route = routes[i];
                 if (route._a) {
-                    traverseRoute((newRootRoute = route), function(r/**/, final) {
-                        if (r._a) {
-                            newRoutes[r._id] = r;
-                            if (isFunction((final = r.final))) {
-                                final = final.call(r);
-                            }
-                            return !!final;
-                        }
-                    });
+                    traverseRoute((newRootRoute = route), traverseCallback);
                     break;
                 }
             }
@@ -191,74 +192,91 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
                 data,
                 action;
 
-            while (target) {
-                if (((route = target[routeNodeKey])) && ((form = route.form))) {
-                    e.preventDefault();
+            while (target && !((route = target[routeNodeKey]))) {
+                target = target.parentNode;
+            }
 
-                    form = new Route(undefined, form, undefined, undefined, route, true);
+            if (route && ((form = route.form))) {
+                e.preventDefault();
 
-                    data = serializeForm(formNode);
+                form = new Route(undefined, form, undefined, undefined, route, true);
 
-                    currentRoutes[form._id] = form;
-                    form._f = data[1];
+                data = serializeForm(formNode);
 
-                    if (form.checkForm((data = data[0]))) {
-                        unprocessRoute(form, true);
-                        form[dataSourceKey] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                            action.call(formNode, data, route)
-                            :
-                            action;
-                        form.method = formNode.getAttribute('method') || form._method;
-                        /* eslint no-loop-func: 0 */
-                        setFormState(route, form, FORM_STATE_SENDING);
-                        new ProcessRoute(
-                            form,
-                            formNode,
-                            function(xhr/**/, type, submit, ret, i, param) {
-                                type = form.type;
-                                xhr.setRequestHeader(
-                                    'Content-Type',
-                                        type === 'text' ?
+                currentRoutes[form._id] = form;
+                form._f = data[1];
+
+                if (form.checkForm((data = data[0]))) {
+                    unprocessRoute(form, true);
+                    form[dataSourceKey] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                        action.call(formNode, data, route)
+                        :
+                        action;
+                    form.method = formNode.getAttribute('method') || form._method;
+
+                    setFormState(route, form, FORM_STATE_SENDING);
+
+                    new ProcessRoute(
+                        form,
+                        formNode,
+                        function(xhr/**/, type, submit) {
+                            type = form.type;
+                            xhr.setRequestHeader(
+                                'Content-Type',
+                                    type === 'text' ?
                                         'text/plain'
                                         :
                                         (type === 'json' ?
                                             'application/json'
                                             :
                                             'application/x-www-form-urlencoded')
-                                );
+                            );
 
-                                data = (submit = form[STR_SUBMIT]) ?
-                                    submit.call(formNode, data, xhr, route)
+                            data = (submit = form[STR_SUBMIT]) ?
+                                submit.call(formNode, data, xhr, route)
+                                :
+                                data;
+
+                            return type === 'json' ?
+                                JSON.stringify(data)
+                                :
+                                (data ?
+                                    (type === 'text' ?
+                                        data + ''
+                                        :
+                                        formToQuerystring(data))
                                     :
-                                    data;
-
-                                if (type === 'json') {
-                                    return JSON.stringify(data);
-                                } else if (data) {
-                                    if (type === 'text') {
-                                        return data + '';
-                                    } else {
-                                        ret = [];
-                                        for (i = 0; i < data.length; i++) {
-                                            param = data[i];
-                                            ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
-                                        }
-                                        return ret.join('&');
-                                    }
-                                }
-                            }
-                        );
-                    }
-
-                    break;
+                                    undefined);
+                        }
+                    );
                 }
-                target = target.parentNode;
+            }
+
+            if (!form && formNode.method === 'get' && !formNode.target) {
+                data = document.createElement('a');
+                data.href = formNode.action;
+                if (data.host === location.host) {
+                    e.preventDefault();
+                    action = data.pathname + data.search;
+                    // IE doesn't supply <a> tag pathname with leading slash.
+                    API.set((action[0] === '/' ? action : ('/' + action)) + (data.search ? '&' : '?') + formToQuerystring(serializeForm(formNode)[0]));
+                }
             }
         });
 
         running = true;
         $H.run();
     };
+
+
+    function formToQuerystring(data/**/, ret, i, param) {
+        ret = [];
+        for (i = 0; i < data.length; i++) {
+            param = data[i];
+            ret.push(encodeURIComponent(param.name) + '=' + encodeURIComponent(param.value));
+        }
+        return ret.join('&');
+    }
 
 
     function traverseRoute(route, callback/**/, i, children) {
@@ -461,8 +479,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
         {
             search: function(search/**/, i, j, name, value, cur) {
                 // Reset active flags.
+                cur = function(r) { r._a = 0; };
                 for (i = routes.length; i--;) {
-                    traverseRoute(routes[i], function(r) { r._a = 0; });
+                    traverseRoute(routes[i], cur);
                 }
 
                 // Parse querystring.
@@ -1440,4 +1459,4 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, undefined
 
 
     return API;
-})(document, decodeURIComponent, encodeURIComponent);
+})(document, decodeURIComponent, encodeURIComponent, location);

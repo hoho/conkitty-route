@@ -207,7 +207,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 form._f = data[1];
 
                 if (form.checkForm((data = data[0]))) {
-                    unprocessRoute(form, true);
                     form[dataSourceKey] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
                         action.call(formNode, data, route)
                         :

@@ -45,8 +45,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         busyTimer,
 
         whitespace = /[\x20\t\r\n\f]+/,
-        routeNodeKey = '_$Croute',
-        dataSourceKey = 'dataSource',
+        KEY_ROUTE = '_$Croute',
+        KEY_DATASOURCE = 'dataSource',
 
         FORM_STATE_VALID = 'valid',
         FORM_STATE_INVALID = 'invalid',
@@ -192,7 +192,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 data,
                 action;
 
-            while (target && !((route = target[routeNodeKey]))) {
+            while (target && !((route = target[KEY_ROUTE]))) {
                 target = target.parentNode;
             }
 
@@ -207,7 +207,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 form._f = data[1];
 
                 if (form.checkForm((data = data[0]))) {
-                    form[dataSourceKey] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                    form[KEY_DATASOURCE] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
                         action.call(formNode, data, route)
                         :
                         action;
@@ -394,7 +394,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             parent--;
         }
         d = p && p._data;
-        return isArray(d) ? (isArray(this[dataSourceKey]) ? d : d[0]) : undefined;
+        return isArray(d) ? (isArray(this[KEY_DATASOURCE]) ? d : d[0]) : undefined;
     };
 
 
@@ -751,7 +751,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     routeById[i] = self;
                 }
                 self.keep = frame.keep;
-                self[dataSourceKey] = frame.data;
+                self[KEY_DATASOURCE] = frame.data;
                 self.form = frame.form;
             }
         }
@@ -1196,7 +1196,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                             i = node.firstChild;
                             while (i) {
                                 mem.push(i);
-                                i[routeNodeKey] = route;
+                                i[KEY_ROUTE] = route;
                                 i = i.nextSibling;
                             }
                         } else {
@@ -1204,7 +1204,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                                 parent.removeChild(node);
                             }
                             mem.push(node);
-                            node[routeNodeKey] = route;
+                            node[KEY_ROUTE] = route;
                         }
                     }
                 }
@@ -1223,7 +1223,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         var skip = (route._data !== undefined) && !route._dataError,
             self = this,
             datas = self.datas = [],
-            dataSource = route[dataSourceKey],
+            dataSource = route[KEY_DATASOURCE],
             i,
             d,
             waiting = 0,

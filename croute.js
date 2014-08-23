@@ -90,10 +90,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     API.add = API;
 
 
-    API.set = function set(uri, reload) {
+    API.set = function set(uri, reload, replace) {
         checkRunning(true);
         reloadCurrent = reload;
-        return $H.go(uri);
+        return $H.go(uri, undefined, replace);
     };
 
 

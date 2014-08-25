@@ -201,7 +201,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
                 form = new Route(undefined, form, undefined, undefined, route, true);
 
-                data = serializeForm(formNode);
+                data = serializeForm(formNode, true);
 
                 currentRoutes[form._id] = form;
                 form._f = data[1];
@@ -258,7 +258,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     e.preventDefault();
                     action = data.pathname + data.search;
                     // IE doesn't supply <a> tag pathname with leading slash.
-                    API.set((action[0] === '/' ? action : ('/' + action)) + (data.search ? '&' : '?') + formToQuerystring(serializeForm(formNode)[0]));
+                    API.set((action[0] === '/' ? action : ('/' + action)) + (data.search ? '&' : '?') + formToQuerystring(serializeForm(formNode)));
                 }
             }
         });
@@ -266,6 +266,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         running = true;
         $H.run();
     };
+
+
+    API.serializeForm = serializeForm;
 
 
     function formToQuerystring(data/**/, ret, i, param) {
@@ -1394,7 +1397,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     }
 
 
-    function serializeForm(node) {
+    function serializeForm(node, withFields) {
         var i,
             j,
             elems,
@@ -1453,7 +1456,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             }
         }
 
-        return [serialized, fields];
+        return withFields ? [serialized, fields] : serialized;
     }
 
 

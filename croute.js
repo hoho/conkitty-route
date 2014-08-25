@@ -1022,39 +1022,34 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     }
 
 
-    function AJAX(uri, route, body/**/, val, self) {
+    function AJAX(uri, route, body/**/, req, self) {
         self = this;
 
         self.ok = [];
         self.error = [];
 
-        self._r = val = new XMLHttpRequest();
+        self._r = req = new XMLHttpRequest();
 
-        if (val) {
-            val.open(route.method || 'GET', makeURI(route, uri), true);
-            val.onreadystatechange = function() {
-                if (val.readyState === 4) { // Completed.
-                    self._done = self._error = true;
-                    self._r = undefined;
-                    if (val.status === 200) {
-                        try {
-                            self._data = JSON.parse(val.responseText);
-                            self._error = false;
-                        } catch(e) {}
-                    }
-                    self.done();
+        req.open(route.method || 'GET', makeURI(route, uri), true);
+        req.onreadystatechange = function() {
+            if (req.readyState === 4) { // Completed.
+                self._done = self._error = true;
+                self._r = undefined;
+                if (req.status === 200) {
+                    try {
+                        self._data = JSON.parse(req.responseText);
+                        self._error = false;
+                    } catch(e) {}
                 }
-            };
-
-            if (body) {
-                body = body(val);
+                self.done();
             }
+        };
 
-            val.send(body);
-        } else {
-            self._done = self._error = true;
-            self.done();
+        if (body) {
+            body = body(req);
         }
+
+        req.send(body);
     }
 
 

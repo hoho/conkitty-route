@@ -59,14 +59,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         STR_AFTER = 'after',
         STR_EXCEPT = 'except',
 
-        RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
+        STR_SUBMIT = 'submit',
 
         KEY_PARENT = 'parent',
         KEY_RENDER_PARENT = 'renderParent',
 
         NULL = null,
-
-        STR_SUBMIT = 'submit',
 
         proto = Route.prototype,
 
@@ -908,7 +906,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         var ret = {},
             i,
             key,
-            val;
+            val,
+            RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT];
 
         for (i = RENDER_KEYS.length; i--;) {
             if (!isArray((val = render[(key = RENDER_KEYS[i])])) && val !== undefined) {
@@ -1023,7 +1022,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     }
 
 
-    function AJAX(uri, route, body/**/, req, self) {
+    function AJAX(uri, route, body/**/, req, self, parse, transform, response) {
         self = this;
 
         // self.ok — Success callbacks.
@@ -1032,6 +1031,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         // self.e — Error.
         // self.r = XMLHTTRequest.
         // self.j = Parsed response JSON.
+
+        if (!isString(uri)) {
+            parse = uri.parse;
+            transform = uri.transform;
+            uri = uri.uri;
+        }
 
         self.ok = [];
         self.err = [];
@@ -1044,7 +1049,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 self.d = self.e = true;
                 if (req.status === 200) {
                     try {
-                        self.j = JSON.parse(req.responseText);
+                        response = req.responseText;
+                        route = route.isForm ? route[KEY_PARENT] : route;
+                        response = parse ? parse.call(route, response, req) : JSON.parse(response);
+                        self.j = transform ? transform.call(route, response, req) : response;
                         self.e = false;
                     } catch(e) {}
                 }
@@ -1221,6 +1229,15 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 }
             }
         }
+
+        function removeNodes(nodes, stop/**/, parent, node) {
+            while (nodes.length > stop) {
+                node = nodes.pop();
+                if ((parent = node.parentNode)) {
+                    parent.removeChild(node);
+                }
+            }
+        }
     }
 
 
@@ -1288,7 +1305,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 :
                 i;
 
-            if (processRender(STR_BEFORE, render, [], defaultRenderParent, route, formNode)) { return; }
+            if (processRender(STR_BEFORE, render, [], defaultRenderParent, route, formNode)) {
+                return;
+            }
             emitEvent(STR_BEFORE, route);
 
             if (dataSource !== undefined) {
@@ -1302,7 +1321,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                         done(index, ok);
                     }, function(xhr, errors) {
                         if (!((errors = route[KEY_DATAERROR]))) {
-                            errors = route[KEY_DATAERROR] = [];
+                            errors = route[KEY_DATAERROR] = new Array(datas.length);
                         }
                         errors[index] = xhr;
                         done(index);
@@ -1310,22 +1329,22 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 };
 
                 for (i = 0; i < dataSource.length; i++) {
-                    d = dataSource[i];
+                    if ((d = dataSource[i])) {
+                        if (isString(d) ||
+                            (isString(d.uri) && (isFunction(d.parse) || isFunction(d.transform)))) {
+                            d = new AJAX(d, route, formBody);
+                        }
 
-                    if (isString(d)) {
-                        d = new AJAX(d, route, formBody);
+                        if (isFunction(d)) {
+                            d = d.call(route);
+                        }
+
+                        datas.push(d);
+
+                        if (d && isFunction(d.then)) {
+                            resolve(i);
+                        }
                     }
-
-                    if (isFunction(d)) {
-                        d = d.call(route);
-                    }
-
-                    datas.push(d);
-
-                    if (d && isFunction(d.then)) {
-                        resolve(i);
-                    }
-
                 }
             }
         }
@@ -1351,7 +1370,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
     function unprocessRoute(route, keepPlaceholders) {
         var children,
-            i;
+            i,
+            nodesets,
+            nodes;
 
         children = route.children;
         for (i = children.length; i--;) {
@@ -1361,44 +1382,28 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
             route._data.reject();
-            if (route.isForm) { unprocessRoute(route[KEY_PARENT], true); }
+            if (route.isForm) {
+                unprocessRoute(route[KEY_PARENT], true);
+            }
             emitEvent('stop', route);
         }
 
         if (route._data !== undefined) {
             route._data = route[KEY_DATAERROR] = undefined;
             emitEvent('leave', route);
-            rememberOldDOM(route, keepPlaceholders);
-        }
-    }
 
+            nodesets = route._n;
+            keepPlaceholders = keepPlaceholders ? 1 : 0;
 
-    function rememberOldDOM(route, keepPlaceholders) {
-        var nodesets,
-            i,
-            nodes;
-
-        nodesets = route._n;
-        keepPlaceholders = keepPlaceholders ? 1 : 0;
-
-        for (i in nodesets) {
-            nodes = nodesets[i];
-            while (nodes.length > keepPlaceholders) {
-                oldDOM.push(nodes.pop());
+            for (i in nodesets) {
+                nodes = nodesets[i];
+                while (nodes.length > keepPlaceholders) {
+                    oldDOM.push(nodes.pop());
+                }
             }
-        }
 
-        if (!keepPlaceholders) {
-            route._n = {};
-        }
-    }
-
-
-    function removeNodes(nodes, stop/**/, parent, node) {
-        while (nodes.length > stop) {
-            node = nodes.pop();
-            if ((parent = node.parentNode)) {
-                parent.removeChild(node);
+            if (!keepPlaceholders) {
+                route._n = {};
             }
         }
     }

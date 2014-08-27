@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.2, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1258,7 +1258,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                         if (processRender(i, render, errors || datas, defaultRenderParent, route, formNode)) {
                             return;
                         }
-                        emitEvent(i, route);
+                        emitEvent(i, route, errors || datas);
 
                         if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, route, formNode)) {
                             return;

@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.2, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.3, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1100,7 +1100,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             data;
 
         if (self.d) {
-            if (self._error) {
+            if (self.e) {
                 todo = self.err;
                 data = self.r;
             } else {

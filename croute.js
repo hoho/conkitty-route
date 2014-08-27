@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -47,6 +47,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         whitespace = /[\x20\t\r\n\f]+/,
         KEY_ROUTE = '_$Croute',
         KEY_DATASOURCE = 'dataSource',
+        KEY_DATAERROR = '_dataError',
 
         FORM_STATE_VALID = 'valid',
         FORM_STATE_INVALID = 'invalid',
@@ -139,7 +140,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     reloadCurrent ||
                     !route._s ||
                     route.keep === false ||
-                    route._dataError)
+                    route[KEY_DATAERROR])
                 {
                     unprocessRoute(route);
                 }
@@ -1025,23 +1026,30 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     function AJAX(uri, route, body/**/, req, self) {
         self = this;
 
-        self.ok = [];
-        self.error = [];
+        // self.ok — Success callbacks.
+        // self.err — Error callbacks.
+        // self.d — Done.
+        // self.e — Error.
+        // self.r = XMLHTTRequest.
+        // self.j = Parsed response JSON.
 
-        self._r = req = new XMLHttpRequest();
+        self.ok = [];
+        self.err = [];
+
+        self.r = req = new XMLHttpRequest();
 
         req.open(route.method || 'GET', makeURI(route, uri), true);
         req.onreadystatechange = function() {
             if (req.readyState === 4) { // Completed.
-                self._done = self._error = true;
-                self._r = undefined;
+                self.d = self.e = true;
                 if (req.status === 200) {
                     try {
-                        self._data = JSON.parse(req.responseText);
-                        self._error = false;
+                        self.j = JSON.parse(req.responseText);
+                        self.e = false;
                     } catch(e) {}
                 }
                 self.done();
+                self.r = undefined;
             }
         };
 
@@ -1059,7 +1067,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     proto.then = function(ok, error) {
         var self = this;
         if (ok) { self.ok.push(ok); }
-        if (error) { self.error.push(error); }
+        if (error) { self.err.push(error); }
         self.done();
     };
 
@@ -1067,12 +1075,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     proto.reject = function() {
         var self = this;
 
-        if (!self._done) {
-            if (self._r) {
-                self._r.abort();
-                self._r = undefined;
+        if (!self.d) {
+            if (self.r) {
+                self.r.abort();
+                self.r = undefined;
             }
-            self._done = self._error = true;
+            self.d = self.e = true;
             self.done();
         }
     };
@@ -1083,12 +1091,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             todo,
             data;
 
-        if (self._done) {
+        if (self.d) {
             if (self._error) {
-                todo = self.error;
+                todo = self.err;
+                data = self.r;
             } else {
                 todo = self.ok;
-                data = self._data;
+                data = self.j;
             }
 
             while (todo.length) {
@@ -1218,7 +1227,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     function ProcessRoute(route, formNode, formBody) {
         if (route._data instanceof ProcessRoute) { return; }
 
-        var skip = (route._data !== undefined) && !route._dataError,
+        var skip = (route._data !== undefined) && !route[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSource = route[KEY_DATASOURCE],
@@ -1228,14 +1237,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             render = route.render,
             defaultRenderParent,
             resolve,
-            done = function(index, data, /**/i, children, r, error) {
+            done = function(index, data, /**/i, children, r, errors) {
                 if (index !== undefined) {
                     datas[index] = data;
                     waiting--;
                 }
 
                 if (!waiting && !self.rejected) {
-                    error = route._dataError;
+                    errors = route[KEY_DATAERROR];
                     children = route.children;
 
                     if (!skip) {
@@ -1245,19 +1254,19 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                             setFormState(route[KEY_PARENT], route, FORM_STATE_VALID);
                         }
 
-                        if (error) {
-                            if (processRender(STR_ERROR, render, [], defaultRenderParent, route, formNode)) { return; }
-                            emitEvent(STR_ERROR, route);
-                        } else {
-                            if (processRender(STR_SUCCESS, render, datas, defaultRenderParent, route, formNode)) { return; }
-                            emitEvent(STR_SUCCESS, route);
+                        i = errors ? STR_ERROR : STR_SUCCESS;
+                        if (processRender(i, render, errors || datas, defaultRenderParent, route, formNode)) {
+                            return;
                         }
+                        emitEvent(i, route);
 
-                        if (processRender(STR_AFTER, render, error ? [true] : [], defaultRenderParent, route, formNode)) { return; }
+                        if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, route, formNode)) {
+                            return;
+                        }
                         emitEvent(STR_AFTER, route);
                     }
 
-                    if (!error) {
+                    if (!errors) {
                         for (i = 0; i < children.length; i++) {
                             r = children[i];
                             if (r._id in currentRoutes) {
@@ -1289,10 +1298,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
                 resolve = function(index) {
                     waiting++;
-                    d.then(function (ok) {
+                    d.then(function(ok) {
                         done(index, ok);
-                    }, function () {
-                        route._dataError = true;
+                    }, function(xhr, errors) {
+                        if (!((errors = route[KEY_DATAERROR]))) {
+                            errors = route[KEY_DATAERROR] = [];
+                        }
+                        errors[index] = xhr;
                         done(index);
                     });
                 };
@@ -1354,7 +1366,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         }
 
         if (route._data !== undefined) {
-            route._data = route._dataError = undefined;
+            route._data = route[KEY_DATAERROR] = undefined;
             emitEvent('leave', route);
             rememberOldDOM(route, keepPlaceholders);
         }

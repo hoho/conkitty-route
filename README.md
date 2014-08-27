@@ -135,4 +135,20 @@ as `render`. And much more. Check for API docs below.
 
 ## API
 
-Pending.
+### $C.route.add(uri, frame)
+
+#### `uri`
+
+`uri` identifies composition of path, query parameters and hash. It is possible
+to remember pieces of path, query parameters values and hash for future use.
+
+`uri` might look like
+`/hello/:world?param1=:value1&param2=:?value2#:?hash`.
+
+It will match `/hello/sweetie?param1=piupiu` and
+`/hello/honey?param2=pom&param1=pam#ololo`. In first example remembered
+parameters look like `{world: 'sweetie', value1: 'piupiu'}`. Parameters for
+second example look like
+`{world: 'honey', value1: 'pam', value2: 'pom', hash: 'ololo'}`.
+
+To remember piece of path, use `:key`. 

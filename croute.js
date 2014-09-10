@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.4, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.5, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -269,6 +269,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
 
     API.serializeForm = serializeForm;
+
+
+    API.makeURI = function(uri, params) {
+        return makeURI(undefined, uri, params);
+    };
 
 
     function formToQuerystring(data/**/, ret, i, param) {
@@ -1001,7 +1006,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             hash = pathObj.param ? getURIParam(route, pathObj, overrideParams) : pathObj.value;
         }
 
-        if (overrideParams && ((i = route[KEY_PARENT]))) {
+        if (overrideParams && route && ((i = route[KEY_PARENT]))) {
             // Building route URI from routes tree, current state and params to override.
             makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true);
         }

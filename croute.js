@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.3, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.4, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -99,11 +99,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     API.run = function run(defaults) {
         checkRunning();
 
+        var body = document.body,
+            addEvent = body.addEventListener.bind(body);
+
         defaults = defaults || {};
 
         defaultTitle = defaults.title || '';
         defaultRender = normalizeRender(defaults.render);
-        defaultParent = defaults[KEY_PARENT] || document.body;
+        defaultParent = defaults[KEY_PARENT] || body;
 
         if (notFoundRoute) {
             addRoute(undefined, notFoundRoute);
@@ -165,8 +168,6 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 }
             }, 0);
         });
-
-        var addEvent = addEventListener.bind(document.body);
 
         addEvent('click', function(e) {
             var elem = e.target;

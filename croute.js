@@ -1037,6 +1037,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             parse = uri.parse;
             transform = uri.transform;
             uri = uri.uri;
+            if (isFunction(uri)) { uri = uri.call(route, route._p); }
         }
 
         self.ok = [];
@@ -1331,8 +1332,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
                 for (i = 0; i < dataSource.length; i++) {
                     if ((d = dataSource[i])) {
-                        if (isString(d) ||
-                            (isString(d.uri) && (isFunction(d.parse) || isFunction(d.transform)))) {
+                        if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
                             d = new AJAX(d, route, formBody);
                         }
 

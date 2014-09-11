@@ -1157,7 +1157,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             parent,
             renderParent,
             placeholder,
-            args;
+            args,
+            ret;
 
         if (target === undefined) {
             target = render[stage] || defaultRender[stage];
@@ -1166,13 +1167,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         if (isArray(target)) {
             try {
                 for (i = 0; i < target.length; i++) {
-                    if (processRender(stage, render, datas, defaultRenderParent, route, formNode, i !== 0, target[i]) === false) {
+                    if (((mem = processRender(stage, render, datas, defaultRenderParent, route, formNode, noRemove, target[i]))) === false) {
                         break;
+                    }
+                    if (mem === NULL) {
+                        noRemove = true;
                     }
                 }
             } catch(e) {
                 processRender(STR_EXCEPT, render, [e, stage, i, target[i]], defaultRenderParent, route, formNode);
-                return true;
+                ret = true;
             }
         } else if (target || target === NULL) {
             // null-value target could be used to remove previous render nodes.
@@ -1202,6 +1206,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 if (!target || isNode(node)) {
                     // Remove nodes from previous routes if any.
                     removeNodes(oldDOM, 0);
+                    ret = NULL; // Flag for noRemove.
 
                     if (!noRemove) {
                         noRemove = target && (target.replace === false);
@@ -1236,6 +1241,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 }
             }
         }
+
+        return ret;
 
         function removeNodes(nodes, stop/**/, parent, node) {
             while (nodes.length > stop) {

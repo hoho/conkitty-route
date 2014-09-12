@@ -1028,7 +1028,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     }
 
 
-    function AJAX(uri, route, body/**/, req, self, parse, transform, response) {
+    function AJAX(uri, route, body/**/, req, self, parse, transform, response, uriReady) {
         self = this;
 
         // self.ok — Success callbacks.
@@ -1042,7 +1042,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             parse = uri.parse;
             transform = uri.transform;
             uri = uri.uri;
-            if (isFunction(uri)) { uri = uri.call(route, route._p); }
+            if (isFunction(uri)) {
+                uri = uri.call(route, route._p);
+                uriReady = true;
+            }
         }
 
         self.ok = [];
@@ -1050,7 +1053,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
         self.r = req = new XMLHttpRequest();
 
-        req.open(route.method || 'GET', makeURI(route, uri), true);
+        req.open(route.method || 'GET', uriReady ? uri : makeURI(route, uri), true);
         req.onreadystatechange = function() {
             if (req.readyState === 4) { // Completed.
                 self.d = self.e = true;

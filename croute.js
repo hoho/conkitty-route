@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.6, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.7, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -66,7 +66,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
         NULL = null,
 
-        CANCELLED = {c: 1},
+        CANCELLED = {d: NULL},
 
         proto = Route.prototype,
 
@@ -1035,7 +1035,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     }
 
 
-    function AJAX(uri, route, body/**/, req, self, parse, transform, response, uriReady) {
+    function AJAX(uri, route, body/**/, req, self, parse, override, transform, response, uriReady) {
         self = this;
 
         // self.ok — Success callbacks.
@@ -1046,6 +1046,12 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         // self.j = Parsed response JSON.
 
         if (!isString(uri)) {
+            if (((override = uri.override)) &&
+                (((override = override.call(route, route._p))) !== undefined))
+            {
+                return {d: override};
+            }
+
             parse = uri.parse;
             transform = uri.transform;
             uri = uri.uri;
@@ -1360,13 +1366,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     if ((d = dataSource[i])) {
                         if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
                             d = new AJAX(d, route, formBody);
+                            if (!(d instanceof AJAX)) { d = d.d; }
                         }
 
                         if (isFunction(d)) {
                             d = d.call(route);
                         }
 
-                        datas.push(d === CANCELLED ? NULL : d);
+                        datas.push(d);
 
                         if (d && isFunction(d.then)) {
                             resolve(i);

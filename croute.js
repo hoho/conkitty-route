@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.5, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.6, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -65,6 +65,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         KEY_RENDER_PARENT = 'renderParent',
 
         NULL = null,
+
+        CANCELLED = {c: 1},
 
         proto = Route.prototype,
 
@@ -210,15 +212,13 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     form[KEY_DATASOURCE] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
                         action.call(formNode, data, route)
                         :
-                        action;
-                    form.method = formNode.getAttribute('method') || form._method;
-
-                    setFormState(route, form, FORM_STATE_SENDING);
+                        (action || location.href);
+                    form.method = formNode.getAttribute('method') || form._method || 'get';
 
                     new ProcessRoute(
                         form,
                         formNode,
-                        function(xhr/**/, type, submit) {
+                        function(xhr/**/, type, submit, cancelled) {
                             type = form.type;
                             xhr.setRequestHeader(
                                 'Content-Type',
@@ -231,21 +231,28 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                                             'application/x-www-form-urlencoded')
                             );
 
+                            formNode.cancel = function() { form._c = cancelled = CANCELLED; };
                             data = (submit = form[STR_SUBMIT]) ?
                                 submit.call(formNode, data, xhr, route)
                                 :
                                 data;
+                            delete formNode.cancel;
 
-                            return type === 'json' ?
-                                JSON.stringify(data)
-                                :
-                                (data ?
-                                    (type === 'text' ?
-                                        data + ''
-                                        :
-                                        formToQuerystring(data))
+                            if (!cancelled) {
+                                setFormState(route, form, FORM_STATE_SENDING);
+                            }
+
+                            return cancelled ||
+                                (type === 'json' ?
+                                    JSON.stringify(data)
                                     :
-                                    undefined);
+                                    (data ?
+                                        (type === 'text' ?
+                                            data + ''
+                                            :
+                                            formToQuerystring(data))
+                                        :
+                                        undefined));
                         }
                     );
                 }
@@ -1075,6 +1082,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             body = body(req);
         }
 
+        if (body === CANCELLED) {
+            return body;
+        }
+
         req.send(body);
     }
 
@@ -1355,7 +1366,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                             d = d.call(route);
                         }
 
-                        datas.push(d);
+                        datas.push(d === CANCELLED ? NULL : d);
 
                         if (d && isFunction(d.then)) {
                             resolve(i);
@@ -1398,7 +1409,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
             route._data.reject();
-            if (route.isForm) {
+            if (route.isForm && !route._c) {
                 unprocessRoute(route[KEY_PARENT], true);
             }
             emitEvent('stop', route);

@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.1.7, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.1.8, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -139,13 +139,17 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
             for (i in currentRoutes) {
                 route = currentRoutes[i];
-                if (!(i in newRoutes) ||
+                i = i in newRoutes;
+                if (!i ||
                     reloadCurrent ||
                     !route._s ||
                     route.keep === false ||
                     route[KEY_DATAERROR])
                 {
                     unprocessRoute(route);
+                }
+                if (i) {
+                    route._s = 1;
                 }
             }
 
@@ -418,8 +422,8 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     };
 
 
-    proto.active = function() {
-        return this._id in currentRoutes;
+    proto.active = function(andPrev) {
+        return (this._id in currentRoutes) && (andPrev ? this._s === 1 : true);
     };
 
 

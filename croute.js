@@ -371,6 +371,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     };
 
 
+    API.params = function params() {
+        return currentQueryParams;
+    };
+
+
     proto.reload = function() {
         var self = this,
             parent;

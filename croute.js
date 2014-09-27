@@ -157,11 +157,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     unprocessRoute(route);
                 }
                 if (i) {
+                    // A flag for route.active(true) to show that this route
+                    // is not just active, but was active in previous location
+                    // too.
                     route._s = 1;
                 }
             }
 
-            if (!haveNewRoutes && newRoutesCount < currentRoutesCount) {
+            if (!haveNewRoutes && (newRoutesCount < currentRoutesCount)) {
                 removeNodes(oldDOM, 0);
             }
 

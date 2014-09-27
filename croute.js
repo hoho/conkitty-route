@@ -1391,7 +1391,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     if ((d = dataSource[i])) {
                         if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
                             d = new AJAX(d, route, formBody);
-                            if (!(d instanceof AJAX)) { d = d.d; }
+                            // When AJAX request is cancelled, constructor returns
+                            // object {d: ...}.
+                            if (!d.then) { d = d.d; }
                         }
 
                         if (isFunction(d)) {

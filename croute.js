@@ -119,9 +119,16 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 newRoutes = {},
                 i,
                 route,
-                traverseCallback = function(r/**/, final) {
+                haveNewRoutes,
+                newRoutesCount = 0,
+                currentRoutesCount = 0,
+                traverseCallback = function(r/**/, id, final) {
                     if (r._a) {
-                        newRoutes[r._id] = r;
+                        newRoutes[(id = r._id)] = r;
+                        newRoutesCount++;
+                        if (!haveNewRoutes && !(id in currentRoutes)) {
+                            haveNewRoutes = true;
+                        }
                         if (isFunction((final = r.final))) {
                             final = final.call(r);
                         }
@@ -138,6 +145,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             }
 
             for (i in currentRoutes) {
+                currentRoutesCount++;
                 route = currentRoutes[i];
                 i = i in newRoutes;
                 if (!i ||
@@ -151,6 +159,10 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 if (i) {
                     route._s = 1;
                 }
+            }
+
+            if (!haveNewRoutes && newRoutesCount < currentRoutesCount) {
+                removeNodes(oldDOM, 0);
             }
 
             currentRoutes = newRoutes;
@@ -1272,13 +1284,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         }
 
         return ret;
+    }
 
-        function removeNodes(nodes, stop/**/, parent, node) {
-            while (nodes.length > stop) {
-                node = nodes.pop();
-                if ((parent = node.parentNode)) {
-                    parent.removeChild(node);
-                }
+
+    function removeNodes(nodes, stop/**/, parent, node) {
+        while (nodes.length > stop) {
+            node = nodes.pop();
+            if ((parent = node.parentNode)) {
+                parent.removeChild(node);
             }
         }
     }

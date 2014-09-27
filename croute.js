@@ -154,7 +154,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     route.keep === false ||
                     route[KEY_DATAERROR])
                 {
-                    unprocessRoute(route);
+                    unprocessRoute(route, newRoutes);
                 }
                 if (i) {
                     // A flag for route.active(true) to show that this route
@@ -405,7 +405,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 parent = parent[KEY_PARENT];
             }
             if (!parent) {
-                unprocessRoute(self, true);
+                unprocessRoute(self, currentRoutes, true);
                 new ProcessRoute(self);
             }
         }
@@ -1193,13 +1193,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     }
 
 
-    function processRender(stage, render, datas, defaultRenderParent, route, formNode, noRemove, target) {
+    function processRender(stage, render, datas, defaultRenderParent, route, formNode, renderParents, target) {
         var i,
             mem,
             params,
             node,
             parent,
             renderParent,
+            renderParentId,
             placeholder,
             args,
             ret;
@@ -1210,23 +1211,21 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
         if (isArray(target)) {
             try {
+                renderParents = {};
                 for (i = 0; i < target.length; i++) {
-                    if (((mem = processRender(stage, render, datas, defaultRenderParent, route, formNode, noRemove, target[i]))) === false) {
+                    if (processRender(stage, render, datas, defaultRenderParent, route, formNode, renderParents, target[i]) === false) {
                         break;
-                    }
-                    if (mem === NULL) {
-                        noRemove = true;
                     }
                 }
             } catch(e) {
-                processRender(STR_EXCEPT, render, [e, stage, i, target[i]], defaultRenderParent, route, formNode);
+                processRender(STR_EXCEPT, render, [e, stage, i, target[i]], defaultRenderParent, route, formNode, renderParents);
                 ret = true;
             }
         } else if (target || target === NULL) {
             // null-value target could be used to remove previous render nodes.
             renderParent = getRenderParent(route, target && target[KEY_PARENT], defaultRenderParent);
             if (renderParent) {
-                mem = (route.isForm ? route[KEY_PARENT] : route)._n[renderParent._$Cid];
+                mem = (route.isForm ? route[KEY_PARENT] : route)._n[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
                 params = route._p;
 
@@ -1250,17 +1249,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                 if (!target || isNode(node)) {
                     // Remove nodes from previous routes if any.
                     removeNodes(oldDOM, 0);
-                    ret = NULL; // Flag for noRemove.
 
-                    if (!noRemove) {
-                        noRemove = target && (target.replace === false);
-                    }
-
-                    if (!noRemove) {
+                    if (!((renderParentId in renderParents) || (target && (target.replace === false)))) {
                         // By default we are replacing everything from previous
                         // render of this route in this parent.
                         removeNodes(mem, 1);
                     }
+
+                    renderParents[renderParentId] = true;
 
                     if (target) {
                         if (node.nodeType === 11) {
@@ -1392,7 +1388,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                         if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
                             d = new AJAX(d, route, formBody);
                             // When AJAX request is cancelled, constructor returns
-                            // object {d: ...}.
+                            // object {d: ...} which is not instance of AJAX.
                             if (!d.then) { d = d.d; }
                         }
 
@@ -1429,7 +1425,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
     };
 
 
-    function unprocessRoute(route, keepPlaceholders) {
+    function unprocessRoute(route, activeRoutes, keepPlaceholders) {
         var children,
             i,
             nodesets,
@@ -1437,14 +1433,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
 
         children = route.children;
         for (i = children.length; i--;) {
-            unprocessRoute(children[i]);
+            unprocessRoute(children[i], activeRoutes);
         }
 
         // Stop processing route and remove associated nodes.
         if (route._data && isFunction(route._data.reject)) {
             route._data.reject();
             if (route.isForm && !route._c) {
-                unprocessRoute(route[KEY_PARENT], true);
+                unprocessRoute(route[KEY_PARENT], activeRoutes, true);
             }
             emitEvent('stop', route);
         }
@@ -1453,18 +1449,20 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             route._data = route[KEY_DATAERROR] = undefined;
             emitEvent('leave', route);
 
-            nodesets = route._n;
-            keepPlaceholders = keepPlaceholders ? 1 : 0;
+            if (!(route._id in activeRoutes)) {
+                nodesets = route._n;
+                keepPlaceholders = keepPlaceholders ? 1 : 0;
 
-            for (i in nodesets) {
-                nodes = nodesets[i];
-                while (nodes.length > keepPlaceholders) {
-                    oldDOM.push(nodes.pop());
+                for (i in nodesets) {
+                    nodes = nodesets[i];
+                    while (nodes.length > keepPlaceholders) {
+                        oldDOM.push(nodes.pop());
+                    }
                 }
-            }
 
-            if (!keepPlaceholders) {
-                route._n = {};
+                if (!keepPlaceholders) {
+                    route._n = {};
+                }
             }
         }
     }

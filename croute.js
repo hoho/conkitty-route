@@ -1096,7 +1096,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         self.r = req = new XMLHttpRequest();
 
-        req.open(route.method || 'GET', uriReady ? uri : makeURI(route, uri), true);
+        req.open(route.method || 'GET', (req.uri = uriReady ? uri : makeURI(route, uri)), true);
         req.onreadystatechange = function() {
             if (req.readyState === 4) { // Completed.
                 self.d = self.e = true;

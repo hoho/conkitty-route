@@ -1,16 +1,17 @@
 /*!
- * conkitty-route v0.1.8, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.2.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
-/* global $C */
 /* global $H */
-$C.route = (function(document, decodeURIComponent, encodeURIComponent, location, undefined) {
+window.$CR = (function(document, decodeURIComponent, encodeURIComponent, location, undefined) {
     'use strict';
 
     var defaultTitle,
         defaultRender,
         defaultParent,
+
+        callTemplateFunc,
 
         running,
 
@@ -109,6 +110,11 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
         defaultTitle = defaults.title || '';
         defaultRender = normalizeRender(defaults.render);
         defaultParent = defaults[KEY_PARENT] || body;
+        callTemplateFunc = defaults.callTemplate || function(name, args/**/, tpl) {
+            /* global $C */
+            if (!((tpl = $C.tpl[name]))) { throwError('No `' + name + '` template'); }
+            return tpl.apply(NULL, args);
+        };
 
         if (notFoundRoute) {
             addRoute(undefined, notFoundRoute);
@@ -1206,10 +1212,14 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
             ret;
 
         if (target === undefined) {
-            target = render[stage] || defaultRender[stage];
+            target = render[stage] || defaultRender[stage] || [];
         }
 
         if (isArray(target)) {
+            if (stage === STR_EXCEPT && !target.length) {
+                throw datas[0];
+            }
+
             try {
                 renderParents = {};
                 for (i = 0; i < target.length; i++) {
@@ -1218,7 +1228,9 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     }
                 }
             } catch(e) {
-                processRender(STR_EXCEPT, render, [e, stage, i, target[i]], defaultRenderParent, route, formNode, renderParents);
+                datas = [e, stage, i, target[i]];
+                processRender(STR_EXCEPT, render, datas, defaultRenderParent, route, formNode, renderParents);
+                emitEvent(STR_EXCEPT, route, datas);
                 ret = true;
             }
         } else if (target || target === NULL) {
@@ -1242,7 +1254,7 @@ $C.route = (function(document, decodeURIComponent, encodeURIComponent, location,
                     }
 
                     if (isString(i)) {
-                        node = $C.tpl[i].apply(NULL, args);
+                        node = callTemplateFunc.call(route, i, args);
                     }
                 }
 

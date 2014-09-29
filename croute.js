@@ -1096,14 +1096,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         self.r = req = new XMLHttpRequest();
 
-        req.open(route.method || 'GET', (req.uri = uriReady ? uri : makeURI(route, uri)), true);
+        req.open(
+            route.method || 'GET',
+            (req.uri = uriReady ? uri : makeURI((route = route.isForm ? route[KEY_PARENT] : route), uri)),
+            true
+        );
         req.onreadystatechange = function() {
             if (req.readyState === 4) { // Completed.
                 self.d = self.e = true;
                 if (req.status === 200) {
                     try {
                         response = req.responseText;
-                        route = route.isForm ? route[KEY_PARENT] : route;
                         response = parse ? parse.call(route, response, req) : JSON.parse(response);
                         self.j = transform ? transform.call(route, response, req) : response;
                         self.e = false;

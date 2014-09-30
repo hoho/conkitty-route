@@ -1,4 +1,4 @@
-# conkitty-route
+# conkitty-route [![Build Status](https://travis-ci.org/hoho/conkitty-route.svg?branch=master)](https://travis-ci.org/hoho/conkitty-route)
 
 Build single page application using routing tree.
 

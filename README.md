@@ -1,6 +1,6 @@
 # conkitty-route
 
-Build single page application according to specified routing tree.
+Build single page application using routing tree.
 
 ## Introduction
 

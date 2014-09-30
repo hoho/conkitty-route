@@ -8,11 +8,10 @@ We have some URL in browser's address string and we want to render
 corresponding DOM.
 
 Reality makes things a bit harder sometimes. Somewhere in between knowing URL
-and rendering DOM, we need to fetch some data. And we probably need to fetch
-different data for different parts of URL and render different pieces of DOM in
-different parts of the page.
+and rendering DOM, we need to fetch some data. And we need to change DOM and
+fetch new data when URI is changed or HTML form is submitted.
 
-`conkitty-route` aims to give a simple way to create single page application.
+`conkitty-route` gives simple way to create single page application.
 
 Simple example:
 

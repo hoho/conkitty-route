@@ -8,6 +8,9 @@ var uglify = require('gulp-uglify');
 var conkitty = require('gulp-conkitty');
 var concat = require('gulp-concat');
 
+var path = require('path');
+var fs = require('fs');
+
 
 gulp.task('eslint', function() {
     return gulp.src(['gulpfile.js', 'croute.js'])
@@ -47,38 +50,6 @@ gulp.task('templates', function() {
 });
 
 
-gulp.task('serve', ['templates'], function() {
-    var http = require('http');
-    var fs = require('fs');
-
-    var routes = {
-            '/qunit.css': 'node_modules/qunitjs/qunit/qunit.css',
-            '/qunit.js': 'node_modules/qunitjs/qunit/qunit.js',
-            '/histery.js': require.resolve('histery'),
-            '/tpl.js': 'tmp/js.js',
-            '/croute.js': 'croute.js',
-            '/croute.min.js': 'croute.min.js',
-            '/test.js': 'test/test.js',
-            '/test': 'test/test.html'
-        };
-
-    var _server = http.createServer(function serve(req, res) {
-        if (req.url.substring(0, 5) === '/api/') {
-            setTimeout(function() {
-                res.end(JSON.stringify({some: 'data', rnd: Math.random(), url: req.url}));
-            }, 1000);
-        } else {
-            var file = routes[req.url];
-            fs.createReadStream(file || 'test/tmp.html').pipe(res);
-        }
-    }).listen(3000, 'localhost');
-
-    _server.on('close', function() { console.log('Stopped server'); });
-
-    console.log('Listening on port 3000');
-});
-
-
 gulp.task('assert-version', function(err) {
     var assertVersion = require('assert-version');
 
@@ -89,4 +60,33 @@ gulp.task('assert-version', function(err) {
 });
 
 
-gulp.task('default', ['eslint', 'uglify', 'assert-version']);
+gulp.task('test', function(done) {
+    var karma = require('karma').server;
+    var tests = fs.readdirSync('test');
+    var commons = ['node_modules/histery/histery.js', 'croute.js', 'test/common.js'];
+    var pending = [];
+
+
+    tests.forEach(function(file) {
+        if (!/\.test\.js$/.test(file)) { return; }
+
+        pending.push(function() {
+            karma.start({
+                configFile: path.join(__dirname, 'karma.conf.js'),
+                files: commons.concat(path.join('test', file)),
+                singleRun: true
+            }, nextTest);
+        });
+    });
+
+    nextTest();
+
+    function nextTest() {
+        var next = pending.shift();
+        if (next) { next(); }
+        else { done(); }
+    }
+});
+
+
+gulp.task('default', ['eslint', 'uglify', 'assert-version', 'test']);

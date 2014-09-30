@@ -13,7 +13,7 @@ fetch new data when URI is changed or HTML form is submitted.
 
 `conkitty-route` gives simple way to create single page application.
 
-Simple example:
+### Simple example
 
 ```js
 $CR
@@ -31,10 +31,10 @@ named `NotFoundTemplate`. By default,
 customize template caller and use `conkitty-route` with any template engine you
 want.
 
-More complex example:
+### More complex example
 
 ```js
-// Penging.
+// Pending.
 ```
 
 

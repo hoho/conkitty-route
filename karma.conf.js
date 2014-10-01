@@ -55,7 +55,7 @@ module.exports = function(config) {
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
 
-    // window.history.back is asynchronous in Webkits, so we're using just
+    // window.history.back() is asynchronous in Webkits, so we're using just
     // Firefox for the moment. Travis supports Firefox too.
     browsers: ['Firefox'],
 

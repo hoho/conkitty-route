@@ -5,8 +5,6 @@ var gulp = require('gulp');
 var eslint = require('gulp-eslint');
 var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
-var conkitty = require('gulp-conkitty');
-var concat = require('gulp-concat');
 
 var path = require('path');
 var fs = require('fs');
@@ -36,17 +34,6 @@ gulp.task('uglify', function() {
         .pipe(uglify({preserveComments: 'some'}))
         .pipe(rename('croute.min.js'))
         .pipe(gulp.dest('.'));
-});
-
-
-gulp.task('templates', function() {
-    return gulp.src('./test/*.ctpl')
-        .pipe(conkitty({
-            common: 'common.js',
-            templates: 'tpl.js'
-        }))
-        .pipe(concat('js.js'))
-        .pipe(gulp.dest('tmp'));
 });
 
 

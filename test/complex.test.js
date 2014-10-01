@@ -1,5 +1,5 @@
-describe('Second simple example', function() {
-    it('runs another simple example', function() {
+describe('Complex example', function() {
+    it('runs complex example', function() {
         var flag;
         var waitInit = function() {
             flag = false;

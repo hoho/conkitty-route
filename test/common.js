@@ -79,7 +79,7 @@ function testCallTemplate(name, args) {
     } else {
         tpl = '<div>' + name + '</div><p>' + location.pathname + '</p>';
     }
-    return HTML2DOM(tpl);
+    return Math.random() > 0.5 ? HTML2DOM(tpl) : tpl;
 }
 
 

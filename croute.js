@@ -1212,7 +1212,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             renderParentId,
             placeholder,
             args,
-            ret;
+            ret,
+            end;
 
         if (target === undefined) {
             target = render[stage] || defaultRender[stage] || [];
@@ -1258,6 +1259,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     if (isString(i)) {
                         node = callTemplateFunc.call(route, i, args);
+                        if (isString(node)) {
+                            // We've got string of HTML, create documentFragment
+                            // from it.
+                            i = document.createElement('div');
+                            i.innerHTML = node;
+                            node = document.createDocumentFragment();
+                            i = i.firstChild;
+                            while (i) {
+                                end = i.nextSibling;
+                                node.appendChild(i);
+                                i = end;
+                            }
+                        }
                     }
                 }
 
@@ -1274,25 +1288,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     renderParents[renderParentId] = true;
 
                     if (target) {
-                        if (node.nodeType === 11) {
-                            i = node.firstChild;
-                            while (i) {
+                        if ((parent = placeholder.parentNode)) {
+                            end = placeholder.nextSibling;
+                            parent.insertBefore(node, end);
+                            for (i = placeholder.nextSibling; i !== end; i = i.nextSibling) {
                                 mem.push(i);
                                 i[KEY_ROUTE] = route;
-                                i = i.nextSibling;
                             }
-                        } else {
-                            if ((parent = node.parentNode)) {
-                                parent.removeChild(node);
-                            }
-                            mem.push(node);
-                            node[KEY_ROUTE] = route;
                         }
                     }
-                }
-
-                if (isNode(node) && ((parent = placeholder.parentNode))) {
-                    parent.insertBefore(node, placeholder);
                 }
             }
         }

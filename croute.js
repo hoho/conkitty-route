@@ -1213,7 +1213,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             placeholder,
             args,
             ret,
-            end,
+            n,
             KEY_NEXT_SIBLING = 'nextSibling';
 
         if (target === undefined) {
@@ -1268,9 +1268,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             node = document.createDocumentFragment();
                             i = i.firstChild;
                             while (i) {
-                                end = i[KEY_NEXT_SIBLING];
+                                n = i[KEY_NEXT_SIBLING];
                                 node.appendChild(i);
-                                i = end;
+                                i = n;
                             }
                         }
                     }
@@ -1290,9 +1290,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     if (target) {
                         if ((parent = placeholder.parentNode)) {
-                            end = placeholder[KEY_NEXT_SIBLING];
-                            parent.insertBefore(node, end);
-                            for (i = placeholder[KEY_NEXT_SIBLING]; i !== end; i = i[KEY_NEXT_SIBLING]) {
+                            n = placeholder.previousSibling;
+                            parent.insertBefore(node, placeholder);
+                            // Remember route's inserted nodes.
+                            for (i = n ? n[KEY_NEXT_SIBLING] : parent.firstChild; i !== placeholder; i = i[KEY_NEXT_SIBLING]) {
                                 mem.push(i);
                                 i[KEY_ROUTE] = route;
                             }

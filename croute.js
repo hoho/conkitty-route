@@ -1214,6 +1214,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             args,
             ret,
             n,
+            rememberedNodes,
             KEY_NEXT_SIBLING = 'nextSibling';
 
         if (target === undefined) {
@@ -1242,7 +1243,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             // null-value target could be used to remove previous render nodes.
             renderParent = getRenderParent(route, target && target[KEY_PARENT], defaultRenderParent);
             if (renderParent) {
-                mem = (route.isForm ? route[KEY_PARENT] : route)._n[(renderParentId = renderParent._$Cid)];
+                rememberedNodes = (route.isForm ? route[KEY_PARENT] : route)._n;
+                mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
                 params = route._p;
 
@@ -1256,6 +1258,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         if (isString(node)) { i = node; }
                     } else {
                         i = isString(target) ? target : target.template;
+                        if (isFunction(i)) { node = i = i.apply(route, args); }
                     }
 
                     if (isString(i)) {
@@ -1274,6 +1277,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
                         }
                     }
+
+                    if (node === false) { return node; }
                 }
 
                 if (!target || isNode(node)) {
@@ -1283,10 +1288,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (!((renderParentId in renderParents) || (target && (target.replace === false)))) {
                         // By default we are replacing everything from previous
                         // render of this route in this parent.
-                        removeNodes(mem, 1);
+
+                        // renderParents._ is a flag that this stage has DOM already.
+                        for (i in rememberedNodes) {
+                            i = rememberedNodes[i];
+                            if (!renderParents._ || i === mem) {
+                                removeNodes(i, 1);
+                            }
+                        }
                     }
 
-                    renderParents[renderParentId] = true;
+                    renderParents[renderParentId] = renderParents._ = true;
 
                     if (target) {
                         if ((parent = placeholder.parentNode)) {

@@ -215,6 +215,35 @@ describe('Complex example', function() {
 
             $CR.set('/hello/deeper?param1=world&param2=beautiful&param3=hello');
             waitInit();
+
+            // The same as in previous assertion, in this configuration DOM
+            // changes when the data arrives.
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [
+                        '2',
+                        'param',
+                        {name: 'strong', value: ['1']},
+                        {name: 'div', value: [], attr: {class: 'hash2'}},
+                        {name: 'div', value: [], attr: {class: 'hash1'}},
+                        {name: 'em', value: ['param2']}
+                    ], attr: {class: 'param1 param2'}},
+                    '3',
+                    {name: 'div', value: [
+                        '4',
+                        {name: 'strong', value: ['param']},
+                        '3'
+                    ], attr: {class: 'param3'}},
+                    '5',
+                    {name: 'div', value: [
+                        '6',
+                        {name: 'div', value: ['AllParams']},
+                        {name: 'p', value: ['/hello']}
+                    ], attr: {class: 'params'}},
+                    '7'
+                ], attr: {class: 'hello'}}
+            ]);
         });
 
         wait();

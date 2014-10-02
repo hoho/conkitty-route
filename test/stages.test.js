@@ -1,0 +1,198 @@
+describe('Complex example', function() {
+    it('runs complex example', function() {
+        var flag;
+        var waitInit = function() {
+            flag = false;
+            setTimeout(function() { flag = true; }, 500);
+        };
+        var wait = function() {
+            waitsFor(function() { return flag; });
+        };
+
+        window.TEMPLATES = {
+            StagesBefore: '<div>before</div>',
+            Stages: '<div>1<div class="sub"></div>2<div class="sub2"></div>3</div>',
+            StagesAfter: 'after',
+            StagesSuccess: '<p>success</p>'
+        };
+
+        var functionCalls = [];
+
+        $CR
+            .add('/stages', {
+                title: 'Stages',
+                data: '/api/data',
+                render: {
+                    before: 'StagesBefore',
+                    success: 'Stages',
+                    error: 'StagesError',
+                    after: [{template: 'StagesAfter', replace: false}, 'StagesAfter']
+                },
+                frames: {
+                    '/sub1': {
+                        title: 'Stages Sub1',
+                        data: '/api/sub1',
+                        parent: '.sub',
+                        render: {
+                            before: ['StagesBefore', function() { return document.createTextNode('bebebe'); }, {parent: '.sub2', template: 'StagesBefore'}, function() { return false; }, 'StagesBefore'],
+                            success: ['StagesSuccess', function() { functionCalls.push('sub-success1'); }, 'StagesSuccess'],
+                            error: 'StagesError',
+                            after: 'StagesAfter'
+                        }
+                    },
+                    'sub2': {
+                        title: 'Stages Sub2',
+                        data: '/api/sub2',
+                        render: {
+                            before: [function() { return 'StagesBefore'; }, {template: function() { return 'StagesBefore'; }}, {parent: '.sub2', template: function() { return document.createTextNode('bebe'); }}],
+                            error: 'StagesError',
+                            success: function() { return 'SomeSuccess'}
+                        }
+                    },
+                    'sub3': {
+                        title: 'Stages Sub3',
+                        data: '/none/sub2',
+                        parent: '.sub2',
+                        render: {
+                            before: 'StagesBefore',
+                            success: 'StagesSuccess',
+                            error: 'StagesError'
+                        }
+                    }
+
+                }
+            })
+            .run({callTemplate: testCallTemplate});
+
+        $CR.set('/stages');
+        expect(objectifyBody()).toEqual([
+            {name: 'div', value: ['before']}
+        ]);
+
+        waitInit();
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after'
+            ]);
+
+            $CR.set('/stages/sub1');
+            waitInit();
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [
+                        {name: 'div', value: ['before']},
+                        'bebebe'
+                    ], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [
+                        {name: 'div', value: ['before']}
+                    ], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after'
+            ]);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: ['after'], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after'
+            ]);
+
+            $CR.set('/stages/sub2');
+            waitInit();
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [
+                        'bebe'
+                    ], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after',
+                {name: 'div', value: ['before']},
+                {name: 'div', value: ['before']}
+            ]);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after',
+                {name: 'div', value: ['SomeSuccess']},
+                {name: 'p', value: ['/stages/sub2']}
+            ]);
+
+            $CR.set('/stages/sub3');
+            waitInit();
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [
+                        {name: 'div', value: ['before']}
+                    ], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after'
+            ]);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [
+                        {name: 'div', value: ['StagesError']},
+                        {name: 'p', value: ['/stages/sub3']}
+                    ], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after'
+            ]);
+        });
+    });
+});

@@ -58,6 +58,19 @@ describe('Complex example', function() {
                             success: 'StagesSuccess',
                             error: 'StagesError'
                         }
+                    },
+                    '/:sub4': {
+                        params: {sub4: function(val) { return val === 'sub4' ? val : undefined; }},
+                        title: 'Stages Sub3',
+                        data: ['/api/data1', function() { return new Promise(function(resolve) { setTimeout(function() { resolve('oooo'); }, 100); }); }, '/api/data2'],
+                        render: {
+                            success: function(data1, data2, data3, params) {
+                                return HTML2DOM('<h1>' + JSON.stringify(data1) + '</h1>' +
+                                                '<h2>' + JSON.stringify(data2) + '</h2>' +
+                                                '<h3>' + JSON.stringify(data3) + '</h3>' +
+                                                '<h4>' + JSON.stringify(params) + '</h4>');
+                            }
+                        }
                     }
 
                 }
@@ -192,6 +205,44 @@ describe('Complex example', function() {
                 ]},
                 'after',
                 'after'
+            ]);
+
+            $CR.set('/stages/sub4');
+            waitInit();
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [
+                        {name: 'div', value: ['StagesError']},
+                        {name: 'p', value: ['/stages/sub3']}
+                    ], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after'
+            ]);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [], attr: {class: 'sub'}},
+                    '2',
+                    {name: 'div', value: [], attr: {class: 'sub2'}},
+                    '3'
+                ]},
+                'after',
+                'after',
+                {name: 'h1', value: ['{"url":"/api/data1","method":"GET"}']},
+                {name: 'h2', value: ['"oooo"']},
+                {name: 'h3', value: ['{"url":"/api/data2","method":"GET"}']},
+                {name: 'h4', value: ['{"sub4":"sub4"}']}
             ]);
         });
     });

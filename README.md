@@ -8,9 +8,23 @@ Build single page application using routing tree.
 - [Frame](#frame)
 - [Form](#form)
 - [API](#api)
-    - [$CR.add(*uri*, *frame*)](#cr-add-uri-frame)
+    - [$CR.add(*uri*, *frame*)](#cradduri-frame)
+    - [$CR.run(*[defaults]*)](#crrundefaults)
+    - [$CR.get(*frameId*)](#crgetframeid)
+    - [$CR.set(*uri[, reload, [replace]]*)](#crseturi-reload-replace)
+    - [$CR.on(*event, handler[, frameId]*)](#cronevent-handler)
+    - [$CR.off(*event, handler[, frameId]*)](#croffevent-handler)
+    - [$CR.makeURI(*uri[, params]*)](#crmakeuriuri-params)
+    - [$CR.params()](#crparams)
+    - [$CR.serializeForm(*node[, withFields]*)](#crserializeformnode-withfields)
 - [Frame API](#frame-api)
+    - [Frame.params()](#frameparams)
+    - [Frame.data()](#framedata)
+    - [Frame.makeURI(*[params]*)](#framemakeuriparams)
+    - [Frame.active()](#frameactive)
+    - [Frame.reload()](#framereload)
 - [Form API](#form-api)
+    - [Form.checkForm(*data*)](#formcheckformdata)
 
 
 ## Introduction
@@ -56,23 +70,23 @@ want.
 
 ## API
 
-### $CR.add(uri, frame)
+### $CR.add(*uri, frame*)
 
-### $CR.run([defaults])
+### $CR.run(*[defaults]*)
 
-### $CR.get(frameId)
+### $CR.get(*frameId*)
 
-### $CR.set(uri[, reload, [replace]])
+### $CR.set(*uri[, reload, [replace]]*)
 
-### $CR.on(event, handler[, frameId])
+### $CR.on(*event, handler[, frameId]*)
 
-### $CR.off(event, handler[, frameId])
+### $CR.off(*event, handler[, frameId]*)
 
-### $CR.makeURI(uri[, params])
+### $CR.makeURI(*uri[, params]*)
 
 ### $CR.params()
 
-### $CR.serializeForm(node[, withFields])
+### $CR.serializeForm(*node[, withFields]*)
 
 
 ## Frame API
@@ -81,7 +95,7 @@ want.
 
 ### Frame.data()
 
-### Frame.makeURI([params])
+### Frame.makeURI(*[params]*)
 
 ### Frame.active()
 
@@ -90,4 +104,4 @@ want.
 
 ## Form API
 
-### Form.checkForm(data)
+### Form.checkForm(*data*)

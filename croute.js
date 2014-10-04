@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.2.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.2.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -16,16 +16,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         running,
 
         currentQueryParams,
-        currentRoutes = {},
+        currentFrames = {},
 
         reloadCurrent,
 
-        routes = [],
-        routeId = 0,
+        frames = [],
+        frameId = 0,
 
-        routeById = {},
+        frameById = {},
 
-        notFoundRoute,
+        notFoundFrame,
 
         oldDOM = [],
 
@@ -46,7 +46,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         busyTimer,
 
         whitespace = /[\x20\t\r\n\f]+/,
-        KEY_ROUTE = '_$Croute',
+        KEY_FRAME = '_$Cf',
         KEY_DATASOURCE = 'dataSource',
         KEY_DATAERROR = '_dataError',
 
@@ -69,20 +69,20 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         CANCELLED = {d: NULL},
 
-        proto = Route.prototype,
+        proto = Frame.prototype,
 
-        API = function add(uri, frame) {
+        API = function add(uri, frameSettings) {
             checkRunning();
-            if (isString(uri) && isString(frame)) {
+            if (isString(uri) && isString(frameSettings)) {
                 // It's a rewrite.
-                $H.on(uri, frame);
+                $H.on(uri, frameSettings);
             } else {
                 if (uri) {
-                    addRoute(uri, frame);
-                } else if (!notFoundRoute) {
-                    // NotFound route needs to be last, we'll add it in
+                    addFrame(uri, frameSettings);
+                } else if (!notFoundFrame) {
+                    // NotFound frame needs to be last, we'll add it in
                     // run() method.
-                    notFoundRoute = frame;
+                    notFoundFrame = frameSettings;
                 }
             }
             return API;
@@ -116,24 +116,24 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             return tpl.apply(NULL, args);
         };
 
-        if (notFoundRoute) {
-            addRoute(undefined, notFoundRoute);
+        if (notFoundFrame) {
+            addFrame(undefined, notFoundFrame);
         }
 
         $H.on(undefined, function() {
-            var newRootRoute,
-                newRoutes = {},
+            var newRootFrame,
+                newFrames = {},
                 i,
-                route,
-                haveNewRoutes,
-                newRoutesCount = 0,
-                currentRoutesCount = 0,
+                frame,
+                haveNewFrames,
+                newFramesCount = 0,
+                currentFramesCount = 0,
                 traverseCallback = function(r/**/, id, final) {
                     if (r._a) {
-                        newRoutes[(id = r._id)] = r;
-                        newRoutesCount++;
-                        if (!haveNewRoutes && !(id in currentRoutes)) {
-                            haveNewRoutes = true;
+                        newFrames[(id = r._id)] = r;
+                        newFramesCount++;
+                        if (!haveNewFrames && !(id in currentFrames)) {
+                            haveNewFrames = true;
                         }
                         if (isFunction((final = r.final))) {
                             final = final.call(r);
@@ -142,43 +142,43 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 };
 
-            for (i = 0; i < routes.length; i++) {
-                route = routes[i];
-                if (route._a) {
-                    traverseRoute((newRootRoute = route), traverseCallback);
+            for (i = 0; i < frames.length; i++) {
+                frame = frames[i];
+                if (frame._a) {
+                    traverseFrame((newRootFrame = frame), traverseCallback);
                     break;
                 }
             }
 
-            for (i in currentRoutes) {
-                currentRoutesCount++;
-                route = currentRoutes[i];
-                i = i in newRoutes;
+            for (i in currentFrames) {
+                currentFramesCount++;
+                frame = currentFrames[i];
+                i = i in newFrames;
                 if (!i ||
                     reloadCurrent ||
-                    !route._s ||
-                    route.keep === false ||
-                    route[KEY_DATAERROR])
+                    !frame._s ||
+                    frame.keep === false ||
+                    frame[KEY_DATAERROR])
                 {
-                    unprocessRoute(route, newRoutes);
+                    unprocessFrame(frame, newFrames);
                 }
                 if (i) {
-                    // A flag for route.active(true) to show that this route
+                    // A flag for frame.active(true) to show that this frame
                     // is not just active, but was active in previous location
                     // too.
-                    route._s = 1;
+                    frame._s = 1;
                 }
             }
 
-            if (!haveNewRoutes && (newRoutesCount < currentRoutesCount)) {
+            if (!haveNewFrames && (newFramesCount < currentFramesCount)) {
                 removeNodes(oldDOM, 0);
             }
 
-            currentRoutes = newRoutes;
+            currentFrames = newFrames;
             reloadCurrent = undefined;
 
-            if (newRootRoute) {
-                new ProcessRoute(newRootRoute);
+            if (newRootFrame) {
+                new ProcessFrame(newRootFrame);
             }
         });
 
@@ -214,33 +214,33 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         addEvent(STR_SUBMIT, function(e) {
             var target = e.target,
                 formNode = target,
-                route,
+                frame,
                 form,
                 data,
                 action;
 
-            while (target && !((route = target[KEY_ROUTE]))) {
+            while (target && !((frame = target[KEY_FRAME]))) {
                 target = target.parentNode;
             }
 
-            if (route && ((form = route.form))) {
+            if (frame && ((form = frame.form))) {
                 e.preventDefault();
 
-                form = new Route(undefined, form, undefined, undefined, route, true);
+                form = new Frame(undefined, form, undefined, undefined, frame, true);
 
                 data = serializeForm(formNode, true);
 
-                currentRoutes[form._id] = form;
+                currentFrames[form._id] = form;
                 form._f = data[1];
 
                 if (form.checkForm((data = data[0]))) {
                     form[KEY_DATASOURCE] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        action.call(formNode, data, route)
+                        action.call(formNode, data, frame)
                         :
                         (action || location.href);
                     form.method = formNode.getAttribute('method') || form._method || 'get';
 
-                    new ProcessRoute(
+                    new ProcessFrame(
                         form,
                         formNode,
                         function(xhr/**/, type, submit, cancelled) {
@@ -258,13 +258,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                             formNode.cancel = function() { form._c = cancelled = CANCELLED; };
                             data = (submit = form[STR_SUBMIT]) ?
-                                submit.call(formNode, data, xhr, route)
+                                submit.call(formNode, data, xhr, frame)
                                 :
                                 data;
                             delete formNode.cancel;
 
                             if (!cancelled) {
-                                setFormState(route, form, FORM_STATE_SENDING);
+                                setFormState(frame, form, FORM_STATE_SENDING);
                             }
 
                             return cancelled ||
@@ -318,18 +318,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function traverseRoute(route, callback/**/, i, children) {
-        children = route.children;
+    function traverseFrame(frame, callback/**/, i, children) {
+        children = frame.children;
         for (i = 0; i < children.length; i++) {
-            if (traverseRoute(children[i], callback)) {
+            if (traverseFrame(children[i], callback)) {
                 break;
             }
         }
-        return callback(route);
+        return callback(frame);
     }
 
 
-    API.on = function on(event, handler, route) {
+    API.on = function on(event, handler, frame) {
         var i = '',
             handlers,
             currentHandlers;
@@ -338,9 +338,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             event = event.split(whitespace);
             if (event.length === 1) {
                 if ((handlers = eventHandlers[event])) {
-                    if (route) {
-                        if ((i = routeById[route])) { route = i; }
-                        i = route._id;
+                    if (frame) {
+                        if ((i = frameById[frame])) { frame = i; }
+                        i = frame._id;
                     }
                     if (!((currentHandlers = handlers[i]))) {
                         currentHandlers = handlers[i] = [];
@@ -349,7 +349,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             } else {
                 for (i = event.length; i--;) {
-                    API.on(event[i], handler, route);
+                    API.on(event[i], handler, frame);
                 }
             }
         }
@@ -357,16 +357,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.off = function off(event, handler, route) {
+    API.off = function off(event, handler, frame) {
         var i = '',
             currentHandlers;
 
         if (isString(event) && isFunction(handler)) {
             event = event.split(whitespace);
             if (event.length === 1) {
-                if (route) {
-                    if ((i = routeById[route])) { route = i; }
-                    i = route._id;
+                if (frame) {
+                    if ((i = frameById[frame])) { frame = i; }
+                    i = frame._id;
                 }
                 if (((currentHandlers = eventHandlers[event])) &&
                     ((currentHandlers = currentHandlers[i])))
@@ -379,7 +379,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             } else {
                 for (i = event.length; i--;) {
-                    API.on(event[i], handler, route);
+                    API.on(event[i], handler, frame);
                 }
             }
         }
@@ -388,7 +388,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     API.get = function get(id) {
-        return routeById[id];
+        return frameById[id];
     };
 
 
@@ -401,18 +401,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         var self = this,
             parent;
 
-        if (self._id in currentRoutes) {
+        if (self._id in currentFrames) {
             parent = self[KEY_PARENT];
             while (parent) {
-                // Check if none of parent routes is in progress.
-                if (parent._data instanceof ProcessRoute) {
+                // Check if none of parent frames is in progress.
+                if (parent._data instanceof ProcessFrame) {
                     break;
                 }
                 parent = parent[KEY_PARENT];
             }
             if (!parent) {
-                unprocessRoute(self, currentRoutes, true);
-                new ProcessRoute(self);
+                unprocessFrame(self, currentFrames, true);
+                new ProcessFrame(self);
             }
         }
     };
@@ -449,7 +449,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     proto.active = function(andPrev) {
-        return (this._id in currentRoutes) && (andPrev ? this._s === 1 : true);
+        return (this._id in currentFrames) && (andPrev ? this._s === 1 : true);
     };
 
 
@@ -457,7 +457,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         var self = this,
             fields = self._f || [],
             i,
-            route = self[KEY_PARENT],
+            frame = self[KEY_PARENT],
             check = self.check,
             field,
             error,
@@ -465,9 +465,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         for (i = 0; i < fields.length; i++) {
             field = fields[i];
-            error = check ? check.call(route, field[0], field[1], data) : undefined;
+            error = check ? check.call(frame, field[0], field[1], data) : undefined;
             setFieldState(
-                route,
+                frame,
                 self,
                 field,
                 error ? ((hasError = true), FORM_STATE_INVALID) : FORM_STATE_VALID,
@@ -479,10 +479,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    function setFieldState(route, form, field, stateValue, msg) {
+    function setFieldState(frame, form, field, stateValue, msg) {
         var state = form.state,
             input = field[0],
-            s = state ? state.call(route, input, stateValue, msg) : undefined,
+            s = state ? state.call(frame, input, stateValue, msg) : undefined,
             oldState = field[2];
 
         field[2] = stateValue;
@@ -507,25 +507,25 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function setFormState(route, form, state) {
+    function setFormState(frame, form, state) {
         var fields = form._f,
             i;
 
         for (i = 0; i < fields.length; i++) {
-            setFieldState(route, form, fields[i], state);
+            setFieldState(frame, form, fields[i], state);
         }
     }
 
 
-    // To avoid multiple parsing of query params for each route, parse them
+    // To avoid multiple parsing of query params for each frame, parse them
     // once here.
     $H.on(
         {
             search: function(search/**/, i, j, name, value, cur) {
                 // Reset active flags.
                 cur = function(r) { r._a = 0; };
-                for (i = routes.length; i--;) {
-                    traverseRoute(routes[i], cur);
+                for (i = frames.length; i--;) {
+                    traverseFrame(frames[i], cur);
                 }
 
                 // Parse querystring.
@@ -557,9 +557,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     );
 
 
-    function addRoute(uri, frame/**/, route) {
-        route = new Route(uri, frame);
-        routes.push(route);
+    function addFrame(uri, frameSettings/**/, frame) {
+        frame = new Frame(uri, frameSettings);
+        frames.push(frame);
     }
 
 
@@ -595,21 +595,21 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function emitEvent(event, route, args/**/, handlers, cur, i) {
+    function emitEvent(event, frame, args/**/, handlers, cur, i) {
         if ((handlers = eventHandlers[event])) {
             args = [].concat(event, args || []);
 
-            // Specific route handlers.
-            if (((i = route._id)) && ((cur = handlers[i]))) {
+            // Specific frame handlers.
+            if (((i = frame._id)) && ((cur = handlers[i]))) {
                 for (i = 0; i < cur.length; i++) {
-                    cur[i].apply(route, args);
+                    cur[i].apply(frame, args);
                 }
             }
 
-            // General route handlers.
+            // General frame handlers.
             if ((cur = handlers[''])) {
                 for (i = 0; i < cur.length; i++) {
-                    cur[i].apply(route, args);
+                    cur[i].apply(frame, args);
                 }
             }
         }
@@ -619,7 +619,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     function pushParam(part, params, allowDuplicates, pathParams/**/, type, parent) {
         parent = 1;
         if (allowDuplicates) {
-            // Allow parent route params in data URIs.
+            // Allow parent frame params in data URIs.
             while (part.charAt(parent) === ':') {
                 parent++;
             }
@@ -744,24 +744,24 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function deactivateRoute(route/**/, a) {
-        if ((a = route._a)) {
-            while (route) {
+    function deactivateFrame(frame/**/, a) {
+        if ((a = frame._a)) {
+            while (frame) {
                 // Tell parents about it.
-                route._a -= a;
-                route = route[KEY_PARENT];
+                frame._a -= a;
+                frame = frame[KEY_PARENT];
             }
         }
     }
 
 
-    function Route(uri, frame, pathExpr, paramsOffset, parent, form) {
+    function Frame(uri, frameSettings, pathExpr, paramsOffset, parent, form) {
         var self = this,
             i,
-            frames,
+            childFrames,
             f,
-            route = /.*/, // Default value is for NotFound route.
-            childRoute,
+            frame = /.*/, // Default value is for NotFound frame.
+            childFrame,
             pathnameExpr,
             pathParams,
             uriSearch,
@@ -772,32 +772,32 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self[KEY_PARENT] = parent;
         self.children = [];
         self.uri = uri;
-        self._id = 'r' + (++routeId);
+        self._id = 'r' + (++frameId);
         self._n = {};
 
-        if (frame) {
-            paramsConstraints = frame.params;
-            self.title = frame.title || (parent && parent.title);
-            self[KEY_RENDER_PARENT] = frame[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
-            self.render = f = normalizeRender(frame.render);
-            self.final = frame.final;
+        if (frameSettings) {
+            paramsConstraints = frameSettings.params;
+            self.title = frameSettings.title || (parent && parent.title);
+            self[KEY_RENDER_PARENT] = frameSettings[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
+            self.render = f = normalizeRender(frameSettings.render);
+            self.final = frameSettings.final;
 
             if (form) {
                 self.isForm = true;
-                self.action = frame.action;
-                self._method = frame.method;
-                self.check = frame.check;
-                self.state = frame.state;
-                self.type = frame.type;
-                self[STR_SUBMIT] = frame[STR_SUBMIT];
+                self.action = frameSettings.action;
+                self._method = frameSettings.method;
+                self.check = frameSettings.check;
+                self.state = frameSettings.state;
+                self.type = frameSettings.type;
+                self[STR_SUBMIT] = frameSettings[STR_SUBMIT];
             } else {
-                if ((i = self.id = frame.id)) {
-                    if (i in routeById) { throwError('Duplicate id: ' + i); }
-                    routeById[i] = self;
+                if ((i = self.id = frameSettings.id)) {
+                    if (i in frameById) { throwError('Duplicate id: ' + i); }
+                    frameById[i] = self;
                 }
-                self.keep = frame.keep;
-                self[KEY_DATASOURCE] = frame.data;
-                self.form = frame.form;
+                self.keep = frameSettings.keep;
+                self[KEY_DATASOURCE] = frameSettings.data;
+                self.form = frameSettings.form;
             }
         }
 
@@ -812,7 +812,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if (!paramsOffset) { paramsOffset = 1; }
 
-            route = function(pathname) {
+            frame = function(pathname) {
                 currentParams = {};
 
                 var match = pathname.match(pathnameExpr),
@@ -829,15 +829,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 currentParams)
                             )
                         {
-                            deactivateRoute(self);
+                            deactivateFrame(self);
                             return false;
                         }
                     }
 
                     // self._d means that there are no further pathname components.
-                    // self._a means active route.
+                    // self._a means active frame.
                     if ((self._d = !match[paramsOffset + pathParams.length])) {
-                        // Deepest matched frame and there is render for this route.
+                        // Deepest matched frame and there is render for this frame.
                         self._a = 1;
                         i = parent;
                         while (i) {
@@ -853,10 +853,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
             if (uriSearch || uriHash) {
-                route = {pathname: route};
+                frame = {pathname: frame};
 
                 if (uriSearch) {
-                    route.search = function() {
+                    frame.search = function() {
                         var queryparams = {},
                             queryparam;
 
@@ -870,7 +870,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                     currentParams)
                                 )
                             {
-                                deactivateRoute(self);
+                                deactivateFrame(self);
                                 return false;
                             }
                         }
@@ -880,7 +880,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if (uriHash) {
-                    route.hash = function(hash) {
+                    frame.hash = function(hash) {
                         var i = checkAndSetParam(
                                 undefined,
                                 hash || undefined,
@@ -895,7 +895,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             false;
 
                         if (!i) {
-                            deactivateRoute(self);
+                            deactivateFrame(self);
                         }
 
                         return i;
@@ -903,22 +903,22 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }
 
-            if ((frames = frame && frame.frames)) {
-                for (f in frames) {
-                    childRoute = new Route(
+            if ((childFrames = frameSettings && frameSettings.frames)) {
+                for (f in childFrames) {
+                    childFrame = new Frame(
                         f,
-                        frames[f],
+                        childFrames[f],
                         pathExpr,
                         paramsOffset + pathParams.length,
                         self
                     );
 
-                    self.children.push(childRoute);
+                    self.children.push(childFrame);
                 }
             }
         }
 
-        $H.on(route, {
+        $H.on(frame, {
             go: function(same) {
                 if (!uri) {
                     // It's not found target, no URI matching functions have
@@ -965,7 +965,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function getURIParam(route, param, overrideParams/**/, i, name) {
+    function getURIParam(frame, param, overrideParams/**/, i, name) {
         name = param.param;
 
         if (overrideParams && (name in overrideParams)) {
@@ -973,19 +973,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         } else {
             i = param[KEY_PARENT];
 
-            while (route && i) {
-                route = route[KEY_PARENT];
+            while (frame && i) {
+                frame = frame[KEY_PARENT];
                 i--;
             }
 
-            i = ((i = route && route._p)) ? i[name] : undefined;
+            i = ((i = frame && frame._p)) ? i[name] : undefined;
         }
 
         return i;
     }
 
 
-    function makeURI(route, uri, overrideParams, pathname, queryparams, processedQueryparams, hash, child) {
+    function makeURI(frame, uri, overrideParams, pathname, queryparams, processedQueryparams, hash, child) {
         // TODO: Test params and throw errors when necessary.
         var i,
             j,
@@ -1005,7 +1005,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         for (i = pathObj.length; i--;) {
             part = pathObj[i];
-            val = part.param ? getURIParam(route, part, overrideParams) : part;
+            val = part.param ? getURIParam(frame, part, overrideParams) : part;
 
             if (val !== undefined) {
                 pathname.unshift(encodeURIComponent(val));
@@ -1021,7 +1021,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     i = encodeURIComponent(i);
 
                     if (part.param) {
-                        val = getURIParam(route, part, overrideParams);
+                        val = getURIParam(frame, part, overrideParams);
                         if (isArray(val)) {
                             for (j = 0; j < val.length; j++) {
                                 queryparams.push(i + '=' + encodeURIComponent(val[j]));
@@ -1040,11 +1040,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         if (!hash && ((pathObj = uri.hash))) {
-            hash = pathObj.param ? getURIParam(route, pathObj, overrideParams) : pathObj.value;
+            hash = pathObj.param ? getURIParam(frame, pathObj, overrideParams) : pathObj.value;
         }
 
-        if (overrideParams && route && ((i = route[KEY_PARENT]))) {
-            // Building route URI from routes tree, current state and params to override.
+        if (overrideParams && frame && ((i = frame[KEY_PARENT]))) {
+            // Building frame URI from frames tree, current state and params to override.
             makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true);
         }
 
@@ -1065,7 +1065,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function AJAX(uri, route, body/**/, req, self, parse, override, transform, response, uriReady) {
+    function AJAX(uri, frame, body/**/, req, self, parse, override, transform, response, uriReady) {
         self = this;
 
         // self.ok — Success callbacks.
@@ -1077,7 +1077,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!isString(uri)) {
             if (((override = uri.override)) &&
-                (((override = override.call(route, route._p))) !== undefined))
+                (((override = override.call(frame, frame._p))) !== undefined))
             {
                 return {d: override};
             }
@@ -1086,7 +1086,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             transform = uri.transform;
             uri = uri.uri;
             if (isFunction(uri)) {
-                uri = uri.call(route, route._p);
+                uri = uri.call(frame, frame._p);
                 uriReady = true;
             }
         }
@@ -1097,8 +1097,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self.r = req = new XMLHttpRequest();
 
         req.open(
-            route.method || 'GET',
-            (req.uri = uriReady ? uri : makeURI((route = route.isForm ? route[KEY_PARENT] : route), uri)),
+            frame.method || 'GET',
+            (req.uri = uriReady ? uri : makeURI((frame = frame.isForm ? frame[KEY_PARENT] : frame), uri)),
             true
         );
         req.onreadystatechange = function() {
@@ -1107,8 +1107,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (req.status === 200) {
                     try {
                         response = req.responseText;
-                        response = parse ? parse.call(route, response, req) : JSON.parse(response);
-                        self.j = transform ? transform.call(route, response, req) : response;
+                        response = parse ? parse.call(frame, response, req) : JSON.parse(response);
+                        self.j = transform ? transform.call(frame, response, req) : response;
                         self.e = false;
                     } catch(e) {}
                 }
@@ -1175,12 +1175,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    function getRenderParent(route, parent1, parent2/**/, id, n) {
+    function getRenderParent(frame, parent1, parent2/**/, id, n) {
         parent1 = parent1 || parent2 || defaultParent;
 
         if (parent1 && !isNode(parent1)) {
             if (isFunction(parent1)) {
-                parent1 = parent1.call(route);
+                parent1 = parent1.call(frame);
             } else {
                 parent1 = document.querySelector(parent1);
             }
@@ -1188,10 +1188,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if ((parent1 = isNode(parent1) ? parent1 : NULL)) {
             if (!((id = parent1._$Cid))) {
-                parent1._$Cid = id = ++routeId;
+                parent1._$Cid = id = ++frameId;
             }
-            // Add placeholder for this route in this parent node.
-            n = (route.isForm ? route[KEY_PARENT] : route)._n;
+            // Add placeholder for this frame in this parent node.
+            n = (frame.isForm ? frame[KEY_PARENT] : frame)._n;
             if (!(n[id])) {
                 n[id] = [(parent2 = document.createComment(''))];
                 parent1.appendChild(parent2);
@@ -1202,7 +1202,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function processRender(stage, render, datas, defaultRenderParent, route, formNode, renderParents, target) {
+    function processRender(stage, render, datas, defaultRenderParent, frame, formNode, renderParents, target) {
         var i,
             mem,
             params,
@@ -1229,40 +1229,40 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             try {
                 renderParents = {};
                 for (i = 0; i < target.length; i++) {
-                    if (processRender(stage, render, datas, defaultRenderParent, route, formNode, renderParents, target[i]) === false) {
+                    if (processRender(stage, render, datas, defaultRenderParent, frame, formNode, renderParents, target[i]) === false) {
                         break;
                     }
                 }
             } catch(e) {
                 datas = [e, stage, i, target[i]];
-                processRender(STR_EXCEPT, render, datas, defaultRenderParent, route, formNode, renderParents);
-                emitEvent(STR_EXCEPT, route, datas);
+                processRender(STR_EXCEPT, render, datas, defaultRenderParent, frame, formNode, renderParents);
+                emitEvent(STR_EXCEPT, frame, datas);
                 ret = true;
             }
         } else if (target || target === NULL) {
             // null-value target could be used to remove previous render nodes.
-            renderParent = getRenderParent(route, target && target[KEY_PARENT], defaultRenderParent);
+            renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
             if (renderParent) {
-                rememberedNodes = (route.isForm ? route[KEY_PARENT] : route)._n;
+                rememberedNodes = (frame.isForm ? frame[KEY_PARENT] : frame)._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
-                params = route._p;
+                params = frame._p;
 
                 if (target) {
-                    args = [].concat(datas, params, route);
+                    args = [].concat(datas, params, frame);
                     if (formNode) { args.push(formNode); }
                     if (isFunction(target)) {
-                        node = target.apply(route, args);
+                        node = target.apply(frame, args);
                         if (node === false) { return node; }
                         if (node === NULL) { target = NULL; }
                         if (isString(node)) { i = node; }
                     } else {
                         i = isString(target) ? target : target.template;
-                        if (isFunction(i)) { node = i = i.apply(route, args); }
+                        if (isFunction(i)) { node = i = i.apply(frame, args); }
                     }
 
                     if (isString(i)) {
-                        node = callTemplateFunc.call(route, i, args);
+                        node = callTemplateFunc.call(frame, i, args);
                         if (isString(node)) {
                             // We've got string of HTML, create documentFragment
                             // from it.
@@ -1282,12 +1282,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if (!target || isNode(node)) {
-                    // Remove nodes from previous routes if any.
+                    // Remove nodes from previous frames if any.
                     removeNodes(oldDOM, 0);
 
                     if (!((renderParentId in renderParents) || (target && (target.replace === false)))) {
                         // By default we are replacing everything from previous
-                        // render of this route in this parent.
+                        // render of this frame in this parent.
 
                         // renderParents._ is a flag that this stage has DOM already.
                         for (i in rememberedNodes) {
@@ -1304,10 +1304,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         if ((parent = placeholder.parentNode)) {
                             n = placeholder.previousSibling;
                             parent.insertBefore(node, placeholder);
-                            // Remember route's inserted nodes.
+                            // Remember frame's inserted nodes.
                             for (i = n ? n[KEY_NEXT_SIBLING] : parent.firstChild; i !== placeholder; i = i[KEY_NEXT_SIBLING]) {
                                 mem.push(i);
-                                i[KEY_ROUTE] = route;
+                                i[KEY_FRAME] = frame;
                             }
                         }
                     }
@@ -1329,17 +1329,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function ProcessRoute(route, formNode, formBody) {
-        if (route._data instanceof ProcessRoute) { return; }
+    function ProcessFrame(frame, formNode, formBody) {
+        if (frame._data instanceof ProcessFrame) { return; }
 
-        var skip = (route._data !== undefined) && !route[KEY_DATAERROR],
+        var skip = (frame._data !== undefined) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
-            dataSource = route[KEY_DATASOURCE],
+            dataSource = frame[KEY_DATASOURCE],
             i,
             d,
             waiting = 0,
-            render = route.render,
+            render = frame.render,
             defaultRenderParent,
             resolve,
             done = function(index, data, /**/i, children, r, errors) {
@@ -1349,33 +1349,33 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if (!waiting && !self.rejected) {
-                    errors = route[KEY_DATAERROR];
-                    children = route.children;
+                    errors = frame[KEY_DATAERROR];
+                    children = frame.children;
 
                     if (!skip) {
-                        route._data = datas;
+                        frame._data = datas;
 
-                        if (route.isForm) {
-                            setFormState(route[KEY_PARENT], route, FORM_STATE_VALID);
+                        if (frame.isForm) {
+                            setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
                         }
 
                         i = errors ? STR_ERROR : STR_SUCCESS;
-                        if (processRender(i, render, errors || datas, defaultRenderParent, route, formNode)) {
+                        if (processRender(i, render, errors || datas, defaultRenderParent, frame, formNode)) {
                             return;
                         }
-                        emitEvent(i, route, errors || datas);
+                        emitEvent(i, frame, errors || datas);
 
-                        if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, route, formNode)) {
+                        if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
                             return;
                         }
-                        emitEvent(STR_AFTER, route);
+                        emitEvent(STR_AFTER, frame);
                     }
 
                     if (!errors) {
                         for (i = 0; i < children.length; i++) {
                             r = children[i];
-                            if (r._id in currentRoutes) {
-                                new ProcessRoute(r);
+                            if (r._id in currentFrames) {
+                                new ProcessFrame(r);
                             }
                         }
                     }
@@ -1383,20 +1383,20 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             };
 
         if (!skip) {
-            route._data = self;
+            frame._data = self;
 
-            defaultRenderParent = getRenderParent(route, route[KEY_RENDER_PARENT]);
+            defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
 
-            document.title = (i = (isFunction((i = route.title)) ? i() : i)) === undefined
+            document.title = (i = (isFunction((i = frame.title)) ? i() : i)) === undefined
                 ?
                 defaultTitle
                 :
                 i;
 
-            if (processRender(STR_BEFORE, render, [], defaultRenderParent, route, formNode)) {
+            if (processRender(STR_BEFORE, render, [], defaultRenderParent, frame, formNode)) {
                 return;
             }
-            emitEvent(STR_BEFORE, route);
+            emitEvent(STR_BEFORE, frame);
 
             if (dataSource !== undefined) {
                 if (!isArray(dataSource)) {
@@ -1408,8 +1408,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     d.then(function(ok) {
                         done(index, ok);
                     }, function(xhr, errors) {
-                        if (!((errors = route[KEY_DATAERROR]))) {
-                            errors = route[KEY_DATAERROR] = new Array(datas.length);
+                        if (!((errors = frame[KEY_DATAERROR]))) {
+                            errors = frame[KEY_DATAERROR] = new Array(datas.length);
                         }
                         errors[index] = xhr;
                         done(index);
@@ -1419,14 +1419,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 for (i = 0; i < dataSource.length; i++) {
                     if ((d = dataSource[i])) {
                         if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
-                            d = new AJAX(d, route, formBody);
+                            d = new AJAX(d, frame, formBody);
                             // When AJAX request is cancelled, constructor returns
                             // object {d: ...} which is not instance of AJAX.
                             if (!d.then) { d = d.d; }
                         }
 
                         if (isFunction(d)) {
-                            d = d.call(route);
+                            d = d.call(frame);
                         }
 
                         datas.push(d);
@@ -1443,7 +1443,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    ProcessRoute.prototype.reject = function() {
+    ProcessFrame.prototype.reject = function() {
         var datas = this.datas,
             i,
             d;
@@ -1458,32 +1458,32 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    function unprocessRoute(route, activeRoutes, keepPlaceholders) {
+    function unprocessFrame(frame, activeFrames, keepPlaceholders) {
         var children,
             i,
             nodesets,
             nodes;
 
-        children = route.children;
+        children = frame.children;
         for (i = children.length; i--;) {
-            unprocessRoute(children[i], activeRoutes);
+            unprocessFrame(children[i], activeFrames);
         }
 
-        // Stop processing route and remove associated nodes.
-        if (route._data && isFunction(route._data.reject)) {
-            route._data.reject();
-            if (route.isForm && !route._c) {
-                unprocessRoute(route[KEY_PARENT], activeRoutes, true);
+        // Stop processing frame and remove associated nodes.
+        if (frame._data && isFunction(frame._data.reject)) {
+            frame._data.reject();
+            if (frame.isForm && !frame._c) {
+                unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
-            emitEvent('stop', route);
+            emitEvent('stop', frame);
         }
 
-        if (route._data !== undefined) {
-            route._data = route[KEY_DATAERROR] = undefined;
-            emitEvent('leave', route);
+        if (frame._data !== undefined) {
+            frame._data = frame[KEY_DATAERROR] = undefined;
+            emitEvent('leave', frame);
 
-            if (!(route._id in activeRoutes)) {
-                nodesets = route._n;
+            if (!(frame._id in activeFrames)) {
+                nodesets = frame._n;
                 keepPlaceholders = keepPlaceholders ? 1 : 0;
 
                 for (i in nodesets) {
@@ -1494,7 +1494,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if (!keepPlaceholders) {
-                    route._n = {};
+                    frame._n = {};
                 }
             }
         }

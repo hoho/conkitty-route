@@ -11,12 +11,12 @@ Build single page application using routing tree.
     - [$CR.add(uri, frame)](#cradduri-frame)
     - [$CR.run(*[defaults]*)](#crrundefaults)
     - [$CR.get(frameId)](#crgetframeid)
-    - [$CR.set(uri*[, reload, [replace]]*)](#crseturi-reload-replace)
-    - [$CR.on(event, handler*[, frameId]*)](#cronevent-handler)
-    - [$CR.off(event, handler*[, frameId]*)](#croffevent-handler)
-    - [$CR.makeURI(uri*[, params]*)](#crmakeuriuri-params)
+    - [$CR.set(uri *[, reload, [replace]]*)](#crseturi-reload-replace)
+    - [$CR.on(event, handler *[, frameId]*)](#cronevent-handler)
+    - [$CR.off(event, handler *[, frameId]*)](#croffevent-handler)
+    - [$CR.makeURI(uri *[, params]*)](#crmakeuriuri-params)
     - [$CR.params()](#crparams)
-    - [$CR.serializeForm(node*[, withFields]*)](#crserializeformnode-withfields)
+    - [$CR.serializeForm(node *[, withFields]*)](#crserializeformnode-withfields)
 - [Frame API](#frame-api)
     - [Frame.params()](#frameparams)
     - [Frame.data()](#framedata)
@@ -76,17 +76,17 @@ want.
 
 ### $CR.get(frameId)
 
-### $CR.set(uri*[, reload, [replace]]*)
+### $CR.set(uri *[, reload, [replace]]*)
 
-### $CR.on(event, handler*[, frameId]*)
+### $CR.on(event, handler *[, frameId]*)
 
-### $CR.off(event, handler*[, frameId]*)
+### $CR.off(event, handler *[, frameId]*)
 
-### $CR.makeURI(uri*[, params]*)
+### $CR.makeURI(uri *[, params]*)
 
 ### $CR.params()
 
-### $CR.serializeForm(node*[, withFields]*)
+### $CR.serializeForm(node *[, withFields]*)
 
 
 ## Frame API

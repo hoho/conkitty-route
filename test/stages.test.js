@@ -61,7 +61,7 @@ describe('Complex example', function() {
                     },
                     '/:sub4': {
                         params: {sub4: function(val) { return val === 'sub4' ? val : undefined; }},
-                        title: 'Stages Sub3',
+                        title: 'Stages Sub4',
                         data: ['/api/data1', function() { return new Promise(function(resolve) { setTimeout(function() { resolve('oooo'); }, 100); }); }, '/api/data2'],
                         render: {
                             success: function(data1, data2, data3, params) {
@@ -82,6 +82,8 @@ describe('Complex example', function() {
             {name: 'div', value: ['before']}
         ]);
 
+        expect(document.title).toEqual('Stages');
+
         waitInit();
         wait();
 
@@ -100,6 +102,8 @@ describe('Complex example', function() {
 
             $CR.set('/stages/sub1');
             waitInit();
+
+            expect(document.title).toEqual('Stages Sub1');
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
@@ -136,6 +140,8 @@ describe('Complex example', function() {
 
             $CR.set('/stages/sub2');
             waitInit();
+
+            expect(document.title).toEqual('Stages Sub2');
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
@@ -174,6 +180,8 @@ describe('Complex example', function() {
             $CR.set('/stages/sub3');
             waitInit();
 
+            expect(document.title).toEqual('Stages Sub3');
+
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
                     '1',
@@ -209,6 +217,8 @@ describe('Complex example', function() {
 
             $CR.set('/stages/sub4');
             waitInit();
+
+            expect(document.title).toEqual('Stages Sub4');
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [

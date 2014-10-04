@@ -70,23 +70,23 @@ want.
 
 ## API
 
-### $CR.add(*uri, frame*)
+### $CR.add(uri, frame)
 
 ### $CR.run(*[defaults]*)
 
-### $CR.get(*frameId*)
+### $CR.get(frameId)
 
-### $CR.set(*uri[, reload, [replace]]*)
+### $CR.set(uri*[, reload, [replace]]*)
 
-### $CR.on(*event, handler[, frameId]*)
+### $CR.on(event, handler*[, frameId]*)
 
-### $CR.off(*event, handler[, frameId]*)
+### $CR.off(event, handler*[, frameId]*)
 
-### $CR.makeURI(*uri[, params]*)
+### $CR.makeURI(uri*[, params]*)
 
 ### $CR.params()
 
-### $CR.serializeForm(*node[, withFields]*)
+### $CR.serializeForm(node*[, withFields]*)
 
 
 ## Frame API
@@ -104,4 +104,4 @@ want.
 
 ## Form API
 
-### Form.checkForm(*data*)
+### Form.checkForm(data)

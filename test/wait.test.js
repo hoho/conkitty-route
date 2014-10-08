@@ -13,6 +13,7 @@ describe('Simple example', function() {
         $CR
             .add('/', {
                 wait: true,
+                data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
                 render: {
                     before: function() { calls.push('before1'); },
                     success: function() { calls.push('success1'); },
@@ -35,6 +36,7 @@ describe('Simple example', function() {
                                 frames: {
                                     'c': {
                                         wait: false,
+                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
                                         render: {
                                             before: function() { calls.push('before4'); },
                                             success: function() { calls.push('success4'); },
@@ -57,6 +59,7 @@ describe('Simple example', function() {
                                                         },
                                                         frames: {
                                                             'f': {
+                                                                data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
                                                                 render: {
                                                                     before: function() { calls.push('before7'); },
                                                                     success: function() { calls.push('success7'); },

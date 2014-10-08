@@ -1,5 +1,5 @@
-describe('Simple example', function() {
-    it('runs simple example', function() {
+describe('Wait test', function() {
+    it('runs wait test', function() {
         var flag;
         var waitInit = function() {
             flag = false;

@@ -955,16 +955,28 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         var ret = {},
             i,
+            j,
+            k,
             key,
             val,
-            RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT];
+            val2,
+            RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
+            SUBSTAGES = {'-': false, '': undefined, '+': true};
 
         for (i = RENDER_KEYS.length; i--;) {
-            if (!isArray((val = render[(key = RENDER_KEYS[i])])) && val !== undefined) {
-                val = [val];
-            }
-            if (val) {
-                ret[key] = val;
+            j = '';
+            val2 = undefined;
+            for (j in SUBSTAGES) {
+                if (!isArray((val = render[j + ((key = RENDER_KEYS[i]))])) && val !== undefined) {
+                    val = [val];
+                }
+                if (val) {
+                    if (!val2) { val2 = []; }
+                    for (k = 0; k < val.length; k++) {
+                        val2.push({s: SUBSTAGES[j], v: val[k]});
+                    }
+                    ret[key] = val2;
+                }
             }
         }
 
@@ -1224,9 +1236,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             rememberedNodes,
             KEY_NEXT_SIBLING = 'nextSibling';
 
-        if (target === undefined) {
-            target = render[stage] || defaultRender[stage] || [];
-        }
+        target = target === undefined ?
+            (render[stage] || defaultRender[stage] || [])
+            :
+            (target.s === undefined || target.s === frame.active(true) ? target.v : undefined);
 
         if (isArray(target)) {
             if (stage === STR_EXCEPT && !target.length) {

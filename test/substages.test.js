@@ -47,5 +47,9 @@ describe('Substages test', function() {
 
         $CR.set('/a/c');
         expect(calls).toEqual(['before2', '+before2', 'success2', '+success2', 'after2', '+after2']);
+        calls = [];
+
+        $CR.set('/a/c');
+        expect(calls).toEqual([]);
     });
 });

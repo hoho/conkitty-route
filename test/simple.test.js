@@ -1,5 +1,5 @@
-describe('Simple example', function() {
-    it('runs simple example', function() {
+describe('Simple test', function() {
+    it('runs simple test', function() {
         $CR
             .add('/', {title: 'Welcome', render: 'WelcomeTemplate'})
             .add('/about', {title: 'About', render: 'AboutTemplate'})

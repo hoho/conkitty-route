@@ -17,6 +17,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         currentQueryParams,
         currentFrames = {},
+        currentRootFrame,
 
         reloadCurrent,
 
@@ -130,6 +131,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 currentFramesCount = 0,
                 traverseCallback = function(r/**/, id, final) {
                     if (r._a) {
+                        if (r.wait) { r._w++; }
                         newFrames[(id = r._id)] = r;
                         newFramesCount++;
                         if (!haveNewFrames && !(id in currentFrames)) {
@@ -176,6 +178,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             currentFrames = newFrames;
             reloadCurrent = undefined;
+            currentRootFrame = newRootFrame;
 
             if (newRootFrame) {
                 new ProcessFrame(newRootFrame);
@@ -318,12 +321,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function traverseFrame(frame, callback/**/, i, children) {
+    function traverseFrame(frame, callback/**/, i, children, f, ret) {
+        // frame._w is a number of active frames in current branch, for
+        // `wait: true` functionality.
+        frame._w = 0;
         children = frame.children;
         for (i = 0; i < children.length; i++) {
-            if (traverseFrame(children[i], callback)) {
-                break;
-            }
+            ret = traverseFrame((f = children[i]), callback);
+            if (frame.wait) { frame._w += f._w; }
+            if (ret) { break; }
         }
         return callback(frame);
     }
@@ -798,6 +804,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.keep = frameSettings.keep;
                 self[KEY_DATASOURCE] = frameSettings.data;
                 self.form = frameSettings.form;
+                self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
             }
         }
 
@@ -1340,9 +1347,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             d,
             waiting = 0,
             render = frame.render,
-            defaultRenderParent,
             resolve,
-            done = function(index, data, /**/i, children, r, errors) {
+            done = function(index, data, /**/i, children, r, errors, finishedCount) {
                 if (index !== undefined) {
                     datas[index] = data;
                     waiting--;
@@ -1359,17 +1365,35 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
                         }
 
-                        i = errors ? STR_ERROR : STR_SUCCESS;
-                        if (processRender(i, render, errors || datas, defaultRenderParent, frame, formNode)) {
-                            return;
-                        }
-                        emitEvent(i, frame, errors || datas);
+                        // Further stages might be delayed in case of `wait`
+                        // setting of the frame. Store these stages execution
+                        // in `frame._r`.
+                        frame._r = function(/**/defaultRenderParent, stage) {
+                            frame._r = undefined;
 
-                        if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
-                            return;
-                        }
-                        emitEvent(STR_AFTER, frame);
+                            defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
+
+                            stage = errors ? STR_ERROR : STR_SUCCESS;
+                            if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
+                                return;
+                            }
+                            emitEvent(stage, frame, errors || datas);
+
+                            if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
+                                return;
+                            }
+                            emitEvent(STR_AFTER, frame);
+                        };
                     }
+
+                    // Update wait flag.
+                    if (frame.wait) {
+                        finishedCount = errors ? frame._w : 1;
+                        for (i = frame; i && i._w && i._r; i = i[KEY_PARENT]) {
+                            i._w -= finishedCount;
+                        }
+                    }
+                    callDelayedStages(currentRootFrame);
 
                     if (!errors) {
                         for (i = 0; i < children.length; i++) {
@@ -1385,15 +1409,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         if (!skip) {
             frame._data = self;
 
-            defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
-
             document.title = (i = (isFunction((i = frame.title)) ? i() : i)) === undefined
                 ?
                 defaultTitle
                 :
                 i;
 
-            if (processRender(STR_BEFORE, render, [], defaultRenderParent, frame, formNode)) {
+            if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode)) {
                 return;
             }
             emitEvent(STR_BEFORE, frame);
@@ -1440,6 +1462,21 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         done();
+
+        function callDelayedStages(frame/**/, i) {
+            // XXX: Probably optimize this somehow, to avoid traversing the tree
+            //      from the root node.
+            if (frame) {
+                if (!frame._w && frame._r && (!((i = frame[KEY_PARENT])) || !i._r)) {
+                    frame._r();
+                }
+
+                frame = frame.children;
+                for (i = 0; i < frame.length; i++) {
+                    callDelayedStages(frame[i]);
+                }
+            }
+        }
     }
 
 
@@ -1477,6 +1514,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
             emitEvent('stop', frame);
         }
+
+        // Reset ready callback if any.
+        frame._r = undefined;
 
         if (frame._data !== undefined) {
             frame._data = frame[KEY_DATAERROR] = undefined;

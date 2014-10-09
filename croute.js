@@ -1547,6 +1547,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (frame.isForm && !frame._c) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
+            frame._r = true;
+        }
+
+        if (frame._r) {
+            // We've rejected frame._data above and/or there were delayed stages.
             emitEvent('stop', frame);
         }
 

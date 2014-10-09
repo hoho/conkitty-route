@@ -129,7 +129,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 haveNewFrames,
                 newFramesCount = 0,
                 currentFramesCount = 0,
-                traverseCallback = function(r/**/, id, final) {
+                traverseCallback = function(r/**/, id, brk) {
                     if (r._a) {
                         if (r.wait) { r._w++; }
                         newFrames[(id = r._id)] = r;
@@ -137,10 +137,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         if (!haveNewFrames && !(id in currentFrames)) {
                             haveNewFrames = true;
                         }
-                        if (isFunction((final = r.final))) {
-                            final = final.call(r);
+                        if (isFunction((brk = r.break))) {
+                            brk = brk.call(r);
                         }
-                        return !!final;
+                        return !!brk;
                     }
                 };
 
@@ -803,7 +803,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             self.title = frameSettings.title || (parent && parent.title);
             self[KEY_RENDER_PARENT] = frameSettings[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
             self.render = f = normalizeRender(frameSettings.render);
-            self.final = frameSettings.final;
 
             if (form) {
                 self.isForm = true;
@@ -818,6 +817,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (i in frameById) { throwError('Duplicate id: ' + i); }
                     frameById[i] = self;
                 }
+                self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
                 self[KEY_DATASOURCE] = frameSettings.data;
                 self.form = frameSettings.form;

@@ -73,11 +73,24 @@ function testapi(customFileHandlers) {
     customFileHandlers.push({
         urlRegex: /.*\/api\/.*/,
         handler: function(request, response) {
-            response.writeHead(200);
-            response.end(JSON.stringify({
+            var ret = {
                 url: request.url,
                 method: request.method
-            }));
+            };
+
+            var data = [];
+
+            request.on('data', function(chunk) {
+                data.push(chunk.toString());
+            });
+
+            request.on('end', function() {
+                if (data.length) {
+                    ret.body = data.join('');
+                }
+                response.writeHead(200);
+                response.end(JSON.stringify(ret));
+            });
         }
     });
 }

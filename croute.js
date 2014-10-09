@@ -160,6 +160,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     reloadCurrent ||
                     !frame._s ||
                     frame.keep === false ||
+                    frame._f ||
                     frame[KEY_DATAERROR])
                 {
                     unprocessFrame(frame, newFrames);
@@ -226,17 +227,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 target = target.parentNode;
             }
 
-            if (frame && ((form = frame.form))) {
+            if (frame && frame.form) {
                 e.preventDefault();
 
-                form = new Frame(undefined, form, undefined, undefined, frame, true);
+                if (frame.checkForm(formNode)) {
+                    form = formNode[KEY_FRAME + 'f'];
+                    currentFrames[form._id] = form;
+                    frame._f = true;
 
-                data = serializeForm(formNode, true);
+                    data = form._se; // Serialized form data.
 
-                currentFrames[form._id] = form;
-                form._f = data[1];
-
-                if (form.checkForm((data = data[0]))) {
                     form[KEY_DATASOURCE] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
                         action.call(formNode, data, frame)
                         :
@@ -459,29 +459,46 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    proto.checkForm = function(data) {
-        var self = this,
-            fields = self._f || [],
-            i,
-            frame = self[KEY_PARENT],
-            check = self.check,
+    proto.checkForm = function(formNode) {
+        var i = formNode,
+            tmp,
+            frame = this,
+            form,
+            data,
+            fields,
+            check,
             field,
             error,
             hasError;
 
-        for (i = 0; i < fields.length; i++) {
-            field = fields[i];
-            error = check ? check.call(frame, field[0], field[1], data) : undefined;
-            setFieldState(
-                frame,
-                self,
-                field,
-                error ? ((hasError = true), FORM_STATE_INVALID) : FORM_STATE_VALID,
-                error
-            );
+        while (i && !((tmp = i[KEY_FRAME]))) {
+            i = i.parentNode;
         }
 
-        return !hasError;
+        if (frame === tmp && ((i = frame.form))) {
+            if (!((form = formNode[(tmp = KEY_FRAME + 'f')]))) {
+                form = formNode[tmp] = new Frame(undefined, i, undefined, undefined, frame, true);
+            }
+
+            data = serializeForm(formNode, true);
+            fields = form._fi = data[1];
+            form._se = data = data[0];
+            check = form.check;
+
+            for (i = 0; i < fields.length; i++) {
+                field = fields[i];
+                error = check ? check.call(frame, field[0], field[1], data) : undefined;
+                setFieldState(
+                    frame,
+                    form,
+                    field,
+                    error ? ((hasError = true), FORM_STATE_INVALID) : FORM_STATE_VALID,
+                    error
+                );
+            }
+
+            return !hasError;
+        }
     };
 
 
@@ -514,7 +531,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     function setFormState(frame, form, state) {
-        var fields = form._f,
+        var fields = form._fi,
             i;
 
         for (i = 0; i < fields.length; i++) {
@@ -1194,7 +1211,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    function getRenderParent(frame, parent1, parent2/**/, id, n) {
+    function getRenderParent(frame, parent1, parent2/**/, src, id, n) {
+        src = parent1;
+        if (isString(parent2)) { parent2 = undefined; }
         parent1 = parent1 || parent2 || defaultParent;
 
         if (parent1 && !isNode(parent1)) {
@@ -1205,7 +1224,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
-        if ((parent1 = isNode(parent1) ? parent1 : NULL)) {
+        if (isNode(parent1)) {
             if (!((id = parent1._$Cid))) {
                 parent1._$Cid = id = ++frameId;
             }
@@ -1215,6 +1234,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 n[id] = [(parent2 = document.createComment(''))];
                 parent1.appendChild(parent2);
             }
+        } else {
+            parent1 = 'No node `' + src + '`' + ((src = frame.id) ? ' (' + src + ')' : '');
         }
 
         return parent1;
@@ -1261,74 +1282,74 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         } else if (target || target === NULL) {
             // null-value target could be used to remove previous render nodes.
-            renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
-            if (renderParent) {
+            params = frame._p;
+            if (target) {
+                args = [].concat(datas, params, frame);
+                if (formNode) { args.push(formNode); }
+                if (isFunction(target)) {
+                    node = target.apply(frame, args);
+                    if (node === false) { return node; }
+                    if (node === NULL) { target = NULL; }
+                    if (isString(node)) { i = node; }
+                } else {
+                    i = isString(target) ? target : target.template;
+                    if (isFunction(i)) { node = i = i.apply(frame, args); }
+                }
+
+                if (isString(i)) {
+                    node = callTemplateFunc.call(frame, i, args);
+                    if (isString(node)) {
+                        // We've got string of HTML, create documentFragment
+                        // from it.
+                        i = document.createElement('div');
+                        i.innerHTML = node;
+                        node = document.createDocumentFragment();
+                        i = i.firstChild;
+                        while (i) {
+                            n = i[KEY_NEXT_SIBLING];
+                            node.appendChild(i);
+                            i = n;
+                        }
+                    }
+                }
+
+                if (node === false) { return node; }
+            }
+
+            if (!target || isNode(node)) {
+                // Remove nodes from previous frames if any.
+                removeNodes(oldDOM, 0);
+
+                renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
+                if (isString(renderParent)) { throwError(renderParent); }
+
                 rememberedNodes = (frame.isForm ? frame[KEY_PARENT] : frame)._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
-                params = frame._p;
 
-                if (target) {
-                    args = [].concat(datas, params, frame);
-                    if (formNode) { args.push(formNode); }
-                    if (isFunction(target)) {
-                        node = target.apply(frame, args);
-                        if (node === false) { return node; }
-                        if (node === NULL) { target = NULL; }
-                        if (isString(node)) { i = node; }
-                    } else {
-                        i = isString(target) ? target : target.template;
-                        if (isFunction(i)) { node = i = i.apply(frame, args); }
-                    }
+                if (!((renderParentId in renderParents) || (target && (target.replace === false)))) {
+                    // By default we are replacing everything from previous
+                    // render of this frame in this parent.
 
-                    if (isString(i)) {
-                        node = callTemplateFunc.call(frame, i, args);
-                        if (isString(node)) {
-                            // We've got string of HTML, create documentFragment
-                            // from it.
-                            i = document.createElement('div');
-                            i.innerHTML = node;
-                            node = document.createDocumentFragment();
-                            i = i.firstChild;
-                            while (i) {
-                                n = i[KEY_NEXT_SIBLING];
-                                node.appendChild(i);
-                                i = n;
-                            }
+                    // renderParents._ is a flag that this stage has DOM already.
+                    for (i in rememberedNodes) {
+                        i = rememberedNodes[i];
+                        if (!renderParents._ || i === mem) {
+                            removeNodes(i, 1);
                         }
                     }
-
-                    if (node === false) { return node; }
                 }
 
-                if (!target || isNode(node)) {
-                    // Remove nodes from previous frames if any.
-                    removeNodes(oldDOM, 0);
+                renderParents[renderParentId] = renderParents._ = true;
 
-                    if (!((renderParentId in renderParents) || (target && (target.replace === false)))) {
-                        // By default we are replacing everything from previous
-                        // render of this frame in this parent.
-
-                        // renderParents._ is a flag that this stage has DOM already.
-                        for (i in rememberedNodes) {
-                            i = rememberedNodes[i];
-                            if (!renderParents._ || i === mem) {
-                                removeNodes(i, 1);
-                            }
-                        }
-                    }
-
-                    renderParents[renderParentId] = renderParents._ = true;
-
-                    if (target) {
-                        if ((parent = placeholder.parentNode)) {
-                            n = placeholder.previousSibling;
-                            parent.insertBefore(node, placeholder);
-                            // Remember frame's inserted nodes.
-                            for (i = n ? n[KEY_NEXT_SIBLING] : parent.firstChild; i !== placeholder; i = i[KEY_NEXT_SIBLING]) {
-                                mem.push(i);
-                                i[KEY_FRAME] = frame;
-                            }
+                if (target) {
+                    if ((parent = placeholder.parentNode)) {
+                        n = placeholder.previousSibling;
+                        parent.insertBefore(node, placeholder);
+                        // Remember frame's inserted nodes.
+                        for (i = n ? n[KEY_NEXT_SIBLING] : parent.firstChild; i !== placeholder; i = i[KEY_NEXT_SIBLING]) {
+                            mem.push(i);
+                            i[KEY_FRAME] = frame;
                         }
                     }
                 }
@@ -1374,10 +1395,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (!skip) {
                         frame._data = datas;
 
-                        if (frame.isForm) {
-                            setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
-                        }
-
                         // Further stages might be delayed in case of `wait`
                         // setting of the frame. Store these stages execution
                         // in `frame._r`.
@@ -1397,6 +1414,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
                             emitEvent(STR_AFTER, frame);
                         };
+
+                        if (frame.isForm) {
+                            setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
+                            frame._r();
+                        }
                     }
 
                     // Update wait flag.
@@ -1528,8 +1550,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             emitEvent('stop', frame);
         }
 
-        // Reset ready callback if any.
-        frame._r = undefined;
+        // Reset ready callback and form existence flag if any.
+        frame._r = frame._f = undefined;
 
         if (frame._data !== undefined) {
             frame._data = frame[KEY_DATAERROR] = undefined;

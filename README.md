@@ -23,8 +23,7 @@ Build single page application using routing tree.
     - [Frame.makeURI(*[params]*)](#framemakeuriparams)
     - [Frame.active()](#frameactive)
     - [Frame.reload()](#framereload)
-- [Form API](#form-api)
-    - [Form.checkForm(data)](#formcheckformdata)
+    - [Frame.checkForm(node)](#framecheckformnode)
 
 
 ## Introduction
@@ -101,7 +100,4 @@ want.
 
 ### Frame.reload()
 
-
-## Form API
-
-### Form.checkForm(data)
+### Frame.checkForm(node)

@@ -233,7 +233,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (frame.checkForm(formNode)) {
                     form = formNode[KEY_FRAME + 'f'];
                     currentFrames[form._id] = form;
-                    frame._f = true;
 
                     data = form._se; // Serialized form data.
 
@@ -1323,7 +1322,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
                 if (isString(renderParent)) { throwError(renderParent); }
 
-                rememberedNodes = (frame.isForm ? frame[KEY_PARENT] : frame)._n;
+                rememberedNodes = (frame.isForm ? ((i = frame[KEY_PARENT]), (i._f = true), i) : frame)._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
 

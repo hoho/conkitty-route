@@ -1,3 +1,32 @@
+if (!window.Promise) {
+    // Mock required by tests subset of native Promise in case it is not
+    // present.
+    (function() {
+        var Promise = function(cb) {
+            cb(this.resolve.bind(this), this.reject.bind(this));
+            this.ok = [];
+            this.err = [];
+        };
+        window.Promise = Promise;
+
+        Promise.prototype.resolve = function(data) {
+            var cb;
+            while (cb = this.ok.shift()) { cb(data); }
+        };
+
+        Promise.prototype.reject = function(data) {
+            var cb;
+            while (cb = this.err.shift()) { cb(data); }
+        };
+
+        Promise.prototype.then = function(ok, err) {
+            if (ok) { this.ok.push(ok); }
+            if (err) { this.err.push(err); }
+        };
+    })();
+}
+
+
 // Convert document.body content to object that could be assert functions.
 function objectifyBody() {
     return _objectifyBody(document.body);

@@ -11,7 +11,7 @@ describe('Form test', function() {
 
         window.TEMPLATES = {
             Form1Parent: '<div>1<div class="form1">2</div>3</div>',
-            Form1: '11<div>22<form>33<input type="text" name="hello" value="world">44<input type="submit">55</form>66</div>77',
+            Form1: '11<div>22<form>33<input type="text" name="hello" value="world">44<input type="submit" value="submit">55</form>66</div>77',
             Form1Result: function(name, args) { return JSON.stringify(args.slice(0, 2)); }
         };
 
@@ -46,7 +46,7 @@ describe('Form test', function() {
                             '33',
                             {name: 'input', value: [], attr: {type: 'text', name: 'hello', value: 'world'}},
                             '44',
-                            {name: 'input', value: [], attr: {type: 'submit'}},
+                            {name: 'input', value: [], attr: {type: 'submit', value: 'submit'}},
                             '55'
                         ]},
                         '66'
@@ -74,7 +74,7 @@ describe('Form test', function() {
                             '33',
                             {name: 'input', value: [], attr: {type: 'text', name: 'hello', value: 'world', disabled: ''}},
                             '44',
-                            {name: 'input', value: [], attr: {type: 'submit', disabled: ''}},
+                            {name: 'input', value: [], attr: {type: 'submit', value: 'submit', disabled: ''}},
                             '55'
                         ]},
                         '66'
@@ -113,7 +113,7 @@ describe('Form test', function() {
                                 '33',
                                 {name: 'input', value: [], attr: {type: 'text', name: 'hello', value: 'world'}},
                                 '44',
-                                {name: 'input', value: [], attr: {type: 'submit'}},
+                                {name: 'input', value: [], attr: {type: 'submit', value: 'submit'}},
                                 '55'
                             ]},
                             '66'

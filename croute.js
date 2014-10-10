@@ -621,9 +621,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function emitEvent(event, frame, args/**/, handlers, cur, i) {
+    function emitEvent(event, frame, args/**/, handlers, cur, i, form) {
         if ((handlers = eventHandlers[event])) {
-            args = [].concat(event, args || []);
+            if (frame.isForm) {
+                form = [true];
+                frame = frame[KEY_PARENT];
+            }
+
+            args = [event].concat(args || [], form || []);
 
             // Specific frame handlers.
             if (((i = frame._id)) && ((cur = handlers[i]))) {
@@ -786,6 +791,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             i,
             childFrames,
             f,
+            event,
+            events,
             frame = /.*/, // Default value is for NotFound frame.
             childFrame,
             pathnameExpr,
@@ -805,7 +812,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             paramsConstraints = frameSettings.params;
             self.title = frameSettings.title || (parent && parent.title);
             self[KEY_RENDER_PARENT] = frameSettings[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
-            self.render = f = normalizeRender(frameSettings.render);
+            self.render = normalizeRender(frameSettings.render);
 
             if (form) {
                 self.isForm = true;
@@ -825,6 +832,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self[KEY_DATASOURCE] = frameSettings.data;
                 self.form = frameSettings.form;
                 self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
+                if ((events = frameSettings.on)) {
+                    for (event in eventHandlers) {
+                        if ((f = events[event])) {
+                            if (!isArray(f)) { f = [f]; }
+                            for (i = 0; i < f.length; i++) {
+                                API.on(event, f[i], self);
+                            }
+                        }
+                    }
+                }
             }
         }
 

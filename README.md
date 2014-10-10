@@ -18,8 +18,8 @@ Build single page application using routing tree.
     - [$CR.params()](#crparams)
     - [$CR.serializeForm(node *[, withFields]*)](#crserializeformnode--withfields)
 - [Frame API](#frame-api)
-    - [Frame.params()](#frameparams)
-    - [Frame.data()](#framedata)
+    - [Frame.params(*[parent]*)](#frameparamsparent)
+    - [Frame.data(*[parent]*)](#framedataparent)
     - [Frame.makeURI(*[params]*)](#framemakeuriparams)
     - [Frame.active()](#frameactive)
     - [Frame.reload()](#framereload)
@@ -90,9 +90,9 @@ want.
 
 ## Frame API
 
-### Frame.params()
+### Frame.params(*[parent]*)
 
-### Frame.data()
+### Frame.data(*[parent]*)
 
 ### Frame.makeURI(*[params]*)
 

@@ -1122,7 +1122,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function AJAX(uri, frame, body/**/, req, self, parse, override, transform, response, uriReady) {
+    function AJAX(uri, frame, body/**/, req, self, parse, override, transform, response, uriReady, method) {
         self = this;
 
         // self.ok — Success callbacks.
@@ -1131,6 +1131,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         // self.e — Error.
         // self.r = XMLHTTRequest.
         // self.j = Parsed response JSON.
+
+        method = frame.method;
+        frame = frame.isForm ? frame[KEY_PARENT] : frame;
 
         if (!isString(uri)) {
             if (((override = uri.override)) &&
@@ -1154,8 +1157,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self.r = req = new XMLHttpRequest();
 
         req.open(
-            frame.method || 'GET',
-            (req.uri = uriReady ? uri : makeURI((frame = frame.isForm ? frame[KEY_PARENT] : frame), uri)),
+            method || 'GET',
+            (req.uri = uriReady ? uri : makeURI(frame, uri)),
             true
         );
         req.onreadystatechange = function() {
@@ -1275,6 +1278,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             args,
             ret,
             n,
+            isForm,
             rememberedNodes,
             KEY_NEXT_SIBLING = 'nextSibling';
 
@@ -1302,6 +1306,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 ret = true;
             }
         } else if (target || target === NULL) {
+            if (frame.isForm) {
+                frame = frame[KEY_PARENT];
+                isForm = true;
+            }
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
             if (target) {
@@ -1344,7 +1352,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
                 if (isString(renderParent)) { throwError(renderParent); }
 
-                rememberedNodes = (frame.isForm ? ((i = frame[KEY_PARENT]), (i._f = true), i) : frame)._n;
+                if (isForm) { frame._f = true; }
+                rememberedNodes = frame._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
 

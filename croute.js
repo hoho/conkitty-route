@@ -621,14 +621,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function emitEvent(event, frame, args/**/, handlers, cur, i, form) {
+    function emitEvent(event, frame, args/**/, handlers, cur, i) {
         if ((handlers = eventHandlers[event])) {
-            if (frame.isForm) {
-                form = [true];
-                frame = frame[KEY_PARENT];
-            }
+            frame = frame.isForm ? frame[KEY_PARENT] : frame;
 
-            args = [event].concat(args || [], form || []);
+            args = [event].concat(args || []);
 
             // Specific frame handlers.
             if (((i = frame._id)) && ((cur = handlers[i]))) {
@@ -1237,6 +1234,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     function getRenderParent(frame, parent1, parent2/**/, src, id, n) {
         src = parent1;
+        frame = frame.isForm ? frame[KEY_PARENT] : frame;
         if (isString(parent2)) { parent2 = undefined; }
         parent1 = parent1 || parent2 || defaultParent;
 
@@ -1253,7 +1251,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 parent1._$Cid = id = ++frameId;
             }
             // Add placeholder for this frame in this parent node.
-            n = (frame.isForm ? frame[KEY_PARENT] : frame)._n;
+            n = frame._n;
             if (!(n[id])) {
                 n[id] = [(parent2 = document.createComment(''))];
                 parent1.appendChild(parent2);
@@ -1278,7 +1276,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             args,
             ret,
             n,
-            isForm,
+            form,
             rememberedNodes,
             KEY_NEXT_SIBLING = 'nextSibling';
 
@@ -1307,8 +1305,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         } else if (target || target === NULL) {
             if (frame.isForm) {
+                form = frame;
                 frame = frame[KEY_PARENT];
-                isForm = true;
             }
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
@@ -1352,7 +1350,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
                 if (isString(renderParent)) { throwError(renderParent); }
 
-                if (isForm) { frame._f = true; }
+                if (form) { frame._f = true; }
                 rememberedNodes = frame._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];

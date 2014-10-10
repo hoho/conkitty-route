@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.2.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.3.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -88,6 +88,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
             return API;
         };
+
+
+    // Exposing root frames for debug purposes.
+    API._frames = frames;
 
 
     API.add = API;

@@ -829,6 +829,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
                 self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
+                self.final = frameSettings.final;
                 self[KEY_DATASOURCE] = frameSettings.data;
                 self.form = frameSettings.form;
                 self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
@@ -880,7 +881,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     // self._d means that there are no further pathname components.
                     // self._a means active frame.
-                    if ((self._d = !match[paramsOffset + pathParams.length])) {
+                    if (((self._d = !match[paramsOffset + pathParams.length])) && self.final !== false) {
                         // Deepest matched frame and there is render for this frame.
                         self._a = 1;
                         i = parent;

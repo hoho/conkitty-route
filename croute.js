@@ -90,10 +90,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         };
 
 
-    // Exposing root frames for debug purposes.
-    API._frames = frames;
-
-
     API.add = API;
 
 
@@ -303,6 +299,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         running = true;
         $H.run();
+
+        // Exposing debug information.
+        API._debug = {f: frames, o: oldDOM};
     };
 
 
@@ -1583,7 +1582,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             emitEvent('stop', frame);
         }
 
-        // Reset ready callback and form existence flag if any.
+        // Reset the ready callback and the form existence flag if any.
         frame._r = frame._f = undefined;
 
         if (frame._data !== undefined) {

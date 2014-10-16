@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.3.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.3.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -236,10 +236,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     data = form._se; // Serialized form data.
 
-                    form[KEY_DATASOURCE] = isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                    form[KEY_DATASOURCE] = [isFunction((action = formNode.getAttribute('action') || form.action)) ?
                         action.call(formNode, data, frame)
                         :
-                        (action || location.href);
+                        (action || location.href)];
                     form.method = formNode.getAttribute('method') || form._method || 'get';
 
                     new ProcessFrame(
@@ -438,7 +438,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    proto.data = function(parent) {
+    proto.data = function(index, parent) {
         var p = this,
             d;
         parent = parent || 0;
@@ -447,7 +447,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             parent--;
         }
         d = p && p._data;
-        return isArray(d) ? (isArray(this[KEY_DATASOURCE]) ? d : d[0]) : undefined;
+        return isArray(d) ? (index === -1 ? d : d[index || 0]) : undefined;
     };
 
 
@@ -826,7 +826,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
                 self.final = frameSettings.final;
-                self[KEY_DATASOURCE] = frameSettings.data;
+
+                if (isArray((f = frameSettings.data))) {
+                    i = f;
+                } else {
+                    i = [];
+                    if (f !== undefined) { i.push(f); }
+                }
+                self[KEY_DATASOURCE] = i;
+
                 self.form = frameSettings.form;
                 self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
                 if ((events = frameSettings.on)) {
@@ -1482,42 +1490,36 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
             emitEvent(STR_BEFORE, frame);
 
-            if (dataSource !== undefined) {
-                if (!isArray(dataSource)) {
-                    dataSource = [dataSource];
-                }
+            resolve = function(index) {
+                waiting++;
+                d.then(function(ok) {
+                    done(index, ok);
+                }, function(xhr, errors) {
+                    if (!((errors = frame[KEY_DATAERROR]))) {
+                        errors = frame[KEY_DATAERROR] = new Array(datas.length);
+                    }
+                    errors[index] = xhr;
+                    done(index);
+                });
+            };
 
-                resolve = function(index) {
-                    waiting++;
-                    d.then(function(ok) {
-                        done(index, ok);
-                    }, function(xhr, errors) {
-                        if (!((errors = frame[KEY_DATAERROR]))) {
-                            errors = frame[KEY_DATAERROR] = new Array(datas.length);
-                        }
-                        errors[index] = xhr;
-                        done(index);
-                    });
-                };
+            for (i = 0; i < dataSource.length; i++) {
+                if ((d = dataSource[i])) {
+                    if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
+                        d = new AJAX(d, frame, formBody);
+                        // When AJAX request is cancelled, constructor returns
+                        // object {d: ...} which is not instance of AJAX.
+                        if (!d.then) { d = d.d; }
+                    }
 
-                for (i = 0; i < dataSource.length; i++) {
-                    if ((d = dataSource[i])) {
-                        if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
-                            d = new AJAX(d, frame, formBody);
-                            // When AJAX request is cancelled, constructor returns
-                            // object {d: ...} which is not instance of AJAX.
-                            if (!d.then) { d = d.d; }
-                        }
+                    if (isFunction(d)) {
+                        d = d.call(frame);
+                    }
 
-                        if (isFunction(d)) {
-                            d = d.call(frame);
-                        }
+                    datas.push(d);
 
-                        datas.push(d);
-
-                        if (d && isFunction(d.then)) {
-                            resolve(i);
-                        }
+                    if (d && isFunction(d.then)) {
+                        resolve(i);
                     }
                 }
             }

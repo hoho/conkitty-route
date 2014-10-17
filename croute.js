@@ -116,7 +116,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (!((tpl = $C.tpl[name]))) { throwError('No `' + name + '` template'); }
             args = [data, params, this];
             if (formNode) { args.push(formNode); }
-git            return tpl.apply(NULL, args);
+            return tpl.apply(NULL, args);
         };
 
         if (notFoundFrame) {

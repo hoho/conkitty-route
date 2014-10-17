@@ -14,7 +14,7 @@ describe('Complex test', function() {
             Param1Template: 'param<strong>1</strong><div class="hash2"></div><div class="hash1"></div>',
             Param2Template: '<em>param2</em>',
             Param3Template: '<strong>param</strong>3',
-            DeeperTemplate: function(name, args) { return 'deeper: ' + JSON.stringify(args.slice(0, 2)); },
+            DeeperTemplate: function(name, data, params) { return 'deeper: ' + JSON.stringify([data, params]); },
             Hash1Template: '<p>hash1</p>',
             Hash2Template: '<p>hash2</p>'
         };

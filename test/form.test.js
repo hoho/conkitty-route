@@ -15,10 +15,10 @@ describe('Form test', function() {
         window.TEMPLATES = {
             Form1Parent: '<div>1<div class="form1">2</div>3</div>',
             Form1: '11<div>22<form>33<input type="text" name="hello" value="world">44<input type="submit" value="submit">55</form>66</div>77',
-            Form1Result: function(name, args) { return JSON.stringify(args.slice(0, 2).concat([args[2].id, args[3] instanceof Node, args[3].tagName.toLowerCase()])); },
+            Form1Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); },
             Form2Parent: '<div>1<div class="form2">2</div>3</div>',
             Form2: '11<div>22<form id="fofo">33<input type="text" name="hello" value="world">|<input type="text" name="hi" value="all">44<input type="submit" value="submit">55</form>66</div>77',
-            Form2Result: function(name, args) { return JSON.stringify(args.slice(0, 2).concat([args[2].id, args[3] instanceof Node, args[3].tagName.toLowerCase()])); }
+            Form2Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); }
         };
 
         $CR

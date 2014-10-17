@@ -101,10 +101,10 @@ function HTML2DOM(code) {
 window.TEMPLATES = {};
 
 
-function testCallTemplate(name, args) {
+function testCallTemplate(name, data, params, formNode) {
     var tpl;
     if (tpl = window.TEMPLATES[name]) {
-        if (typeof tpl === 'function') { tpl = tpl(name, args); }
+        if (typeof tpl === 'function') { tpl = tpl.call(this, name, data, params, formNode); }
     } else {
         tpl = '<div>' + name + '</div><p>' + location.pathname + '</p>';
     }

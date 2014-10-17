@@ -64,11 +64,9 @@ describe('Stages test', function() {
                         title: 'Stages Sub4',
                         data: ['/api/data1', function() { return new Promise(function(resolve) { setTimeout(function() { resolve('oooo'); }, 100); }); }, '/api/data2'],
                         render: {
-                            success: function(data1, data2, data3, params) {
-                                return HTML2DOM('<h1>' + JSON.stringify(data1) + '</h1>' +
-                                                '<h2>' + JSON.stringify(data2) + '</h2>' +
-                                                '<h3>' + JSON.stringify(data3) + '</h3>' +
-                                                '<h4>' + JSON.stringify(params) + '</h4>');
+                            success: function(data, params) {
+                                return HTML2DOM('<h1>' + JSON.stringify(data) + '</h1>' +
+                                                '<h2>' + JSON.stringify(params) + '</h2>');
                             }
                         }
                     }
@@ -249,10 +247,8 @@ describe('Stages test', function() {
                 ]},
                 'after',
                 'after',
-                {name: 'h1', value: ['{"url":"/api/data1","method":"GET"}']},
-                {name: 'h2', value: ['"oooo"']},
-                {name: 'h3', value: ['{"url":"/api/data2","method":"GET"}']},
-                {name: 'h4', value: ['{"sub4":"sub4"}']}
+                {name: 'h1', value: ['[{"url":"/api/data1","method":"GET"},"oooo",{"url":"/api/data2","method":"GET"}]']},
+                {name: 'h2', value: ['{"sub4":"sub4"}']}
             ]);
         });
     });

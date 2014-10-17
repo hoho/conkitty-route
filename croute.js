@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.3.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.4.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -111,10 +111,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         defaultTitle = defaults.title || '';
         defaultRender = normalizeRender(defaults.render);
         defaultParent = defaults[KEY_PARENT] || body;
-        callTemplateFunc = defaults.callTemplate || function(name, args/**/, tpl) {
+        callTemplateFunc = defaults.callTemplate || function(name, data, params, formNode/**/, tpl, args) {
             /* global $C */
             if (!((tpl = $C.tpl[name]))) { throwError('No `' + name + '` template'); }
-            return tpl.apply(NULL, args);
+            args = [data, params, this];
+            if (formNode) { args.push(formNode); }
+git            return tpl.apply(NULL, args);
         };
 
         if (notFoundFrame) {
@@ -829,6 +831,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 if (isArray((f = frameSettings.data))) {
                     i = f;
+                    self._da = true; // Indicate that it is an Array originally.
                 } else {
                     i = [];
                     if (f !== undefined) { i.push(f); }
@@ -1318,7 +1321,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
             if (target) {
-                args = [].concat(datas, params, frame);
+                args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
                 if (formNode) { args.push(formNode); }
                 if (isFunction(target)) {
                     node = target.apply(frame, args);
@@ -1331,7 +1334,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if (isString(i)) {
-                    node = callTemplateFunc.call(frame, i, args);
+                    args.unshift(i);
+                    node = callTemplateFunc.apply(frame, args);
                     if (isString(node)) {
                         // We've got string of HTML, create documentFragment
                         // from it.

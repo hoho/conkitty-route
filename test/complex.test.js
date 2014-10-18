@@ -19,6 +19,8 @@ describe('Complex test', function() {
             Hash2Template: '<p>hash2</p>'
         };
 
+        var matcherParams;
+
         $CR
             .add(null, {title: 'Not Found', render: 'NotFoundTemplate'})
             .add('/hello', {
@@ -26,6 +28,12 @@ describe('Complex test', function() {
                 render: 'HelloTemplate',
                 frames: {
                     '?param1=:param': {
+                        id: 'param1-param',
+                        matcher: function(params) {
+                            expect(this.id).toEqual('param1-param');
+                            matcherParams.push(params);
+                            return true;
+                        },
                         data: '/api/data1?what=:param',
                         parent: 'div.param1',
                         render: 'Param1Template',
@@ -39,6 +47,15 @@ describe('Complex test', function() {
                                 render: 'Hash2Template'
                             }
                         }
+                    },
+                    '?param1=:custom': {
+                        id: 'custom-matcher',
+                        matcher: function(params) {
+                            expect(this.id).toEqual('custom-matcher');
+                            matcherParams.push(params);
+                            return false;
+                        },
+                        render: 'CustomMatcher'
                     },
                     '?param2=:param': {
                         parent: 'div.param2',
@@ -80,7 +97,9 @@ describe('Complex test', function() {
             ], attr: {class: 'hello'}}
         ]);
 
+        matcherParams = [];
         $CR.set('/hello?param1=test');
+        expect(matcherParams).toEqual([{param: 'test'}, {custom: 'test'}]);
         waitInit();
 
         wait();
@@ -104,6 +123,7 @@ describe('Complex test', function() {
                 ], attr: {class: 'hello'}}
             ]);
 
+            matcherParams = [];
             $CR.set('/hello?param1=test#hash1');
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
@@ -124,7 +144,9 @@ describe('Complex test', function() {
                     '7'
                 ], attr: {class: 'hello'}}
             ]);
+            expect(matcherParams).toEqual([{param: 'test'}, {custom: 'test'}]);
 
+            matcherParams = [];
             $CR.set('/hello?param1=test#hash2');
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
@@ -145,7 +167,9 @@ describe('Complex test', function() {
                     '7'
                 ], attr: {class: 'hello'}}
             ]);
+            expect(matcherParams).toEqual([{param: 'test'}, {custom: 'test'}]);
 
+            matcherParams = [];
             $CR.set('/hello?param2=test2');
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
@@ -180,6 +204,7 @@ describe('Complex test', function() {
             ]);
 
             $CR.set('/hello?param1=world&param2=beautiful&param3=hello');
+            expect(matcherParams).toEqual([{param: 'world'}, {custom: 'world'}]);
             waitInit();
         });
 
@@ -213,7 +238,9 @@ describe('Complex test', function() {
                 ], attr: {class: 'hello'}}
             ]);
 
+            matcherParams = [];
             $CR.set('/hello/deeper?param1=world&param2=beautiful&param3=hello');
+            expect(matcherParams).toEqual([{param: 'world'}, {custom: 'world'}]);
             waitInit();
 
             // The same as in previous assertion, in this configuration DOM

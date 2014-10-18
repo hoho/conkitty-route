@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.4.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.4.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -798,7 +798,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             uriSearch,
             uriHash,
             paramsConstraints,
-            currentParams = {};
+            currentParams = {},
+            customMatcher;
 
         self[KEY_PARENT] = parent;
         self.children = [];
@@ -825,6 +826,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (i in frameById) { throwError('Duplicate id: ' + i); }
                     frameById[i] = self;
                 }
+                customMatcher = frameSettings.matcher;
                 self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
                 self.final = frameSettings.final;
@@ -881,9 +883,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 currentParams)
                             )
                         {
-                            deactivateFrame(self);
-                            return false;
+                            i = false;
+                            break;
                         }
+                    }
+
+                    if (i === false || (!uriSearch && !uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
+                        deactivateFrame(self);
+                        return false;
                     }
 
                     // self._d means that there are no further pathname components.
@@ -922,9 +929,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                     currentParams)
                                 )
                             {
-                                deactivateFrame(self);
-                                return false;
+                                queryparams = false;
+                                break;
                             }
+                        }
+
+                        if (queryparams === false || (!uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
+                            deactivateFrame(self);
+                            queryparams = false;
                         }
 
                         return queryparams;
@@ -941,6 +953,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 undefined,
                                 currentParams
                             )
+                            &&
+                            (!customMatcher || customMatcher.call(self, currentParams))
                             ?
                             hash || true
                             :
@@ -968,6 +982,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     self.children.push(childFrame);
                 }
             }
+
         }
 
         $H.on(frame, {

@@ -799,7 +799,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             uriHash,
             paramsConstraints,
             currentParams = {},
-            customMatcher;
+            customMatcher,
+            newPathExpr;
 
         self[KEY_PARENT] = parent;
         self.children = [];
@@ -830,6 +831,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
                 self.final = frameSettings.final;
+                self.reduce = frameSettings.reduce;
 
                 if (isArray((f = frameSettings.data))) {
                     i = f;
@@ -857,9 +859,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (uri !== undefined) {
             uri = parseParameterizedURI(uri);
-            pathExpr = [].concat(pathExpr || [], uri.pathname[0]);
+            newPathExpr = (pathExpr || []).concat(uri.pathname[0]);
 
-            pathnameExpr = new RegExp(pathExpr.join('') + '(?:/(.*))?');
+            pathnameExpr = new RegExp(newPathExpr.join('') + '(?:/(.*))?');
             pathParams = uri.pathname[1];
             uriSearch = uri.search;
             uriHash = uri.hash;
@@ -974,8 +976,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     childFrame = new Frame(
                         f,
                         childFrames[f],
-                        pathExpr,
-                        paramsOffset + pathParams.length,
+                        self.reduce === false ? pathExpr : newPathExpr,
+                        paramsOffset + (self.reduce === false ? 0 : pathParams.length),
                         self
                     );
 
@@ -1078,48 +1080,50 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             processedQueryparams = {};
         }
 
-        uri = parseParameterizedURI(uri, true, !overrideParams);
+        if (!frame || (frame && frame.reduce !== false)) {
+            uri = parseParameterizedURI(uri, true, !overrideParams);
 
-        pathObj = uri.pathname[0];
+            pathObj = uri.pathname[0];
 
-        for (i = pathObj.length; i--;) {
-            part = pathObj[i];
-            val = part.param ? getURIParam(frame, part, overrideParams) : part;
+            for (i = pathObj.length; i--;) {
+                part = pathObj[i];
+                val = part.param ? getURIParam(frame, part, overrideParams) : part;
 
-            if (val !== undefined) {
-                pathname.unshift(encodeURIComponent(val));
+                if (val !== undefined) {
+                    pathname.unshift(encodeURIComponent(val));
+                }
             }
-        }
 
-        if ((pathObj = uri.search)) {
-            for (i in pathObj) {
-                if (!(i in processedQueryparams)) {
-                    processedQueryparams[i] = true;
+            if ((pathObj = uri.search)) {
+                for (i in pathObj) {
+                    if (!(i in processedQueryparams)) {
+                        processedQueryparams[i] = true;
 
-                    part = pathObj[i];
-                    i = encodeURIComponent(i);
+                        part = pathObj[i];
+                        i = encodeURIComponent(i);
 
-                    if (part.param) {
-                        val = getURIParam(frame, part, overrideParams);
-                        if (isArray(val)) {
-                            for (j = 0; j < val.length; j++) {
-                                queryparams.push(i + '=' + encodeURIComponent(val[j]));
+                        if (part.param) {
+                            val = getURIParam(frame, part, overrideParams);
+                            if (isArray(val)) {
+                                for (j = 0; j < val.length; j++) {
+                                    queryparams.push(i + '=' + encodeURIComponent(val[j]));
+                                }
+                                continue;
                             }
-                            continue;
+                        } else {
+                            val = part.value;
                         }
-                    } else {
-                        val = part.value;
-                    }
 
-                    if (val !== undefined) {
-                        queryparams.push(i + '=' + encodeURIComponent(val));
+                        if (val !== undefined) {
+                            queryparams.push(i + '=' + encodeURIComponent(val));
+                        }
                     }
                 }
             }
-        }
 
-        if (!hash && ((pathObj = uri.hash))) {
-            hash = pathObj.param ? getURIParam(frame, pathObj, overrideParams) : pathObj.value;
+            if (!hash && ((pathObj = uri.hash))) {
+                hash = pathObj.param ? getURIParam(frame, pathObj, overrideParams) : pathObj.value;
+            }
         }
 
         if (overrideParams && frame && ((i = frame[KEY_PARENT]))) {

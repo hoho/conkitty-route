@@ -5,7 +5,7 @@ Build a single page application using routing tree.
 - [Introduction](#introduction)
     - [Simple example](#simple-example)
     - [More complex example](#more-complex-example)
-- [URI parts and parameters](#uri-parts-and-parameters)
+- [URI patterns and parameters](#uri-patterns-and-parameters)
 - [Frame](#frame)
     - [Frame summary](#frame-summary)
     - [Frame settings](#frame-settings)
@@ -89,8 +89,75 @@ you want.
 // Pending.
 ```
 
-## URI parts and parameters
+## URI patterns and parameters
 
+### Simple match
+
+Pattern `/path/to/something?arg1=value1&arg2=value2#somehash` matches
+any URI with a pathname equals to `/path/to/something`, any query string having
+`arg1` and `arg2` arguments with exact `value1` and `value2` values,
+any number of other query string arguments and a hash equals to `somehash`.
+
+Pattern `/path/to/something` matches any URI with a pathname equals to
+`/path/to/something`, any query string and any hash.
+
+
+### Capture parameters
+
+`/:path/:to/:something?arg1=:value1&arg2=:value2#:hash` matches any URI
+with three components in pathname, any query string with `arg1` and `arg2`
+arguments with any values and any hash. Matcher captures URI components by
+corresponding names.
+
+For example, the pattern above will match the following URI:
+`/hello/beautiful/world?arg1=it&arg2=is&arg3=pretty&arg1=amazing#indeed`
+and captured parameters will be:
+
+```js
+{
+    path:      'hello',
+    to:        'beautiful',
+    something: 'world',
+    arg1:      ['it', 'amazing'],
+    arg2:      'is'
+}
+```
+
+Another example. Pattern `/test/:p/pattern` will match the following URI (with
+or without query string and hash): `/test/this/pattern?some=arg#yo`, with one
+captured parameter:
+
+```js
+{
+    p: 'this'
+}
+```
+
+
+### Optional parameters
+
+It is possible to specify an optional parameters.
+
+Pattern `/some/:?optional/params?arg1=:?a#:?h` matches
+`/some/uri/params?arg1=val1#haha` and `/some/params`. In the first case
+parameters will be:
+
+```js
+{
+    optional: 'uri',
+    a:        'val1',
+    h:        'haha'
+}
+```
+
+The last case will not have captured parameters.
+
+
+### Patterns concatenation
+
+
+
+### Parameters constraints
 
 
 

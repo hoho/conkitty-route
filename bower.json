@@ -1,11 +1,11 @@
 {
     "name": "conkitty-route",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "homepage": "https://github.com/hoho/conkitty-route",
     "authors": [
         "Marat Abdullin <dakota@brokenpipe.ru>"
     ],
-    "description": "Call Conkitty templates according to routing tree",
+    "description": "Build a single page application using routing tree",
     "main": "croute.js",
     "keywords": [
         "conkitty",

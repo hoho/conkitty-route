@@ -1,6 +1,6 @@
 # conkitty-route [![Build Status](https://travis-ci.org/hoho/conkitty-route.svg?branch=master)](https://travis-ci.org/hoho/conkitty-route)
 
-Build single page application using routing tree.
+Build a single page application using routing tree.
 
 - [Introduction](#introduction)
     - [Simple example](#simple-example)
@@ -55,13 +55,14 @@ Build single page application using routing tree.
 ## Introduction
 
 We have some URL in browser's address string and we want to render
-corresponding DOM.
+the corresponding DOM.
 
 Reality makes things a bit harder sometimes. Somewhere in between knowing URL
-and rendering DOM, we need to fetch some data. And we need to change DOM and
-fetch new data when URI is changed or HTML form is submitted.
+and rendering the DOM, we need to fetch some data. And we need to change the DOM
+and fetch a new data when the URI is changed or the HTML form is submitted.
 
-`conkitty-route` gives simple way to create single page application.
+`conkitty-route` gives a simple way to create the single page application.
+
 
 ### Simple example
 
@@ -73,13 +74,14 @@ $CR
     .run();
 ```
 
-In this example we render template named `WelcomeTemplate` for `/` URI and
-template named `AboutTemplate` for `/about` URI, setting page title to 
-`Welcome` and `About` respectively. For other URIs we render template
+In this example we render the template named `WelcomeTemplate` for `/` URI and
+the template named `AboutTemplate` for `/about` URI, setting the page title to 
+`Welcome` and `About` respectively. For other URIs we render the template
 named `NotFoundTemplate`. By default,
 [Conkitty templates](https://github.com/hoho/conkitty) are used, but you can
-customize template caller and use `conkitty-route` with any template engine you
-want.
+customize the template caller and use `conkitty-route` with any template engine
+you want.
+
 
 ### More complex example
 
@@ -88,6 +90,8 @@ want.
 ```
 
 ## URI parts and parameters
+
+
 
 
 ## Frame

@@ -809,7 +809,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self._n = {};
 
         if (frameSettings) {
-            paramsConstraints = frameSettings.params;
             self.title = frameSettings.title || (parent && parent.title);
             self[KEY_RENDER_PARENT] = frameSettings[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
             self.render = normalizeRender(frameSettings.render);
@@ -823,6 +822,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.type = frameSettings.type;
                 self[STR_SUBMIT] = frameSettings[STR_SUBMIT];
             } else {
+                paramsConstraints = frameSettings.params;
                 if ((i = self.id = frameSettings.id)) {
                     if (i in frameById) { throwError('Duplicate id: ' + i); }
                     frameById[i] = self;

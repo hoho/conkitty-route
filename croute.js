@@ -1481,9 +1481,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     // Update wait flag.
                     if (frame.wait) {
-                        finishedCount = errors ? frame._w : 1;
-                        for (i = frame; i && i._w && i._r; i = i[KEY_PARENT]) {
-                            i._w -= finishedCount;
+                        finishedCount = errors ? frame._w2 : 1;
+                        for (i = frame; i && i._w2 && i._r; i = i[KEY_PARENT]) {
+                            i._w2 -= finishedCount;
                         }
                     }
                     callDelayedStages(currentRootFrame);
@@ -1501,6 +1501,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!skip) {
             frame._data = self;
+            frame._w2 = frame._w;
 
             document.title = (i = (isFunction((i = frame.title)) ? i() : i)) === undefined
                 ?
@@ -1554,7 +1555,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             // XXX: Probably optimize this somehow, to avoid traversing the tree
             //      from the root node.
             if (frame) {
-                if (!frame._w && frame._r && (!((i = frame[KEY_PARENT])) || !i._r)) {
+                if (!frame._w2 && frame._r && (!((i = frame[KEY_PARENT])) || !i._r)) {
                     frame._r();
                 }
 

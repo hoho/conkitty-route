@@ -300,7 +300,7 @@ following:
 `Function`  
 `Promise`  
 `Data-description object`  
-*Any plain data*
+*Any plain data*  
 `Array` of any of previous
 
 Data fetching is an essential part of any application. By this setting, you

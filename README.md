@@ -217,8 +217,6 @@ for `/frame1`, `/frame1/frame2`, `/frame1/frame2/frame3` and
 
 ### Frame settings
 
-Frame settings is an object with the following keys. All of them are optional.
-
 Frame settings object example:
 
 ```js
@@ -229,10 +227,12 @@ Frame settings object example:
 }
 ```
 
+Frame settings is an object with the following keys. All of them are optional.
+
 
 #### id
 
-`String`.
+`String`
 
 Optional used-defined unique Frame identifier. With this identifier you might
 obtain Frame runtime object using [$CR.get()](#crgetframeid) method.
@@ -255,11 +255,12 @@ alert($CR.get('page').makeURI({param1: 'val1', param2: 'val2'})); // /val1/test/
 
 #### title
 
-`String` or `Function`.
+`String`  
+`Function`
 
 The document title when Frame is active. If the function is provided, it will be
 called every time this Frame becomes active and should return the title. `this`
-inside such a function will point to the current Frame runtime object.
+inside such function will point to the current Frame runtime object.
 
 Example:
 
@@ -278,7 +279,7 @@ $CR.set('/?param=Hello'); // The title is `Test — Hello (test-id)` now.
 
 #### params
 
-`Object`.
+`Object`
 
 When you want to add some constraints to URI parameters or transform URI
 parameters values, use `params` setting. `params` setting value should be an
@@ -295,8 +296,12 @@ following:
 
 #### data
 
-`String`, `Function`, `Promise`, `Data-description object`, any plain data,
-`Array of any combination of the previous`.
+`String`  
+`Function`  
+`Promise`  
+`Data-description object`  
+Any plain data  
+`Array of any combination of the previous`
 
 Data fetching is an essential part of any application. By this setting, you
 can tell what data you need to load for this Frame.
@@ -307,10 +312,10 @@ Let's check out the `data` setting value type meanings:
 - [`Function`](#function)
 - [`Promise`](#promise)
 - [`Data-description object`](#data-description-object)
-- [any plain data](#any-plain-data)
-— [`Array of any combination of the previous`](#)
+- [Any plain data](#any-plain-data)
+- [`Array` of any of the previous](#)
 
-##### `String`
+##### **`String`**
 
 Reversed URI pattern for an AJAX request. Reversed URI pattern means that you
 use the same [parametrized patterns](#capture-parameters) which are used for
@@ -341,7 +346,7 @@ is rendered, before rendering `template2`, an AJAX request to
 `/api/beautiful/get-data?type=hello&filter=world` will be performed.
 
 
-##### `Function`
+##### **`Function`**
 
 When you pass a function as the `data` setting value, this function will be
 called when the Frame becomes active. It will receive a parameters object as
@@ -350,12 +355,12 @@ first argument and `this` will point to Frame runtime object.
 The function should return a `Promise` or an actual data.
 
 
-##### `Promise`
+##### **`Promise`**
 
 You can pass a `Promise` as the `data` setting value.
 
 
-##### `Data-description object`
+##### **`Data-description object`**
 
 `Data-description object` is an object to describe data fetching in more
 details. With `Data-description object` you can dynamically build an AJAX
@@ -389,6 +394,16 @@ When `parse` function is defined, it will be called to parse a raw
 `parse` function receives `XMLHttpRequest` `responseText` as the first argument
 and `XMLHttpRequest` itself as the second argument. `this` will point to Frame
 runtime object.
+
+
+##### Any plain data
+
+
+
+
+##### `Array` of any of the previous
+
+
 
 
 #### render

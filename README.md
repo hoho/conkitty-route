@@ -20,6 +20,7 @@ Build a single page application using routing tree.
         - [params](#params)
         - [data](#data)
         - [render](#render)
+        - [parent](#parent)
         - [frames](#frames)
         - [matcher](#matcher)
         - [break](#break)
@@ -312,14 +313,14 @@ Let's check out the `data` setting value type meanings:
 - [`Function`](#function)
 - [`Promise`](#promise)
 - [`Data-description object`](#data-description-object)
-- [Any plain data](#any-plain-data)
-- [`Array` of any of previous](#array-of-any-of-previous)
+- [*Any plain data*](#any-plain-data)
+- [`Array` *of any of previous*](#array-of-any-of-previous)
 
 ##### **`String`**
 
 Reversed URI pattern for an AJAX request. Reversed URI pattern means that you
 use the same [parametrized patterns](#capture-parameters) which are used for
-the URI matching, but parameters references will be substituted with an actual
+the URI matching, but parameter references will be substituted with an actual
 values. Plus you can refer to parent frames parameters (by adding as many more
 colons as many parents you want to go up to).
 
@@ -386,27 +387,37 @@ the first argument, `this` will point to Frame runtime object.
 
 When `override` function is defined, it will be called receiving a parameters
 object as the first argument, `this` will point to Frame runtime object. When
-no request to `uri` is needed, the function should return non-undefined value
+no request to `uri` is needed, the function should return a non-undefined value
 as the resulting data.
 
 When `parse` function is defined, it will be called to parse a raw
 `XMLHttpRequest` data. When `parse` is not defined `JSON.parse()` is used.
-`parse` function receives `XMLHttpRequest` `responseText` as the first argument
-and `XMLHttpRequest` itself as the second argument. `this` will point to Frame
-runtime object.
+`parse` function receives `responseText` as the first argument and
+`XMLHttpRequest` object itself as the second argument, `this` will point to
+Frame runtime object.
+
+When `transform` function is defined, it will be called to transform parsed
+data to something else. The function will receive the parsed data as the first
+argument, `XMLHttRequest` object as the second argument, `this` will point to
+Frame runtime object. The function should return the transformed data.
 
 
 ##### *Any plain data*
 
-
+When you want to attach some static data to the Frame, you might pass this
+data as the `data` setting value. There is a caveat about this: if you want to
+pass a fixed array, you will have to wrap it into a function, because of the
+following.
 
 
 ##### **`Array`** *of any of previous*
 
-
+When you have several data sources, you can combine them all into an array.
+Frame processing will continue after all sources are fetched.
 
 
 #### render
+#### parent
 #### frames
 #### matcher
 #### break

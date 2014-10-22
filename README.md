@@ -20,6 +20,7 @@ Build a single page application using routing tree.
         - [params](#params)
         - [data](#data)
         - [render](#render)
+        - [frames](#frames)
         - [matcher](#matcher)
         - [break](#break)
         - [keep](#keep)
@@ -180,7 +181,7 @@ transform parameter value. [Frame `params`](#params) property aims to do that.
 ### Frame summary
 
 Frame is the key element of the routing tree. The routing tree consists of
-frames (unlimitedly nested). Frame is a pair of URI pattern and a settings
+Frames (unlimitedly nested). Frame is a pair of URI pattern and a settings
 object.
 
 For example:
@@ -209,18 +210,189 @@ Here we have four nested frames.
 
 ### Patterns concatenation
 
-URI patterns of nested frames are concatenated. The example above will work
+URI patterns of nested Frames are concatenated. The example above will work
 for `/frame1`, `/frame1/frame2`, `/frame1/frame2/frame3` and
-`/frame1/frame2/frame4` in browser address string. 
+`/frame1/frame2/frame4` in browser address string.
 
 
 ### Frame settings
 
+Frame settings is an object with the following keys. All of them are optional.
+
+Frame settings object example:
+
+```js
+{
+    id: 'page',
+    data: '/api/data',
+    render: 'page-template'
+}
+```
+
+
 #### id
+
+`String`.
+
+Optional used-defined unique Frame identifier. With this identifier you might
+obtain Frame runtime object using [$CR.get()](#crgetframeid) method.
+
+Frame runtime objects provide [useful API](#frame-api).
+
+Example:
+
+```js
+$CR
+    .add('/:param1/test/:param2', {
+        id: 'page',
+        render: 'test-template'
+    })
+    .run();
+    
+alert($CR.get('page').makeURI({param1: 'val1', param2: 'val2'})); // /val1/test/val2
+```
+
+
 #### title
+
+`String` or `Function`.
+
+The document title when Frame is active. If the function is provided, it will be
+called every time this Frame becomes active and should return the title. `this`
+inside such a function will point to the current Frame runtime object.
+
+Example:
+
+```js
+$CR
+    .add('/?param=:param', {
+        id: 'test-id',
+        title: function(params) { return 'Test — ' + params.param + ' (' + this.id + ')'; },
+        render: 'test-template'
+    })
+    .run();
+    
+$CR.set('/?param=Hello'); // The title is `Test — Hello (test-id)` now.
+```
+
+
 #### params
+
+`Object`.
+
+When you want to add some constraints to URI parameters or transform URI
+parameters values, use `params` setting. `params` setting value should be an
+object, where the key is a parameter name and the value is one of the
+following:
+
+- `String`, should be strictly equal to this string.
+- `RegExp`, should not be undefined and should match this `RegExp`.
+- `Array`, should be strictly equal to one of this array items.
+- `Function`, the function will receive a value matched by URI pattern and
+  should return a processed value or `undefined` in case the value doesn't
+  match.
+
+
 #### data
+
+`String`, `Function`, `Promise`, `Data-description object`, any plain data,
+`Array of any combination of the previous`.
+
+Data fetching is an essential part of any application. By this setting, you
+can tell what data you need to load for this Frame.
+
+Let's check out the `data` setting value type meanings:
+
+- [`String`](#string)
+- [`Function`](#function)
+- [`Promise`](#promise)
+- [`Data-description object`](#data-description-object)
+- [any plain data](#any-plain-data)
+— [`Array of any combination of the previous`](#)
+
+##### `String`
+
+Reversed URI pattern for an AJAX request. Reversed URI pattern means that you
+use the same [parametrized patterns](#capture-parameters) which are used for
+the URI matching, but parameters references will be substituted with an actual
+values. Plus you can refer to parent frames parameters (by adding as many more
+colons as many parents you want to go up to).
+
+For example:
+
+```js
+$CR
+    .add('/:param1', {
+        render: 'template1',
+        frames: {
+            '/:param2?test=:val': {
+                data: '/api/:val/get-data?type=::param1&filter=:param2',
+                render: 'template2'
+            }
+        }
+    })
+    .run();
+
+$CR.set('/hello/world?test=beautiful');
+```
+
+In this example, when we go to `/hello/world?test=beautiful`, after `template1`
+is rendered, before rendering `template2`, an AJAX request to
+`/api/beautiful/get-data?type=hello&filter=world` will be performed.
+
+
+##### `Function`
+
+When you pass a function as the `data` setting value, this function will be
+called when the Frame becomes active. It will receive a parameters object as
+first argument and `this` will point to Frame runtime object.
+
+The function should return a `Promise` or an actual data.
+
+
+##### `Promise`
+
+You can pass a `Promise` as the `data` setting value.
+
+
+##### `Data-description object`
+
+`Data-description object` is an object to describe data fetching in more
+details. With `Data-description object` you can dynamically build an AJAX
+request URI, override an AJAX request with some data and postprocess the data.
+
+Full version of `Data-description object` looks like:
+
+```js
+{
+    uri: String | Function,
+    override: Function,
+    parse: Function,
+    transform: Function
+}
+```
+
+Every property (except for `uri`) is optional.
+
+When `uri` is a string, it is treated like [reversed URI pattern](#string).
+
+When `uri` is a function, it will be called receiving a parameters object as
+the first argument, `this` will point to Frame runtime object.
+
+When `override` function is defined, it will be called receiving a parameters
+object as the first argument, `this` will point to Frame runtime object. When
+no request to `uri` is needed, the function should return non-undefined value
+as the resulting data.
+
+When `parse` function is defined, it will be called to parse a raw
+`XMLHttpRequest` data. When `parse` is not defined `JSON.parse()` is used.
+`parse` function receives `XMLHttpRequest` `responseText` as the first argument
+and `XMLHttpRequest` itself as the second argument. `this` will point to Frame
+runtime object.
+
+
 #### render
+#### frames
 #### matcher
 #### break
 #### keep
@@ -235,7 +407,7 @@ for `/frame1`, `/frame1/frame2`, `/frame1/frame2/frame3` and
 
 ### Form summary
 
-Form is a special kind of frames to handle HTML forms.
+Form is a special kind of Frames to handle HTML forms.
 
 ### Form settings
 

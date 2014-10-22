@@ -1537,7 +1537,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     if (isFunction(d)) {
-                        d = d.call(frame);
+                        d = d.call(frame, frame._p);
                     }
 
                     datas.push(d);

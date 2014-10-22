@@ -60,9 +60,18 @@ describe('Stages test', function() {
                         }
                     },
                     '/:sub4': {
+                        id: 'sub4-id',
                         params: {sub4: function(val) { return val === 'sub4' ? val : undefined; }},
                         title: 'Stages Sub4',
-                        data: ['/api/data1', function() { return new Promise(function(resolve) { setTimeout(function() { resolve('oooo'); }, 100); }); }, '/api/data2'],
+                        data: [
+                            '/api/data1',
+                            function(params) {
+                                expect(params).toEqual({sub4: 'sub4'});
+                                expect(this.id).toEqual('sub4-id');
+                                return new Promise(function(resolve) { setTimeout(function() { resolve('oooo'); }, 100); });
+                            },
+                            '/api/data2'
+                        ],
                         render: {
                             success: function(data, params) {
                                 return HTML2DOM('<h1>' + JSON.stringify(data) + '</h1>' +

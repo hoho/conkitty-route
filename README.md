@@ -5,14 +5,15 @@ Build a single page application using routing tree.
 - [Introduction](#introduction)
     - [Simple example](#simple-example)
     - [More complex example](#more-complex-example)
+- [About History API](#about-history-api)
 - [URI patterns and parameters](#uri-patterns-and-parameters)
     - [Simple match](#simple-match)
     - [Capture parameters](#capture-parameters)
     - [Optional parameters](#optional-parameters)
-    - [Patterns concatenation](#patterns-concatenation)
     - [Parameters constraints](#parameters-constraints)
 - [Frame](#frame)
     - [Frame summary](#frame-summary)
+    - [Patterns concatenation](#patterns-concatenation)
     - [Frame settings](#frame-settings)
         - [id](#id)
         - [title](#title)
@@ -59,8 +60,8 @@ Build a single page application using routing tree.
 
 ## Introduction
 
-We have some URL in browser's address string and we want to render
-the corresponding DOM.
+We have some URL in browser address string and we want to render the
+corresponding DOM.
 
 Reality makes things a bit harder sometimes. Somewhere in between knowing URL
 and rendering the DOM, we need to fetch some data. And we need to change the DOM
@@ -93,6 +94,16 @@ you want.
 ```js
 // Pending.
 ```
+
+## About History API
+
+`conkitty-route` utilizes History API of the modern browsers. For most of cases
+History API will be used automatically. `conkitty-route` adds a click handler
+for anchor tags and uses `history.pushState()` to actually change browsers
+location. When the location is changed, only a corresponding part of the page
+is rerendered. Of course, you can change the location manually, using
+[$CR.set()](#crseturi--reload-replace) method.
+
 
 ## URI patterns and parameters
 
@@ -158,12 +169,10 @@ parameters will be:
 The last case will not have captured parameters.
 
 
-### Patterns concatenation
-
-
-
 ### Parameters constraints
 
+It is possible to add constraints and default values to a parameter, as well as
+transform parameter value. [Frame `params`](#params) property aims to do that.
 
 
 ## Frame
@@ -171,7 +180,38 @@ The last case will not have captured parameters.
 ### Frame summary
 
 Frame is the key element of the routing tree. The routing tree consists of
-frames. Frame is a pair of corresponding piece of URI and an object.
+frames (unlimitedly nested). Frame is a pair of URI pattern and a settings
+object.
+
+For example:
+
+```js
+$CR.add('/frame1', {
+    render: 'template1',
+    frames: {
+        '/frame2': {
+            render: 'template2',
+            frames: {
+                '/frame3': {
+                    render: 'template3'
+                },
+                '/frame4': {
+                    render: 'template4'
+                }
+            }
+        }
+    }
+});
+```
+
+Here we have four nested frames.
+
+
+### Patterns concatenation
+
+URI patterns of nested frames are concatenated. The example above will work
+for `/frame1`, `/frame1/frame2`, `/frame1/frame2/frame3` and
+`/frame1/frame2/frame4` in browser address string. 
 
 
 ### Frame settings

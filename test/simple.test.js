@@ -3,9 +3,12 @@ describe('Simple test', function() {
         var events = [];
 
         $CR
-            .add('/', {
+            .add('/?param=:p', {
                 id: 'welcome',
-                title: 'Welcome',
+                title: function(params) {
+                    events.push(JSON.stringify([params, this.id]));
+                    return 'Welcome';
+                },
                 render: 'WelcomeTemplate',
                 on: {
                     before: function(e) { events.push(e + ' inside ' + this.id); },
@@ -37,13 +40,14 @@ describe('Simple test', function() {
         expect(events).toEqual([]);
 
 
-        $CR.set('/');
+        $CR.set('/?param=hello');
         expect(objectifyBody()).toEqual([
             {name: 'div', value: ['WelcomeTemplate']},
             {name: 'p', value: ['/']}
         ]);
         expect(events).toEqual([
             'leave not-found',
+            '[{"p":"hello"},"welcome"]',
             'before inside welcome',
             'before welcome',
             'success inside 1 welcome',
@@ -105,6 +109,7 @@ describe('Simple test', function() {
         ]);
         expect(events).toEqual([
             'leave about',
+            '[{"p":"hello"},"welcome"]',
             'before inside welcome',
             'before welcome',
             'success inside 1 welcome',

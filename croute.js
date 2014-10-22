@@ -1503,7 +1503,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             frame._data = self;
             frame._w2 = frame._w;
 
-            document.title = (i = (isFunction((i = frame.title)) ? i() : i)) === undefined
+            document.title = (i = (isFunction((i = frame.title)) ? i.call(frame, frame._p) : i)) === undefined
                 ?
                 defaultTitle
                 :

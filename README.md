@@ -300,8 +300,8 @@ following:
 `Function`  
 `Promise`  
 `Data-description object`  
-Any plain data  
-`Array of any combination of the previous`
+*Any plain data*
+`Array` of any of previous
 
 Data fetching is an essential part of any application. By this setting, you
 can tell what data you need to load for this Frame.
@@ -313,7 +313,7 @@ Let's check out the `data` setting value type meanings:
 - [`Promise`](#promise)
 - [`Data-description object`](#data-description-object)
 - [Any plain data](#any-plain-data)
-- [`Array` of any of the previous](#)
+- [`Array` of any of previous](#array-of-any-of-previous)
 
 ##### **`String`**
 
@@ -396,12 +396,12 @@ and `XMLHttpRequest` itself as the second argument. `this` will point to Frame
 runtime object.
 
 
-##### Any plain data
+##### *Any plain data*
 
 
 
 
-##### `Array` of any of the previous
+##### **`Array`** *of any of previous*
 
 
 

@@ -19,8 +19,8 @@ Build a single page application using routing tree.
         - [title](#title)
         - [params](#params)
         - [data](#data)
-        - [render](#render)
         - [parent](#parent)
+        - [render](#render)
         - [frames](#frames)
         - [matcher](#matcher)
         - [break](#break)
@@ -303,9 +303,9 @@ following:
 `Promise`  
 `Data-description object`  
 *Any plain data*  
-`Array` of any of the previous
+`Array` *of any of the previous*
 
-Data fetching is an essential part of any application. By this setting, you
+Data fetching is an essential part of any application. With this setting, you
 can tell what data you need to load for this Frame.
 
 Let's check out the `data` setting value type meanings:
@@ -418,8 +418,147 @@ When you have a several data sources, you can combine them all into an array.
 The Frame processing will continue after all these sources are fetched.
 
 
-#### render
 #### parent
+
+`String`  
+`Function`  
+`Node`
+
+The `parent` setting represents the default parent DOM node for the `render`
+setting of this Frame and its child Frames.
+
+When the string is passed, it is used as CSS selector for find actual node.
+
+When the function is passed, it will be called, `this` will point to this
+Frame runtime object. The function should return DOM node.
+
+When the Frame itself and all its parent Frames have no `parent` setting,
+`document.body` is used.
+
+
+#### render
+
+`Template-description object`  
+`Render object`
+
+The `render` setting is one of the trickiest and powerful parts of the Frame.
+There are five render stages:
+
+- `before` stage happens when the Frame has become active.
+- `success` stage happens when the data has been fetched or right after
+  `before` stage when the Frame has no data.
+- `error` stage happens when an error has occurred during the data-fetching.
+- `after` stage happens right after `success` or `error` stage.
+- `except` stage happens when an exception has occurred during the stages above.
+
+The DOM rendered on each stage replaces the DOM rendered on the previous stage
+(unless you specifically tell not to replace it).
+
+When `Template-description object` is passed as the `render` setting, it will
+be used as the `success` stage handler.
+
+`Render object` allows to provide `Template-description object` for any stage
+(see below).
+
+
+##### `Template-description object`
+
+`String`  
+`Function`  
+`Object`  
+`Array`
+
+When `Template-description object` is a string, this string is used as a
+template name, this name will be passed to `callTemplate` callback of the
+[$CR.run()](#crrundefaults) method settings.
+
+When `Template-description object` is a function, this function will be called,
+`this` will point to this Frame, arguments depend on the stage (basically, the
+first argument is a data, the second argument is a parameters object, the third
+argument is a form node, in case it is a Form). The function should return a
+string (this string will be used as a template name), a DOM node (this node,
+will be inserted into the document). The function could also return `false`
+(to stop calling the next handlers for this stage, see `Array` description
+below) and `undefined` (nothing will happen to the document, sometimes you just
+need to call a function).
+
+`Template-description object` could be an object like:
+```js
+{
+    template: String | Function, // The same to descriptions above.
+    parent: String | Function | Node, // Template personal parent, the same to the Frame's parent.
+    replace: false // Do not replace the DOM from the previous stage, `true` by default.
+}
+```
+
+`Template-description object` can be an array of strings, functions and
+objects, they will be handled one after another corresponding to descriptions
+above.
+
+
+##### `Render object`
+
+`Render object` is an object with stage names as the keys and
+`Template-description objects` as values.
+
+Here is what the full version of `Render object` looks like:
+
+```js
+{
+    before: TDO,  // TDO — Template-description object.
+    '-before': TDO,
+    '+before': TDO,
+
+    success: TDO,
+    '-success': TDO,
+    '+success': TDO,
+
+    error: TDO,
+    '-error': TDO,
+    '+error': TDO,
+
+    after: TDO,
+    '-after': TDO,
+    '+after': TDO,
+
+    except: TDO,
+    '-except': TDO,
+    '+except': TDO
+}
+```
+
+`-` before the stage name means that this Frame wasn't active in previous
+document location. `+` means that this Frame was active. Here is the example
+to understand this:
+
+```js
+$CR
+    .add('/:param', {
+        data: '/api/data',
+        render: {
+            '-before': 'spinner-template',
+            '+before': function() { document.body.style.opacity = 0.5; },
+            success: 'page-template',
+            error: 'error-template',
+            '+after': function() { document.body.style.opacity = 1; }
+        }
+    })
+    .run();
+
+$CR.set('/hello');
+// Wait for the data to load.
+$CR.set('/world');
+```
+
+In this example, after `$CR.set('/hello');` the Frame becomes active for the
+first time, there is no DOM for this frame yet. In this case `-before` handler
+will work.
+
+After `$CR.set('/world');` the Frame remains active, but we have the previous
+DOM already. If we will render the spinner, it will replace the previous DOM
+and will cause the page to blink, so we just change the opacity instead.
+
+
 #### frames
 #### matcher
 #### break

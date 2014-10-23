@@ -560,8 +560,109 @@ and will cause the page to blink, so we just change the opacity instead.
 
 
 #### frames
+
+`Object`
+
+To mount root Frame, [$CR.add()](#cradduri-frame) method should be used.
+The `frames` setting is corresponding for mounting child frames:
+
+```js
+$CR.add('/', {
+    frames: {
+        '/welcome': {
+            render: 'template1',
+            frames: {
+                '/my/love': {render: 'template2'}
+            }
+        },
+        '/about': {render: 'template3'}
+    }
+});
+```
+
+
 #### matcher
+
+`Function`
+
+By default, the Frame becomes active when the URI pattern matches the location.
+If you need more complex logic to determine if the Frame is active, you can
+use the `matcher` function. This function will be called if the URI pattern
+matches the location, before Frame processing. The function will receive a
+parameters object as the first argument, `this` will point to this Frame. The
+function should return `true` if the Frame should become active, `false`
+otherwise.
+
+Example:
+
+```js
+$CR
+    .add('/:param', {
+        matcher: function(params) { return Math.random() < 0.5; },
+        render: 'template1'
+    })
+    .add(null, {render: 'not-found'})
+    .run();
+
+$CR.set('/piupiu'); // `template1` will be rendered one time out of two.
+```
+
+
 #### break
+
+`Boolean`  
+`Function`
+
+The Frame matching process works the following way. The matcher checks the
+root Frames one after another. If there is a match in one of the root Frames,
+this root Frame becomes active with all matched child Frames.
+
+The `break` setting allows you to stop the following child Frames matching
+(something very similar to `switch` clause in JavaScript).
+
+If the `break` setting is a function, this function will be called, `this` will
+point to this Frame, the function should return `true` or `false`.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        frames: {
+            '/?param1=val1&param2=val2': {render: 'template2'},
+            '/?param1=val1': {render: 'template3'},
+            '/?param2=val2': {render: 'template4'}
+        }
+    })
+    .run();
+
+$CR.set('/?param1=val1&param2=val2');
+```
+
+In this example, when we open `/?param1=val1&param2=val2`, all three child
+Frames will become active.
+
+But if we add `break: true` to the first child Frame:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        frames: {
+            '/?param1=val1&param2=val2': {render: 'template2', break: true},
+            '/?param1=val1': {render: 'template3'},
+            '/?param2=val2': {render: 'template4'}
+        }
+    })
+    .run();
+
+$CR.set('/?param1=val1&param2=val2');
+```
+
+Only the first child Frame will be processed now.
+
+
 #### keep
 #### final
 #### wait

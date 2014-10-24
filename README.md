@@ -922,13 +922,164 @@ The Form is a special kind of the Frame to handle HTML forms.
 ### Form settings
 
 #### title
+
+The same to the [Frame settings `title`](#title), shows up when the form is
+submitted.
+
+
 #### action
+
+`String`  
+`Function`  
+`Data-description object`
+
+When you don't provide the `action` attribute for the form DOM node, this
+`action` setting is used.
+
+When the `action` setting is a string, it's a reversed URI pattern (the same
+to the [Frame `data` setting](#data)).
+
+When the `action` setting is a function, this function will be called, the
+first argument is a serialized form data, the second argument is this Form
+parent Frame runtime object, `this` will point to the DOM node of the form.
+The function should return an URI to submit the form to.
+
+The `action` setting could be the
+[`Data-description object`](#data-description-object).
+
+
 #### method
+
+`String`
+
+When you don't provide the `method` attribute for the form DOM node, this
+`method` setting is used.
+
+
 #### check
+
+`Function`
+
+Provide this function if you need to validate the form before the submission.
+This function will be called for every field during the form submission or when
+you manually call [Frame.checkForm()](#framecheckformnode) method.
+
+The function receives the field DOM node as the first argument, the value as
+the second argument and the whole form serialized data as the third argument.
+`this` will point to the form Frame runtime object.
+
+The function should return an error message in case the value is invalid,
+`false` otherwise.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        form: {
+            action: '/api/form',
+            check: function(elem, val, data) {
+                return Math.random() < 0.5 'The Fortune errors this field' : false;
+            },
+            render: 'template2'
+        }
+    });
+```
+
+
 #### state
+
+`Function`
+
+The form field has three states: `valid`, `invalid` and `sending`. By default,
+the fields get disabled when the form is in `sending` state.
+
+You can provide a custom field state changer.
+
+The function receives the field DOM node as the first argument, the state (one
+of three states above) and an error message from the `check` function as the
+third argument. `this` will point to the form Frame runtime object.
+
+The function should return `undefined` when you don't want to cancel the
+default action (disabling fields in `sending` state), something else otherwise.
+
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        form: {
+            action: '/api/form',
+            check: function(elem, val, data) {
+                return Math.random() < 0.5 'The Fortune errors this field' : false;
+            },
+            state: function(elem, state, msg) {
+                switch (state) {
+                    case 'valid': elem.className = ''; break;
+                    case 'invalid': elem.className = 'invalid'; alert(msg); break;
+                    case 'sending': elem.className = 'sending'; break;
+                }
+            },
+            render: 'template2'
+        }
+    });
+```
+
+
 #### type
+
+`String`
+
+By default, the form data is sent in the urlencoded form format (with
+`application/x-www-form-urlencoded` content type).
+
+Set to `text` when you want to submit the form data as plain text (with
+`text/plain` content type).
+Set to `json` when you want to submit the form data as JSON (with
+`application/json` content type).
+
+
 #### submit
+
+`Function`
+
+Use this function to preprocess the data before the submission, to set
+additional headers for the forms XMLHttpRequest object, or to cancel the
+submission.
+
+This function receives the form data as the first argument, XMLHttpRequest
+object as the second argument, the form Frame runtime object as the third
+argument. `this` will point to the DOM node of the form, the DOM node will be
+extended with the `cancel()` method to cancel the submission.
+
+The function should return an actual data to send.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        form: {
+            action: '/api/form',
+            type: 'json',
+            submit: function(data, xhr, frame) {
+                // Use `this.cancel()` to cancel the submission.
+                return {values: data.map(function(item) { return item.value; })};
+            },
+            render: 'template2'
+        }
+    });
+```
+
+
 #### render
+
+The same to the [Frame `render`](#render). The result will be rendered instead
+of the form parent Frame DOM.
 
 
 ## API

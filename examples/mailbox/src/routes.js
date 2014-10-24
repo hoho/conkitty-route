@@ -38,8 +38,8 @@
                 }
             }
         })
-        .add('/about', {
-            render: 'about'
+        .add(null, {
+            render: 'not-found'
         })
         .run();
 })($CR);

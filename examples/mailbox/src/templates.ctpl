@@ -40,3 +40,8 @@ message $data
             OTHERWISE
                 p
                     "No Message Selected"
+
+
+not-found
+    h2
+        "404 Not Found"

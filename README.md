@@ -295,6 +295,26 @@ following:
   should return a processed value (or `undefined` in case the value doesn't
   match).
 
+Example:
+
+```js
+$CR
+    .add('/?p1=:param1&p2=:param2&p3=:param3&p4=:param4', {
+        params: {
+            param1: /^(?:val1|val2)$/,
+            param2: ['val3', 'vafl4', 'val5'],
+            param3: 'val6',
+            param4: function(val) { return val + val; }
+        },
+        render: 'template1'
+    })
+    .run();
+
+$CR.set('/?p1=val2&p2=val4&p3=val6&p4=piu');
+// A parameters object for the `template1` will look like:
+// {param1: 'val2', param2: 'val4', param3: 'val6', param4: 'piupiu'}.
+```
+
 
 #### data
 

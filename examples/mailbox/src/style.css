@@ -1,0 +1,71 @@
+html,
+body
+{
+    height: 100%;
+}
+
+
+.container {
+    display: flex;
+
+    font-family: "Helvetica Nueue", Arial, sans-serif;
+
+    line-height: 150%;
+}
+
+
+.folders {
+    background: #eee;
+
+    flex-shrink: 0;
+
+    width: 20%;
+}
+
+
+.messages {
+    flex-shrink: 0;
+
+    width: 30%;
+}
+
+
+.folders a,
+.messages a
+{
+    color: #333;
+
+    display: block;
+
+    text-decoration: none;
+}
+
+
+.message {
+    width: 100%;
+}
+
+
+.current {
+    background: #466480;
+}
+
+.current a {
+    color: #fff;
+}
+
+
+ul,
+ol
+{
+    list-style: none;
+
+    margin: 0;
+
+    padding: 0;
+}
+
+
+li {
+    padding: 0 10px;
+}

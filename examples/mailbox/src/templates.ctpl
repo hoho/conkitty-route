@@ -1,0 +1,42 @@
+main
+    h1
+        a[href="/"]
+            "Conkitty Route Demo"
+    div.container
+
+
+folders $data $params $route
+    div.folders
+        ul
+            EACH $folder ($route.parent.data())
+                li:if(($folder === $params.folder), .current)
+                    a[href=($CR.get('folder').makeURI({folder: $folder}))]
+                        $folder
+
+
+messages $data $params $route
+    div.messages
+        SET $messages ($route.parent.data())
+        CHOOSE
+            WHEN ($messages && $messages.length)
+                ol
+                    EACH $message $messages
+                        li:if(($message.id === $params.message), .current)
+                            a[href=($CR.get('message').makeURI({message: $message.id}))]
+                                ($message.subject)
+            OTHERWISE
+                p
+                    "No Messages"
+
+
+message $data
+    div.message
+        CHOOSE
+            WHEN $data
+                div
+                    h3
+                        ($data.subject)
+                    ($data.text)
+            OTHERWISE
+                p
+                    "No Message Selected"

@@ -302,7 +302,7 @@ $CR
     .add('/?p1=:param1&p2=:param2&p3=:param3&p4=:param4', {
         params: {
             param1: /^(?:val1|val2)$/,
-            param2: ['val3', 'vafl4', 'val5'],
+            param2: ['val3', 'val4', 'val5'],
             param3: 'val6',
             param4: function(val) { return val + val; }
         },

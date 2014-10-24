@@ -664,11 +664,233 @@ Only the first child Frame will be processed now.
 
 
 #### keep
+
+`Boolean`
+
+By default, when you call [`$CR.set()`](#crseturi--reload-replace) without
+`reload` argument or when you click a link (`conkitty-route` catches clicks for
+the anchor elements and uses `$CR.set()` internally), only the Frames that have
+changed will be rerendered.
+
+You can add `keep: false` setting to force the Frame to be rerendered every
+time.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        frames: {
+            '/sub': {
+                data: '/api/data',
+                render: 'template2'
+            }
+        }
+    })
+    .run();
+
+$CR.set('/sub'); // `/api/data` is loaded, `template2` is rendered.
+$CR.set('/sub'); // Nothing happens.
+```
+
+But if we add `keep: false`:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        frames: {
+            '/sub': {
+                data: '/api/data',
+                render: 'template2',
+                keep: false
+            }
+        }
+    })
+    .run();
+
+$CR.set('/sub'); // `/api/data` is loaded, `template2` is rendered.
+$CR.set('/sub'); // `/api/data` is loaded again, `template2` is rendered again.
+```
+
+
 #### final
+
+`Boolean`
+
+By default, any Frame can become the final Frame (when the Frame matches the
+location and its child Frames don't match the location).
+
+You can add `final: false` setting to deny this Frame to be the final one.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        frames: {
+            '/sub': {
+                render: 'template2'
+            }
+        }
+    })
+    .add(null, {render: 'not-found'})
+    .run();
+
+$CR.set('/sub'); // `template1` and `template2` are rendered.
+$CR.set('/'); // Just `template1`.
+```
+
+But if we add `final: false`:
+
+```js
+$CR
+    .add('/', {
+        final: false,
+        render: 'template1',
+        frames: {
+            '/sub': {
+                render: 'template2'
+            }
+        }
+    })
+    .add(null, {render: 'not-found'})
+    .run();
+
+$CR.set('/sub'); // `template1` and `template2` are rendered.
+$CR.set('/'); // `not-found` is rendered.
+```
+
+
 #### wait
+
+`Boolean`
+
+By default, the `success` stage happens as soon as possible (right after the
+data is fetched or right after the `before` stage when no data is needed).
+
+You can delay `success` stage till all matched child Frames are ready for the
+`success` stage. Just add `wait: true`. You can cancel the delay deeper by
+adding `wait: false`.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        wait: true,
+        data: '/api/data1',
+        render: 'template1',
+        frames: {
+            '/sub': {
+                data: '/api/data2',
+                render: 'template2',
+                frames: {
+                    '/sub2': {
+                        wait: false,
+                        data: '/api/data3',
+                        render: 'template3'
+                    }
+                }
+            }
+        }
+    })
+    .run();
+
+$CR.set('/sub/sub2'); // `template1` and `template2` will be rendered only
+                      // after `/api/data1` and `/api/data2` are loaded.
+                      // `/sub2` Frame has `wait: false`, it will be rendered
+                      // later, when `/api/data3` is loaded.
+```
+
+
 #### reduce
+
+`Boolean`
+
+By default, each child Frame URI pattern takes its bite of the location.
+Sometimes we want to take a piece of location just to have some status in a
+parameters object. If you add `reduce: false`, the Frame will not take its
+bite of the location from the child Frames and will not take a part in
+[`$CR.makeURI()`](#crmakeuriuri--params) and
+[`Frame.makeURI()`](#framemakeuriparams) functions.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        render: 'template1',
+        frames: {
+            '/:?item': { // Optional parameter, could be used to get the current item to highlight it.
+                reduce: false,
+                render: 'items',
+                frames: {
+                    '/:item': {render: 'item-details'},
+                    '/': {render: 'no-item-selected'}
+                }
+            }
+        }
+    })
+    .run();
+
+$CR.set('/item'); // `template1`, `items` and `item-details` are rendered.
+$CR.set('/'); // `template1`, `items` and `no-item-selected` are rendered.
+```
+
+
 #### form
+
+`Form settings object`
+
+Use the `form` setting when the Frame has an HTML form that needs to be
+processed. `conkitty-route` will intercept a `submit` event and process the
+form according to [Form settings](#form-settings).
+
+Example:
+
+```js
+$CR
+    .add('/:param', {
+        render: 'template1',
+        form: {
+            action: '/api/:param',
+            method: 'post',
+            render: 'template2'
+        }
+    })
+    .run();
+
+$CR.set('/piu'); // `template1` will be rendered (it should have an HTML form).
+                 // After the form is submitted, an AJAX request to `/api/piu`
+                 // will be performed, and the DOM of this Frame will be
+                 // replaced with `template2`.
+```
+
+
 #### on
+
+`Object`
+
+You can use [`$CR.on()`](#cronevent-handler--frameid) method to bind an event
+handlers and you can bind an event handlers right from the Frame declaration.
+
+Example:
+
+```js
+$CR
+    .add('/', {
+        id: 'frame1',
+        render: 'template1',
+        on: {
+            before: function() { alert(this.id + ' before'); },
+            success: [function() { alert(this.id + ' success1'); }, function() { alert(this.id + ' success2'); }],
+            after: function() { alert(this.id + ' after'); }
+        }
+    });
+```
 
 
 ## Form

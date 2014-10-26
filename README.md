@@ -1134,7 +1134,7 @@ There are per-Frame events:
 - `stop` — the location has changed before the Frame data is loaded.
 - `except` — an exception has occurred during processing the Frame.
 
-There meta events:
+There are meta events:
 
 - `busy` — when some data has started to load.
 - `idle` — when all the datas have been loaded.

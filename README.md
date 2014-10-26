@@ -1086,19 +1086,95 @@ of the form parent Frame DOM.
 
 ### $CR.add(uri, frame)
 
+Mount a root Frame.
+
+- `uri` — an URI pattern.
+- `frame` — a settings object.
+
+
 ### $CR.run(*[defaults]*)
 
 ### $CR.get(frameId)
 
+Get the Frame runtime object.
+
+- `frameId` — an [identifier](#id).
+
+
 ### $CR.set(uri *[, reload, [replace]]*)
+
+Set the current location.
+
+- `uri` — a new location.
+- `reload` *(optional)* — `conkitty-route` doesn't reload the Frame data and
+  doesn't rerender the Frame, when no corresponding to the Frame URI part is
+  changed. By passing `true` you can force the Frame to be reloaded.
+- `replace` *(optional)* — by default, each `$CR.set()` method call adds a
+  record to the browser history. Pass `true` to replace the current history
+  position instead of creating the new one.
+
 
 ### $CR.on(event, handler *[, frameId]*)
 
+Bind an event handler.
+
+- `event` — an event name or space-separated set of event names.
+- `handler` — an event handler.
+- `frameId` *(optional)* — an [identifier](#id) (when the handler should be
+  called for the specific Frame only).
+
+There are per-Frame events:
+
+- `before` — the Frame has become active.
+- `success` — when the data is loaded (or right after `before` when there is no
+  data).
+- `error` — when an error has occurred during loading the data.
+- `after` — after `success` or `error` event.
+- `leave` — the Frame has stopped to be active.
+- `stop` — the location has changed before the Frame data is loaded.
+- `except` — an exception has occurred during processing the Frame.
+
+There meta events:
+
+- `busy` — when some data has started to load.
+- `idle` — when all the datas have been loaded.
+
+
 ### $CR.off(event, handler *[, frameId]*)
+
+Unbind an event handler.
+
+The arguments are the same to [`$CR.on()`](#cronevent-handler--frameid) method
+arguments.
+
 
 ### $CR.makeURI(uri *[, params]*)
 
+Build an URI from URI pattern an a paremeters object.
+
+- `uri` — an URI pattern.
+- `params` — a parameters object.
+
+Example:
+
+```js
+$CR.makeURI('/hello/:world?arg=:ololo', {world: 'piu', ololo: ['11', '22']});
+// '/hello/piu?arg=11&arg=22'
+```
+
+
 ### $CR.params()
+
+Get the current location query string params by their actual names.
+
+Example:
+
+```js
+$CR.set('/hello?world=beautiful&yes=truly&yes=indeed');
+console.log($CR.params());
+// {world: 'beautiful', yes: ['truly', 'indeed']}
+```
+
 
 ### $CR.serializeForm(node *[, withFields]*)
 

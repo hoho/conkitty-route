@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.4.2, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.5.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -71,6 +71,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         CANCELLED = {d: NULL},
 
         proto = Frame.prototype,
+
+        InternalValue = function(type) {
+            this.t = type;
+        },
+
+        isInternalValue = function(type, value) {
+            return (value instanceof InternalValue) && value.t === type;
+        },
 
         API = function add(uri, frameSettings) {
             checkRunning();
@@ -404,6 +412,30 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     API.params = function params() {
         return currentQueryParams;
+    };
+
+
+    API.URI = function(uri, params) {
+        var ret = new InternalValue(1); // Magic number 1: URI.
+        ret.u = uri;
+        ret.p = params;
+        return ret;
+    };
+
+
+    API.STATIC = function(value) {
+        var ret = new InternalValue(2); // Magic number 2: Static data.
+        ret.v = value;
+        return ret;
+    };
+
+
+    API.TEMPLATE = function(name, parent, replace) {
+        var ret = new InternalValue(3); // Magic number 3: Template.
+        ret.n = name;
+        ret.p = parent;
+        ret.r = replace;
+        return ret;
     };
 
 
@@ -1005,11 +1037,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     function normalizeRender(render) {
-        render = isString(render) ||
-                 isFunction(render) ||
-                 isArray(render) ||
-                 render === NULL ||
-                 (render && render.template)
+        render = isTemplate(render) || isArray(render)
             ?
             {success: render}
             :
@@ -1022,6 +1050,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             key,
             val,
             val2,
+            tpl,
             RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
             SUBSTAGES = {'-': false, '': undefined, '+': true};
 
@@ -1035,7 +1064,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (val) {
                     if (!val2) { val2 = []; }
                     for (k = 0; k < val.length; k++) {
-                        val2.push({s: SUBSTAGES[j], v: val[k]});
+                        if (!isTemplate((tpl = val[k]))) {
+                            throwError('Unexpected `' + tpl + '` as a template');
+                        }
+                        val2.push({s: SUBSTAGES[j], v: tpl});
                     }
                     ret[key] = val2;
                 }
@@ -1043,6 +1075,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         return ret;
+
+        function isTemplate(candidate) {
+            return isString(candidate) ||
+                   isFunction(candidate) ||
+                   isInternalValue(3, candidate) ||
+                   candidate === NULL;
+        }
     }
 
 
@@ -1340,6 +1379,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
             if (target) {
+                // `target` is a string or InternalValue(3)git st.
                 args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
                 if (formNode) { args.push(formNode); }
                 if (isFunction(target)) {
@@ -1348,7 +1388,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (node === NULL) { target = NULL; }
                     if (isString(node)) { i = node; }
                 } else {
-                    i = isString(target) ? target : target.template;
+                    i = isString(target) ? target : target.n;
                     if (isFunction(i)) { node = i = i.apply(frame, args); }
                 }
 
@@ -1377,7 +1417,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 // Remove nodes from previous frames if any.
                 removeNodes(oldDOM, 0);
 
-                renderParent = getRenderParent(frame, target && target[KEY_PARENT], defaultRenderParent);
+                // `target` is a string or InternalValue(3).
+                renderParent = getRenderParent(frame, target && target.p, defaultRenderParent);
                 if (isString(renderParent)) { throwError(renderParent); }
 
                 if (form) { frame._f = true; }
@@ -1385,7 +1426,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];
 
-                if (!((renderParentId in renderParents) || (target && (target.replace === false)))) {
+                if (!((renderParentId in renderParents) || (target && (target.r === false)))) {
                     // By default we are replacing everything from previous
                     // render of this frame in this parent.
 

@@ -26,7 +26,7 @@ describe('Stages test', function() {
                     before: 'StagesBefore',
                     success: 'Stages',
                     error: 'StagesError',
-                    after: [{template: 'StagesAfter', replace: false}, 'StagesAfter']
+                    after: [$CR.TEMPLATE('StagesAfter', undefined, false), 'StagesAfter']
                 },
                 frames: {
                     '/sub1': {
@@ -34,7 +34,7 @@ describe('Stages test', function() {
                         data: '/api/sub1',
                         parent: '.sub',
                         render: {
-                            before: ['StagesBefore', function() { return document.createTextNode('bebebe'); }, {parent: '.sub2', template: 'StagesBefore'}, function() { return false; }, 'StagesBefore'],
+                            before: ['StagesBefore', function() { return document.createTextNode('bebebe'); }, $CR.TEMPLATE('StagesBefore', '.sub2'), function() { return false; }, 'StagesBefore'],
                             success: ['StagesSuccess', function() { functionCalls.push('sub-success1'); }, 'StagesSuccess'],
                             error: 'StagesError',
                             after: 'StagesAfter'
@@ -44,7 +44,7 @@ describe('Stages test', function() {
                         title: 'Stages Sub2',
                         data: '/api/sub2',
                         render: {
-                            before: [function() { return 'StagesBefore'; }, {template: function() { return 'StagesBefore'; }}, {parent: '.sub2', template: function() { return document.createTextNode('bebe'); }}],
+                            before: [function() { return 'StagesBefore'; }, $CR.TEMPLATE(function() { return 'StagesBefore'; }), $CR.TEMPLATE(function() { return document.createTextNode('bebe'); }, '.sub2')],
                             error: 'StagesError',
                             success: function() { return 'SomeSuccess'}
                         }

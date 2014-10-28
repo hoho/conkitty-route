@@ -868,9 +868,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (isArray((f = frameSettings.data))) {
                     self._da = true; // Indicate that it is an Array originally.
                 } else {
-                    i = [];
-                    if (f !== undefined) { i.push(f); }
-                    f = i;
+                    f = f !== undefined ? [f] : [];
                 }
                 for (i = 0; i < f.length; i++) {
                     tmp = f[i];

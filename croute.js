@@ -423,7 +423,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.STATIC = function(value) {
+    API.DATA = function(value) {
         var ret = new InternalValue(2); // Magic number 2: Static data.
         ret.v = value;
         return ret;
@@ -821,7 +821,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             i,
             childFrames,
             f,
-            event,
+            tmp,
             events,
             frame = /.*/, // Default value is for NotFound frame.
             childFrame,
@@ -866,22 +866,28 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.reduce = frameSettings.reduce;
 
                 if (isArray((f = frameSettings.data))) {
-                    i = f;
                     self._da = true; // Indicate that it is an Array originally.
                 } else {
                     i = [];
                     if (f !== undefined) { i.push(f); }
+                    f = i;
                 }
-                self[KEY_DATASOURCE] = i;
+                for (i = 0; i < f.length; i++) {
+                    tmp = f[i];
+                    if (!tmp || (!isInternalValue(2, tmp) && !isString(tmp.uri || tmp) && !isFunction(tmp.uri || tmp.then || tmp))) {
+                        throwError('Unexpected `' + tmp + '` as data source');
+                    }
+                }
+                self[KEY_DATASOURCE] = f;
 
                 self.form = frameSettings.form;
                 self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
                 if ((events = frameSettings.on)) {
-                    for (event in eventHandlers) {
-                        if ((f = events[event])) {
+                    for (tmp in eventHandlers) {
+                        if ((f = events[tmp])) {
                             if (!isArray(f)) { f = [f]; }
                             for (i = 0; i < f.length; i++) {
-                                API.on(event, f[i], self);
+                                API.on(tmp, f[i], self);
                             }
                         }
                     }
@@ -1570,15 +1576,22 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             for (i = 0; i < dataSource.length; i++) {
                 if ((d = dataSource[i])) {
-                    if (isString(d) || isFunction(d.uri) || isString(d.uri)) {
-                        d = new AJAX(d, frame, formBody);
-                        // When AJAX request is cancelled, constructor returns
-                        // object {d: ...} which is not instance of AJAX.
-                        if (!d.then) { d = d.d; }
-                    }
+                    if (isInternalValue(2, d)) {
+                        // Static data.
+                        d = d.v;
+                    } else {
+                        if (!isFunction(d)) {
+                            d = new AJAX(d, frame, formBody);
+                            // When AJAX request is cancelled, constructor returns
+                            // object {d: ...} which is not instance of AJAX.
+                            if (!d.then) {
+                                d = d.d;
+                            }
+                        }
 
-                    if (isFunction(d)) {
-                        d = d.call(frame, frame._p);
+                        if (isFunction(d)) {
+                            d = d.call(frame, frame._p);
+                        }
                     }
 
                     datas.push(d);

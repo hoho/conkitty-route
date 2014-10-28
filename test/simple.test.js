@@ -9,7 +9,8 @@ describe('Simple test', function() {
                     events.push(JSON.stringify([params, this.id]));
                     return 'Welcome';
                 },
-                render: 'WelcomeTemplate',
+                data: $CR.DATA({hello: 'world'}),
+                render: function(data) { events.push(data); return 'WelcomeTemplate'; },
                 on: {
                     before: function(e) { events.push(e + ' inside ' + this.id); },
                     success: [function(e) { events.push(e + ' inside 1 ' + this.id); }, function(e) { events.push(e + ' inside 2 ' + this.id); }],
@@ -50,6 +51,7 @@ describe('Simple test', function() {
             '[{"p":"hello"},"welcome"]',
             'before inside welcome',
             'before welcome',
+            {hello: 'world'},
             'success inside 1 welcome',
             'success inside 2 welcome',
             'success welcome',
@@ -112,6 +114,7 @@ describe('Simple test', function() {
             '[{"p":"hello"},"welcome"]',
             'before inside welcome',
             'before welcome',
+            {hello: 'world'},
             'success inside 1 welcome',
             'success inside 2 welcome',
             'success welcome',

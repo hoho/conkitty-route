@@ -15,6 +15,7 @@ describe('Complex test', function() {
             Param2Template: '<em>param2</em>',
             Param3Template: '<strong>param</strong>3',
             DeeperTemplate: function(name, data, params) { return 'deeper: ' + JSON.stringify([data, params]); },
+            DeeperDeeperTemplate: function(name, data, params) { return 'deeperdeeper: ' + JSON.stringify([data, params]); },
             Hash1Template: '<p>hash1</p>',
             Hash2Template: '<p>hash2</p>'
         };
@@ -70,10 +71,18 @@ describe('Complex test', function() {
                         parent: 'div.params',
                         render: 'AllParams'
                     },
-                    '/deeper?param1=world&param2=:p&param3=hello': {
-                        data: '/api/data3?that=:p',
+                    '/deeper?param1=world&param2=:p&param3=:p2': {
+                        data: '/api/data3?that=:p&those=:p2',
                         parent: 'div.params',
-                        render: 'DeeperTemplate'
+                        render: 'DeeperTemplate',
+                        id: 'dee',
+                        frames: {
+                            '?param1=:p&param2=:p3': {
+                                id: 'deedee',
+                                data: '/api/data4?arg1=:p&arg2=:p2&arg3=:p3',
+                                render: 'DeeperDeeperTemplate'
+                            }
+                        }
                     }
                 }
             })
@@ -285,7 +294,8 @@ describe('Complex test', function() {
                     '5',
                     {name: 'div', value: [
                         '6',
-                        'deeper: [{"url":"/api/data3?that=beautiful","method":"GET"},{"p":"beautiful"}]'
+                        'deeper: [{"url":"/api/data3?that=beautiful&those=hello","method":"GET"},{"p":"beautiful","p2":"hello"}]',
+                        'deeperdeeper: [{"url":"/api/data4?arg1=world&arg2=hello&arg3=beautiful","method":"GET"},{"p":"world","p3":"beautiful"}]'
                     ], attr: {class: 'params'}},
                     '7'
                 ], attr: {class: 'hello'}}

@@ -80,6 +80,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             return (value instanceof InternalValue) && value.t === type;
         },
 
+        ParamsObject = function() {},
+
+        createParamsObject = function(params, parent) {
+            var Params = function(p) {
+                    for (p in params) {
+                        this[p] = params[p];
+                    }
+                };
+            Params.prototype = parent || new ParamsObject();
+            return new Params();
+        },
+
         API = function add(uri, frameSettings) {
             checkRunning();
             if (isString(uri) && isString(frameSettings)) {
@@ -139,25 +151,30 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 haveNewFrames,
                 newFramesCount = 0,
                 currentFramesCount = 0,
-                traverseCallback = function(r/**/, id, brk) {
-                    if (r._a) {
-                        if (r.wait) { r._w++; }
-                        newFrames[(id = r._id)] = r;
+                traverseCallback = function(f/**/, id, brk) {
+                    if (f._a) {
+                        if (f.wait) { f._w++; }
+                        newFrames[(id = f._id)] = f;
                         newFramesCount++;
                         if (!haveNewFrames && !(id in currentFrames)) {
                             haveNewFrames = true;
                         }
-                        if (isFunction((brk = r.break))) {
-                            brk = brk.call(r);
+                        if (isFunction((brk = f.break))) {
+                            brk = brk.call(f);
                         }
                         return !!brk;
+                    }
+                },
+                traverseCallbackBefore = function(f) {
+                    if (!(f._p instanceof ParamsObject)) {
+                        f._p = createParamsObject(f._p, ((f = f[KEY_PARENT])) && f._p);
                     }
                 };
 
             for (i = 0; i < frames.length; i++) {
                 frame = frames[i];
                 if (frame._a) {
-                    traverseFrame((newRootFrame = frame), traverseCallback);
+                    traverseFrame((newRootFrame = frame), traverseCallback, traverseCallbackBefore);
                     break;
                 }
             }
@@ -333,13 +350,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function traverseFrame(frame, callback/**/, i, children, f, ret) {
+    function traverseFrame(frame, callback, callbackBefore/**/, i, children, f, ret) {
         // frame._w is a number of active frames in current branch, for
         // `wait: true` functionality.
+        if (callbackBefore) {
+            callbackBefore(frame);
+        }
         frame._w = 0;
         children = frame.children;
         for (i = 0; i < children.length; i++) {
-            ret = traverseFrame((f = children[i]), callback);
+            ret = traverseFrame((f = children[i]), callback, callbackBefore);
             if (frame.wait) { frame._w += f._w; }
             if (ret) { break; }
         }
@@ -677,21 +697,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function pushParam(part, params, allowDuplicates, pathParams/**/, type, parent) {
-        parent = 1;
-        if (allowDuplicates) {
-            // Allow parent frame params in data URIs.
-            while (part.charAt(parent) === ':') {
-                parent++;
-            }
-        }
-        type = part.charAt(parent--) === '?' ? 2 : 1;
-        part = part.substring(parent + type);
+    function pushParam(part, params, allowDuplicates, pathParams/**/, type) {
+        type = part.charAt(1) === '?' ? 2 : 1;
+        part = part.substring(type);
+        // Allow duplicates in data URIs.
         if ((part in params) && !allowDuplicates) {
             throwError('Duplicate param');
         }
         params[part] = type;
-        part = {param: part, optional: type === 2, parent: parent};
+        part = {param: part, optional: type === 2};
         if (pathParams) { pathParams.push(part); }
         return pathParams ? '(?:/([^/]+))' + (type === 2 ? '?' : '') : part;
     }
@@ -1020,7 +1034,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     self.children.push(childFrame);
                 }
             }
-
         }
 
         $H.on(frame, {
@@ -1095,13 +1108,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         if (overrideParams && (name in overrideParams)) {
             i = overrideParams[name];
         } else {
-            i = param[KEY_PARENT];
-
-            while (frame && i) {
-                frame = frame[KEY_PARENT];
-                i--;
-            }
-
             i = ((i = frame && frame._p)) ? i[name] : undefined;
         }
 

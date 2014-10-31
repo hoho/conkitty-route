@@ -1364,6 +1364,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             (target.s === undefined || target.s === frame.active(true) ? target.v : undefined);
 
         if (isArray(target)) {
+            if (stage === STR_EXCEPT && !target.length) {
+                throw datas[0];
+            }
+
             try {
                 renderParents = {};
                 for (i = 0; i < target.length; i++) {

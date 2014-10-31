@@ -1376,14 +1376,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
             } catch(e) {
-                if (stage !== STR_EXCEPT) {
-                    datas = [e, stage, i, target[i]];
-                    processRender(STR_EXCEPT, render, datas, defaultRenderParent, frame, formNode, renderParents);
-                    emitEvent(STR_EXCEPT, frame, datas);
-                    ret = true;
-                } else {
+                if (stage === STR_EXCEPT) {
+                    // Exception in an exception, rethrow.
                     throw e;
                 }
+
+                datas = [e, stage, i, target[i]];
+                processRender(STR_EXCEPT, render, datas, defaultRenderParent, frame, formNode, renderParents);
+                emitEvent(STR_EXCEPT, frame, datas);
+                ret = true;
             }
         } else if (target || target === NULL) {
             if (frame.isForm) {

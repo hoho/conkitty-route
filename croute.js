@@ -187,7 +187,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     reloadCurrent ||
                     !frame._s ||
                     frame.keep === false ||
-                    frame._f ||
                     frame[KEY_DATAERROR])
                 {
                     unprocessFrame(frame, newFrames);
@@ -1354,7 +1353,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             args,
             ret,
             n,
-            form,
             rememberedNodes,
             KEY_NEXT_SIBLING = 'nextSibling';
 
@@ -1388,13 +1386,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         } else if (target || target === NULL) {
             if (frame.isForm) {
-                form = frame;
                 frame = frame[KEY_PARENT];
             }
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
             if (target) {
-                // `target` is a string or InternalValue(3)git st.
+                // `target` is a string or InternalValue(3).
                 args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
                 if (formNode) { args.push(formNode); }
                 if (isFunction(target)) {
@@ -1436,7 +1433,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 renderParent = getRenderParent(frame, target && target.p, defaultRenderParent);
                 if (isString(renderParent)) { throwError(renderParent); }
 
-                if (form) { frame._f = true; }
                 rememberedNodes = frame._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
                 placeholder = mem[0];

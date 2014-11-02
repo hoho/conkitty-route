@@ -14,7 +14,7 @@ describe('Form test', function() {
 
         window.TEMPLATES = {
             Form1Parent: '<div>1<div class="form1">2</div>3</div>',
-            Form1: '11<div>22<form>33<input type="text" name="hello" value="world">44<input type="submit" value="submit">55</form>66</div>77',
+            Form1: function(name, data, params) { return '11<div>22<form>33<input type="text" name="hello" value="world">44<input type="submit" value="submit">55</form>66</div>' + JSON.stringify(params); },
             Form1Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); },
             Form2Parent: '<div>1<div class="form2">2</div>3</div>',
             Form2: '11<div>22<form id="fofo">33<input type="text" name="hello" value="world">|<input type="text" name="hi" value="all">44<input type="submit" value="submit">55</form>66</div>77',
@@ -97,7 +97,7 @@ describe('Form test', function() {
                         ]},
                         '66'
                     ]},
-                    '77'
+                    '{"p1":"ololo"}'
                 ], attr: {class: 'form1'}},
                 '3'
             ]}
@@ -125,7 +125,7 @@ describe('Form test', function() {
                         ]},
                         '66'
                     ]},
-                    '77'
+                    '{"p1":"ololo"}'
                 ], attr: {class: 'form1'}},
                 '3'
             ]}
@@ -153,6 +153,19 @@ describe('Form test', function() {
                     '1',
                     {name: 'div', value: [
                         '2',
+                        '[{"url":"/api/form1/ololo","method":"POST","body":"[{\\"name\\":\\"hello\\",\\"value\\":\\"world\\"}]"},{"p1":"ololo"},"form1",true,"form"]'
+                    ], attr: {class: 'form1'}},
+                    '3'
+                ]}
+            ]);
+
+            $CR.set('/parent1/form?p1=ololo2');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [
+                        '2',
                         '11',
                         {name: 'div', value: [
                             '22',
@@ -165,12 +178,69 @@ describe('Form test', function() {
                             ]},
                             '66'
                         ]},
-                        '77'
+                        '{"p1":"ololo2"}'
                     ], attr: {class: 'form1'}},
                     '3'
                 ]}
             ]);
 
+            var e = document.createEvent('HTMLEvents');
+            e.initEvent('submit', true, true);
+            document.forms[0].dispatchEvent(e);
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [
+                        '2',
+                        '11',
+                        {name: 'div', value: [
+                            '22',
+                            {name: 'form', value: [
+                                '33',
+                                {name: 'input', value: [], attr: {type: 'text', name: 'hello', value: 'world', disabled: ''}},
+                                '44',
+                                {name: 'input', value: [], attr: {type: 'submit', value: 'submit', disabled: ''}},
+                                '55'
+                            ]},
+                            '66'
+                        ]},
+                        '{"p1":"ololo2"}'
+                    ], attr: {class: 'form1'}},
+                    '3'
+                ]}
+            ]);
+
+            $CR.set('/parent1/form?p1=ololo2');
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: [
+                        '2',
+                        '11',
+                        {name: 'div', value: [
+                            '22',
+                            {name: 'form', value: [
+                                '33',
+                                {name: 'input', value: [], attr: {type: 'text', name: 'hello', value: 'world'}},
+                                '44',
+                                {name: 'input', value: [], attr: {type: 'submit', value: 'submit'}},
+                                '55'
+                            ]},
+                            '66'
+                        ]},
+                        '{"p1":"ololo2"}'
+                    ], attr: {class: 'form1'}},
+                    '3'
+                ]}
+            ]);
 
             $CR.set('/parent2/form?p2=alala');
 

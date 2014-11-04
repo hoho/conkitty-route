@@ -434,10 +434,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.URI = function(uri, params) {
+    API.URI = function(uri, params, reload, replace) {
         var ret = new InternalValue(1); // Magic number 1: URI.
         ret.u = uri;
         ret.p = params;
+        ret.r = reload;
+        ret.e = replace;
         return ret;
     };
 
@@ -1391,10 +1393,22 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
             if (target) {
-                // `target` is a string or InternalValue(3).
+                // `target` is a string or InternalValue(3) or InternalValue(1).
                 args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
                 if (formNode) { args.push(formNode); }
-                if (isFunction(target)) {
+
+                if (isInternalValue(1, target)) {
+                    if (isFunction((i = target.u))) {
+                        i = i.apply(frame, args);
+                    } else {
+                        if (isFunction((n = target.p))) {
+                            n = n.apply(frame, args);
+                        }
+                        i = API.makeURI(i, n);
+                    }
+                    API.set(i, target.r, target.e);
+                    return undefined;
+                } else if (isFunction(target)) {
                     node = target.apply(frame, args);
                     if (node === false) { return node; }
                     if (node === NULL) { target = NULL; }

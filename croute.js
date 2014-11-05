@@ -1402,7 +1402,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (isFunction((n = target.p))) {
                         n = n.apply(frame, args);
                     }
-                    i = API.makeURI(i, n);
+                    i = makeURI(undefined, i, n);
                 }
                 API.set(i, target.r, target.e);
             } else if (target) {

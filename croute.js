@@ -1097,6 +1097,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         function isTemplate(candidate) {
             return isString(candidate) ||
                    isFunction(candidate) ||
+                   isInternalValue(1, candidate) ||
                    isInternalValue(3, candidate) ||
                    candidate === NULL;
         }

@@ -18,7 +18,9 @@ describe('Form test', function() {
             Form1Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); },
             Form2Parent: '<div>1<div class="form2">2</div>3</div>',
             Form2: '11<div>22<form id="fofo">33<input type="text" name="hello" value="world">|<input type="text" name="hi" value="all">44<input type="submit" value="submit">55</form>66</div>77',
-            Form2Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); }
+            Form2Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); },
+            Form3: '<div>1<form class="form3">2<input type="text" name="yo" value="piu">3<input type="submit" value="submit">4</form>5</div>',
+            Parent4: function(name, data, params) { return '<div>' + JSON.stringify(params) + '</div>'; }
         };
 
         $CR
@@ -76,6 +78,24 @@ describe('Form test', function() {
                         }
                     }
                 }
+            })
+            .add('/parent3?ppp=:ppp', {
+                id: 'form3',
+                render: 'Form3',
+                form: {
+                    action: '/api/form3&pif=paf',
+                    method: 'POST',
+                    type: 'json',
+                    render: $CR.URI('/parent4?p1=:p1&p2=:p2', function(data, params, formNode) {
+                        return {
+                            p1: JSON.stringify(['piupiu', params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]),
+                            p2: JSON.stringify(data)
+                        }
+                    })
+                }
+            })
+            .add('/parent4?p1=:p1&p2=:p2', {
+                render: 'Parent4'
             })
             .run({callTemplate: testCallTemplate});
 
@@ -371,6 +391,52 @@ describe('Form test', function() {
                         '["Form response: form2, function, {\\"url\\":\\"/api/form2/alala\\",\\"method\\":\\"POST\\",\\"body\\":\\"field1=fofo&field2=%5B%7B%22name%22%3A%22hello%22%2C%22value%22%3A%22world%22%7D%2C%7B%22name%22%3A%22hi%22%2C%22value%22%3A%22all%22%7D%5D&field3=function&field4=form2\\"}|form2|function",{"p2":"alala"},"form2",true,"form"]'
                     ], attr: {class: 'form2'}},
                     '3'
+                ]}
+            ]);
+
+            $CR.set('/parent3?ppp=poofpoof');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'form', value: [
+                        '2',
+                        {name: 'input', value: [], attr: {type: 'text', name: 'yo', value: 'piu'}},
+                        '3',
+                        {name: 'input', value: [], attr: {type: 'submit', value: 'submit'}},
+                        '4'
+                    ], attr: {class: 'form3'}},
+                    '5'
+                ]}
+            ]);
+
+            var e = document.createEvent('HTMLEvents');
+            e.initEvent('submit', true, true);
+            document.forms[0].dispatchEvent(e);
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'form', value: [
+                        '2',
+                        {name: 'input', value: [], attr: {type: 'text', name: 'yo', value: 'piu', disabled: ''}},
+                        '3',
+                        {name: 'input', value: [], attr: {type: 'submit', value: 'submit', disabled: ''}},
+                        '4'
+                    ], attr: {class: 'form3'}},
+                    '5'
+                ]}
+            ]);
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '{"p1":"[\\"piupiu\\",{\\"ppp\\":\\"poofpoof\\"},\\"form3\\",true,\\"form\\"]","p2":"{\\"url\\":\\"/api/form3%26pif%3Dpaf\\",\\"method\\":\\"POST\\",\\"body\\":\\"[{\\\\\\"name\\\\\\":\\\\\\"yo\\\\\\",\\\\\\"value\\\\\\":\\\\\\"piu\\\\\\"}]\\"}"}'
                 ]}
             ]);
         });

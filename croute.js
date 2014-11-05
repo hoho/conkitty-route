@@ -1393,23 +1393,24 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
             // null-value target could be used to remove previous render nodes.
             params = frame._p;
-            if (target) {
-                // `target` is a string or InternalValue(3) or InternalValue(1).
-                args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
-                if (formNode) { args.push(formNode); }
+            args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
+            if (formNode) { args.push(formNode); }
 
-                if (isInternalValue(1, target)) {
-                    if (isFunction((i = target.u))) {
-                        i = i.apply(frame, args);
-                    } else {
-                        if (isFunction((n = target.p))) {
-                            n = n.apply(frame, args);
-                        }
-                        i = API.makeURI(i, n);
+            if (isInternalValue(1, target)) {
+                // `target` is a $CR.URI() object.
+                if (isFunction((i = target.u))) {
+                    i = i.apply(frame, args);
+                } else {
+                    if (isFunction((n = target.p))) {
+                        n = n.apply(frame, args);
                     }
-                    API.set(i, target.r, target.e);
-                    return undefined;
-                } else if (isFunction(target)) {
+                    i = API.makeURI(i, n);
+                }
+                API.set(i, target.r, target.e);
+            } else if (target) {
+                // `target` is a string or a $CR.TEMPLATE() object.
+
+                if (isFunction(target)) {
                     node = target.apply(frame, args);
                     if (node === false) { return node; }
                     if (node === NULL) { target = NULL; }

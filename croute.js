@@ -1347,7 +1347,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     function processRender(stage, render, datas, defaultRenderParent, frame, formNode, renderParents, target) {
         var i,
             mem,
-            params,
             node,
             parent,
             renderParent,
@@ -1392,8 +1391,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 frame = frame[KEY_PARENT];
             }
             // null-value target could be used to remove previous render nodes.
-            params = frame._p;
-            args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], params];
+            args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], frame._p];
             if (formNode) { args.push(formNode); }
 
             if (isInternalValue(1, target)) {
@@ -1408,8 +1406,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
                 API.set(i, target.r, target.e);
             } else if (target) {
-                // `target` is a string or a $CR.TEMPLATE() object.
-
+                // `target` is a string, a function or a $CR.TEMPLATE() object.
                 if (isFunction(target)) {
                     node = target.apply(frame, args);
                     if (node === false) { return node; }

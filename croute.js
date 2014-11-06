@@ -153,7 +153,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 currentFramesCount = 0,
                 traverseCallback = function(f/**/, id, brk) {
                     if (f._a) {
-                        if (f.wait) { f._w++; }
+                        f._w++;
                         newFrames[(id = f._id)] = f;
                         newFramesCount++;
                         if (!haveNewFrames && !(id in currentFrames)) {
@@ -359,7 +359,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         children = frame.children;
         for (i = 0; i < children.length; i++) {
             ret = traverseFrame((f = children[i]), callback, callbackBefore);
-            if (frame.wait) { frame._w += f._w; }
+            frame._w += f._w;
             if (ret) { break; }
         }
         return callback(frame);
@@ -1545,11 +1545,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     // Update wait flag.
-                    if (frame.wait) {
-                        finishedCount = errors ? frame._w2 : 1;
-                        for (i = frame; i && i._w2 && i._r; i = i[KEY_PARENT]) {
-                            i._w2 -= finishedCount;
-                        }
+                    finishedCount = errors || !frame.wait ? frame._w2 : 1;
+                    for (i = frame; i && i._w2; i = i[KEY_PARENT]) {
+                        i._w2 -= finishedCount;
                     }
                     callDelayedStages(currentRootFrame);
 
@@ -1566,7 +1564,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!skip) {
             frame._data = self;
-            frame._w2 = frame._w;
+            frame._w2 = d = frame._w;
+
+            if (!frame.wait) {
+                for (i = frame; i && i._w2; i = i[KEY_PARENT]) {
+                    i._w2 -= d;
+                }
+                callDelayedStages(currentRootFrame);
+            }
 
             document.title = (i = (isFunction((i = frame.title)) ? i.call(frame, frame._p) : i)) === undefined
                 ?

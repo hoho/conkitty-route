@@ -1505,7 +1505,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             waiting = 0,
             render = frame.render,
             resolve,
-            done = function(index, data, /**/i, children, r, errors, finishedCount) {
+            done = function(index, data, /**/i, children, r, errors) {
                 if (index !== undefined) {
                     datas[index] = data;
                     waiting--;
@@ -1544,12 +1544,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                     }
 
-                    // Update wait flag.
-                    finishedCount = errors || !frame.wait ? frame._w2 : 1;
-                    for (i = frame; i && i._w2; i = i[KEY_PARENT]) {
-                        i._w2 -= finishedCount;
-                    }
-                    callDelayedStages(currentRootFrame);
+                    // Update wait flags and call delayed callbacks if any.
+                    callDelayedStages(currentRootFrame, frame, errors || !frame.wait ? frame._w2 : 1);
 
                     if (!errors) {
                         for (i = 0; i < children.length; i++) {
@@ -1567,10 +1563,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             frame._w2 = d = frame._w;
 
             if (!frame.wait) {
-                for (i = frame; i && i._w2; i = i[KEY_PARENT]) {
-                    i._w2 -= d;
-                }
-                callDelayedStages(currentRootFrame);
+                // Update wait flags and call delayed callbacks if any.
+                callDelayedStages(currentRootFrame, frame, d);
             }
 
             document.title = (i = (isFunction((i = frame.title)) ? i.call(frame, frame._p) : i)) === undefined
@@ -1628,10 +1622,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         done();
 
-        function callDelayedStages(frame/**/, i) {
+        function callDelayedStages(frame, finished, finishedCount/**/, i) {
             // XXX: Probably optimize this somehow, to avoid traversing the tree
             //      from the root node.
             if (frame) {
+                if (finishedCount) {
+                    for (i = finished; i && i._w2; i = i[KEY_PARENT]) {
+                        i._w2 -= finishedCount;
+                    }
+                }
+
                 if (!frame._w2 && frame._r && (!((i = frame[KEY_PARENT])) || !i._r)) {
                     frame._r();
                 }

@@ -468,7 +468,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             parent = self[KEY_PARENT];
             while (parent) {
                 // Check if none of parent frames is in progress.
-                if (parent._data instanceof ProcessFrame) {
+                if (parent._l) {
                     break;
                 }
                 parent = parent[KEY_PARENT];
@@ -1494,9 +1494,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     function ProcessFrame(frame, formNode, formBody) {
-        if (frame._data instanceof ProcessFrame) { return; }
+        if (frame._l) { return; }
 
-        var skip = (frame._data !== undefined) && !frame[KEY_DATAERROR],
+        var skip = (frame._data !== undefined || frame._l !== undefined) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSource = frame[KEY_DATASOURCE],
@@ -1516,6 +1516,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     children = frame.children;
 
                     if (!skip) {
+                        frame._l = undefined;
                         frame._data = datas;
 
                         // Further stages might be delayed in case of `wait`
@@ -1559,7 +1560,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             };
 
         if (!skip) {
-            frame._data = self;
+            frame._l = self;
             frame._w2 = d = frame._w;
 
             if (!frame.wait) {
@@ -1672,8 +1673,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         // Stop processing frame and remove associated nodes.
-        if (frame._data && isFunction(frame._data.reject)) {
-            frame._data.reject();
+        if (frame._l && isFunction(frame._l.reject)) {
+            frame._l.reject();
             if (frame.isForm && !frame._c) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
@@ -1681,15 +1682,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         if (frame._r) {
-            // We've rejected frame._data above and/or there were delayed stages.
+            // We've rejected frame._l above and/or there were delayed stages.
             emitEvent('stop', frame);
         }
 
         // Reset the ready callback and the form existence flag if any.
         frame._r = frame._f = undefined;
 
-        if (frame._data !== undefined) {
-            frame._data = frame[KEY_DATAERROR] = undefined;
+        if (frame._l !== undefined || frame._data !== undefined) {
+            frame._l = frame._data = frame[KEY_DATAERROR] = undefined;
             emitEvent('leave', frame);
 
             if (!(frame._id in activeFrames)) {

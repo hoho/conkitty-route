@@ -9,7 +9,7 @@ describe('Simple test', function() {
                     events.push(JSON.stringify([params, this.id]));
                     return 'Welcome';
                 },
-                data: $CR.DATA({hello: 'world'}),
+                data: $CR.STATIC({hello: 'world'}),
                 render: function(data) { events.push(data); return 'WelcomeTemplate'; },
                 on: {
                     before: function(e) { events.push(e + ' inside ' + this.id); },

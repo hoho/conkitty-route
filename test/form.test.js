@@ -48,7 +48,7 @@ describe('Form test', function() {
                         parent: '.form2',
                         render: 'Form2',
                         form: {
-                            action: {
+                            action: $CR.DATA({
                                 uri: function(params) { return '/api/' + this.id + '/' + params.p2; },
                                 parse: function(response, req) {
                                     return 'Form response: ' + this.id + ', ' + (typeof req.onreadystatechange) + ', ' + response;
@@ -56,7 +56,7 @@ describe('Form test', function() {
                                 transform: function(data, req) {
                                     return data + '|' + this.id + '|' + (typeof req.onreadystatechange);
                                 }
-                            },
+                            }),
                             method: 'post',
                             render: 'Form2Result',
                             submit: function(data, xhr, frame) {

@@ -263,7 +263,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     data = form._se; // Serialized form data.
 
                     form[KEY_DATASOURCE] = [isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        action.call(formNode, data, frame)
+                        API.STATIC(action.call(formNode, data, frame))
                         :
                         (action || location.href)];
                     form.method = formNode.getAttribute('method') || form._method || 'get';
@@ -444,7 +444,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.DATA = function(value) {
+    API.STATIC = function(value) {
         var ret = new InternalValue(2); // Magic number 2: Static data.
         ret.v = value;
         return ret;
@@ -456,6 +456,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         ret.n = name;
         ret.p = parent;
         ret.r = replace;
+        return ret;
+    };
+
+
+    API.DATA = function(value) {
+        var ret = new InternalValue(4); // Magic number 4: Data with additional
+                                        // processing functions.
+        if (!value || !value.uri) { throwError('No URI'); }
+        ret.v = value;
         return ret;
     };
 
@@ -862,7 +871,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if (form) {
                 self.isForm = true;
-                self.action = frameSettings.action;
+                if ((tmp = self.action = frameSettings.action)) {
+                    checkDataSource(tmp);
+                }
                 self._method = frameSettings.method;
                 self.check = frameSettings.check;
                 self.state = frameSettings.state;
@@ -886,10 +897,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     f = f !== undefined ? [f] : [];
                 }
                 for (i = 0; i < f.length; i++) {
-                    tmp = f[i];
-                    if (!tmp || (!isInternalValue(2, tmp) && !isString(tmp.uri || tmp) && !isFunction(tmp.uri || tmp.then || tmp))) {
-                        throwError('Unexpected `' + tmp + '` as data source');
-                    }
+                    checkDataSource(f[i]);
                 }
                 self[KEY_DATASOURCE] = f;
 
@@ -1051,6 +1059,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self._p = NULL;
             }
         });
+
+
+        function checkDataSource(ds) {
+            if (!ds || !(isInternalValue(2, ds) || isInternalValue(4, ds) || isString(ds) || isFunction(ds))) {
+                throwError('Unexpected `' + ds + '` as data source');
+            }
+        }
     }
 
 
@@ -1212,7 +1227,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         method = frame.method;
         frame = frame.isForm ? frame[KEY_PARENT] : frame;
 
-        if (!isString(uri)) {
+        if (isInternalValue(4, uri) && ((uri = uri.v))) {
             if (((override = uri.override)) &&
                 (((override = override.call(frame, frame._p))) !== undefined))
             {
@@ -1496,7 +1511,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     function ProcessFrame(frame, formNode, formBody) {
         if (frame._l) { return; }
 
-        var skip = (frame._data !== undefined || frame._l !== undefined) && !frame[KEY_DATAERROR],
+        var skip = ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSource = frame[KEY_DATASOURCE],

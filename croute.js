@@ -151,30 +151,37 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 haveNewFrames,
                 newFramesCount = 0,
                 currentFramesCount = 0,
-                traverseCallback = function(f/**/, id, brk) {
+                traverseCallbackBefore = function(f) {
+                    f._w = 0;
+
+                    if (!(f._p instanceof ParamsObject)) {
+                        f._p = createParamsObject(f._p, ((f = f[KEY_PARENT])) && f._p);
+                    }
+                },
+                traverseCallback = function(f/**/, tmp, brk) {
                     if (f._a) {
+                        // frame._w is a number of active frames in current branch, for
+                        // `wait: true` and autoupdates.
                         f._w++;
-                        newFrames[(id = f._id)] = f;
+                        newFrames[(tmp = f._id)] = f;
                         newFramesCount++;
-                        if (!haveNewFrames && !(id in currentFrames)) {
+                        if (!haveNewFrames && !(tmp in currentFrames)) {
                             haveNewFrames = true;
                         }
                         if (isFunction((brk = f.break))) {
                             brk = brk.call(f);
                         }
+                        if ((tmp = f[KEY_PARENT])) {
+                            tmp._w += f._w;
+                        }
                         return !!brk;
-                    }
-                },
-                traverseCallbackBefore = function(f) {
-                    if (!(f._p instanceof ParamsObject)) {
-                        f._p = createParamsObject(f._p, ((f = f[KEY_PARENT])) && f._p);
                     }
                 };
 
             for (i = 0; i < frames.length; i++) {
                 frame = frames[i];
                 if (frame._a) {
-                    traverseFrame((newRootFrame = frame), traverseCallback, traverseCallbackBefore);
+                    traverseFrame((newRootFrame = frame), traverseCallbackBefore, traverseCallback);
                     break;
                 }
             }
@@ -224,6 +231,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     emitEvent(busyCount ? 'busy' : 'idle', API);
                 }
             }, 0);
+            backgroundUpdate();
         });
 
         addEvent('click', function(e) {
@@ -270,6 +278,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     new ProcessFrame(
                         form,
+                        undefined,
                         formNode,
                         function(xhr/**/, type, submit, cancelled) {
                             type = form.type;
@@ -349,20 +358,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function traverseFrame(frame, callback, callbackBefore/**/, i, children, f, ret) {
-        // frame._w is a number of active frames in current branch, for
-        // `wait: true` functionality.
-        if (callbackBefore) {
+    function traverseFrame(frame, callbackBefore, callback, childrenOnly/**/, i, children, f, ret) {
+        if (!childrenOnly && callbackBefore) {
             callbackBefore(frame);
         }
-        frame._w = 0;
         children = frame.children;
         for (i = 0; i < children.length; i++) {
-            ret = traverseFrame((f = children[i]), callback, callbackBefore);
-            frame._w += f._w;
+            ret = traverseFrame((f = children[i]), callbackBefore, callback);
             if (ret) { break; }
         }
-        return callback(frame);
+        return !childrenOnly && callback && callback(frame);
     }
 
 
@@ -614,7 +619,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 // Reset active flags.
                 cur = function(r) { r._a = 0; };
                 for (i = frames.length; i--;) {
-                    traverseFrame(frames[i], cur);
+                    traverseFrame(frames[i], undefined, cur);
                 }
 
                 // Parse querystring.
@@ -903,6 +908,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 self.form = frameSettings.form;
                 self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
+
                 if ((events = frameSettings.on)) {
                     for (tmp in eventHandlers) {
                         if ((f = events[tmp])) {
@@ -1508,10 +1514,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function ProcessFrame(frame, formNode, formBody) {
+    function ProcessFrame(frame, update, formNode, formBody) {
         if (frame._l) { return; }
 
-        var skip = ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
+        var skip = !update && ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSource = frame[KEY_DATASOURCE],
@@ -1531,27 +1537,36 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     children = frame.children;
 
                     if (!skip) {
+                        // Ignore errors during background update.
+                        if (update && errors) { frame[KEY_DATAERROR] = undefined; }
+
                         frame._l = undefined;
                         frame._data = datas;
 
                         // Further stages might be delayed in case of `wait`
                         // setting of the frame. Store these stages execution
-                        // in `frame._r`.
+                        // in `frame[CALLBACK]`.
                         frame._r = function(/**/defaultRenderParent, stage) {
                             frame._r = undefined;
 
                             defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
 
-                            stage = errors ? STR_ERROR : STR_SUCCESS;
-                            if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
-                                return;
-                            }
-                            emitEvent(stage, frame, errors || datas);
+                            stage = errors ? (update ? NULL : STR_ERROR) : STR_SUCCESS;
+                            if (stage) {
+                                if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
+                                    return;
+                                }
+                                if (!update) {
+                                    emitEvent(stage, frame, errors || datas);
+                                }
 
-                            if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
-                                return;
+                                if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
+                                    return;
+                                }
+                                if (!update) {
+                                    emitEvent(STR_AFTER, frame);
+                                }
                             }
-                            emitEvent(STR_AFTER, frame);
                         };
 
                         if (frame.isForm) {
@@ -1561,13 +1576,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     // Update wait flags and call delayed callbacks if any.
-                    callDelayedStages(currentRootFrame, frame, errors || !frame.wait ? frame._w2 : 1);
+                    callDelayedStages(currentRootFrame, frame, errors || (!frame.wait && !update) ? frame._w2 : 1);
 
                     if (!errors) {
                         for (i = 0; i < children.length; i++) {
                             r = children[i];
                             if (r._id in currentFrames) {
-                                new ProcessFrame(r);
+                                new ProcessFrame(r, update);
                             }
                         }
                     }
@@ -1576,9 +1591,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!skip) {
             frame._l = self;
+            frame._u = update;
             frame._w2 = d = frame._w;
 
-            if (!frame.wait) {
+            if (!frame.wait && !update) {
                 // Update wait flags and call delayed callbacks if any.
                 callDelayedStages(currentRootFrame, frame, d);
             }
@@ -1589,10 +1605,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 :
                 i;
 
-            if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode)) {
-                return;
+            if (!update) {
+                if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode)) {
+                    return;
+                }
+                emitEvent(STR_BEFORE, frame);
             }
-            emitEvent(STR_BEFORE, frame);
 
             resolve = function(index) {
                 waiting++;
@@ -1652,10 +1670,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     frame._r();
                 }
 
-                frame = frame.children;
-                for (i = 0; i < frame.length; i++) {
-                    callDelayedStages(frame[i]);
-                }
+                traverseFrame(frame, callDelayedStages, undefined, true);
             }
         }
     }
@@ -1677,18 +1692,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     function unprocessFrame(frame, activeFrames, keepPlaceholders) {
-        var children,
-            i,
+        var i,
             nodesets,
             nodes;
 
-        children = frame.children;
-        for (i = children.length; i--;) {
-            unprocessFrame(children[i], activeFrames);
-        }
+        traverseFrame(frame, function(f) {
+            unprocessFrame(f, activeFrames);
+        }, undefined, true);
 
-        // Stop processing frame and remove associated nodes.
-        if (frame._l && isFunction(frame._l.reject)) {
+        // Cancel loading the data (if any).
+        if (frame._l) {
             frame._l.reject();
             if (frame.isForm && !frame._c) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
@@ -1696,8 +1709,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             frame._r = true;
         }
 
-        if (frame._r) {
-            // We've rejected frame._l above and/or there were delayed stages.
+        if (frame._r && !frame._u) {
+            // We've rejected the frame above and/or there were delayed stages.
             emitEvent('stop', frame);
         }
 
@@ -1706,9 +1719,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (frame._l !== undefined || frame._data !== undefined) {
             frame._l = frame._data = frame[KEY_DATAERROR] = undefined;
-            emitEvent('leave', frame);
 
             if (!(frame._id in activeFrames)) {
+                emitEvent('leave', frame);
+
                 nodesets = frame._n;
                 keepPlaceholders = keepPlaceholders ? 1 : 0;
 
@@ -1787,6 +1801,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         return withFields ? [serialized, fields] : serialized;
+    }
+
+
+    function backgroundUpdate() {
+        if (busyCount) {
+
+        } else {
+
+        }
     }
 
 

@@ -30,6 +30,7 @@ Build a single page application using routing tree.
         - [reduce](#reduce)
         - [form](#form)
         - [on](#on)
+        - [update](#update)
 - [Form](#form)
     - [Form summary](#form-summary)
     - [Form settings](#form-settings)
@@ -99,11 +100,11 @@ you want.
 
 ## About History API
 
-`conkitty-route` utilizes History API of the modern browsers. For most of cases
-History API will be used automatically. `conkitty-route` adds a click handler
-for anchor tags and uses `history.pushState()` to actually change browsers
-location. When the location is changed, only a corresponding part of the page
-is rerendered. Of course, you can change the location manually, using
+`conkitty-route` utilizes History API of the modern browsers. For the most of
+cases History API will be used automatically. `conkitty-route` adds a click
+handler for the anchor tags and uses `history.pushState()` to actually change
+browsers location. When the location is changed, only a corresponding part of
+the page is rerendered. Of course, you can change the location manually, using
 [$CR.set()](#crseturi--reload-replace) method.
 
 
@@ -320,9 +321,8 @@ $CR.set('/?p1=val2&p2=val4&p3=val6&p4=piu');
 
 `String`  
 `Function`  
-`Promise`  
-`Data-description object`  
-*Any plain data*  
+`$CR.DATA()`  
+`$CR.STATIC()`  
 `Array` *of any of the previous*
 
 Data fetching is an essential part of any application. With this setting, you
@@ -332,9 +332,8 @@ Let's check out the `data` setting value type meanings:
 
 - [`String`](#string)
 - [`Function`](#function)
-- [`Promise`](#promise)
-- [`Data-description object`](#data-description-object)
-- [*Any plain data*](#any-plain-data)
+- [`$CR.DATA()`](#cr-data)
+- [`$CR.STATIC()`](#cr-static)
 - [`Array` *of any of the previous*](#array-of-any-of-the-previous)
 
 ##### `String`
@@ -342,8 +341,9 @@ Let's check out the `data` setting value type meanings:
 A reversed URI pattern for an AJAX request. A reversed URI pattern means that
 you use the same [parametrized patterns](#capture-parameters) which are used for
 the URI matching, but parameter references will be substituted with an actual
-values. Plus you can refer to a parent Frames parameters (by adding as many more
-colons as many parents you want to go up to).
+values. Plus you can refer to a parent Frames parameters (**parameters object
+is inherited from the parent Frame parameters object via prototypical
+inheritance**).
 
 For example:
 
@@ -353,7 +353,7 @@ $CR
         render: 'template1',
         frames: {
             '/:param2?test=:val': {
-                data: '/api/:val/get-data?type=::param1&filter=:param2',
+                data: '/api/:val/get-data?type=:param1&filter=:param2',
                 render: 'template2'
             }
         }
@@ -377,37 +377,32 @@ the first argument, `this` will point to the Frame runtime object.
 The function should return a `Promise` or an actual data.
 
 
-##### `Promise`
+##### `$CR.DATA()`
 
-You can pass a `Promise` as the `data` setting value.
+It is possible to customize pretty much everything about the data fetching
+process. Use `$CR.DATA()` helper to do that.
 
-
-##### `Data-description object`
-
-`Data-description object` is an object to describe the data-fetching in more
-details. With `Data-description object` you can dynamically build an AJAX
-request URI, override an AJAX request with some other data and postprocess the
-data.
-
-Full version of `Data-description object` looks like:
+`$CR.DATA()` helper accepts a settings object, a full version of which looks
+like:
 
 ```js
 {
     uri: String | Function,
     override: Function,
     parse: Function,
-    transform: Function
+    transform: Function,
+    eq: Function
 }
 ```
 
 Every property (except for `uri`) is optional.
 
 When `uri` is a string, it is treated like a [reversed URI pattern](#string).
+When `uri` is a function, it will be called with a parameters object as the
+first argument, `this` will point to the Frame runtime object. The function
+should return an URI for the request.
 
-When `uri` is a function, it will be called receiving a parameters object as
-the first argument, `this` will point to the Frame runtime object.
-
-When `override` function is defined, it will be called receiving a parameters
+When `override` function is defined, it will be called with a parameters
 object as the first argument, `this` will point to the Frame runtime object.
 When no request to `uri` is needed, the function should return a non-undefined
 value with the resulting data.
@@ -423,18 +418,27 @@ data into something else. The function will receive the parsed data as the first
 argument, `XMLHttRequest` object as the second argument, `this` will point to
 the Frame runtime object. The function should return the transformed data.
 
+When `eq` function is defined, it will be used instead of the default equality
+check function for the [automatic update](#update) functionality. The function
+will receive the new data as the first argument and the previous data as the
+second argument, `this` will point to the Frame runtime object.
 
-##### *Any plain data*
 
-When you want to attach some static data to the Frame, you might pass this
-data as the `data` setting value. There is a caveat about this: if you want to
-pass a fixed array, you will have to wrap it into a function, because of the
-following.
+##### `$CR.STATIC()`
+
+When you want to attach some static data to the Frame, `$CR.STATIC` helper
+should be used.
+
+```js
+    ...
+    data: $CR.STATIC([{some: 'static'}, 'data']),
+    ...
+```
 
 
 ##### `Array` *of any of the previous*
 
-When you have a several data sources, you can combine them all into an array.
+When you have several data sources, you can combine them all into an array.
 The Frame processing will continue after all these sources are fetched.
 
 
@@ -458,8 +462,12 @@ When the Frame itself and all its parent Frames have no `parent` setting,
 
 #### render
 
-`Template-description object`  
-`Render object`
+`Render object`  
+`String`  
+`Function`  
+`$CR.TEMPLATE()`  
+`$CR.URI()`  
+`Array` *of any of the previous*
 
 The `render` setting is one of the trickiest and powerful parts of the Frame.
 There are five render stages:
@@ -474,76 +482,39 @@ There are five render stages:
 The DOM rendered on each stage replaces the DOM rendered on the previous stage
 (unless you specifically tell not to replace it).
 
-When `Template-description object` is passed as the `render` setting, it will
-be used as the `success` stage handler.
-
-`Render object` allows to provide `Template-description object` for any stage
-(see below).
-
-
-##### `Template-description object`
-
-`String`  
-`Function`  
-`Object`  
-`Array`
-
-When `Template-description object` is a string, this string is used as a
-template name, this name will be passed to `callTemplate` callback of the
-[$CR.run()](#crrundefaults) method settings.
-
-When `Template-description object` is a function, this function will be called,
-`this` will point to this Frame, arguments depend on the stage (basically, the
-first argument is a data, the second argument is a parameters object, the third
-argument is a form node, in case it is a Form). The function should return a
-string (this string will be used as a template name), a DOM node (this node,
-will be inserted into the document). The function could also return `false`
-(to stop calling the next handlers for this stage, see `Array` description
-below) and `undefined` (nothing will happen to the document, sometimes you just
-need to call a function).
-
-`Template-description object` could be an object like:
-```js
-{
-    template: String | Function, // The same to descriptions above.
-    parent: String | Function | Node, // Template personal parent, the same to the Frame's parent.
-    replace: false // Do not replace the DOM from the previous stage, `true` by default.
-}
-```
-
-`Template-description object` can be an array of strings, functions and
-objects, they will be handled one after another corresponding to descriptions
-above.
-
 
 ##### `Render object`
 
-`Render object` is an object with stage names as the keys and
-`Template-description objects` as values.
+`Render object` is an object with stage names as the keys and all other options
+(`String`, `Function`, `$CR.TEMPLATE()`, `$CR.URI()`, `Array` of the previous)
+as values.
+
+When you use `String`, `Function`, `$CR.TEMPLATE()`, `$CR.URI()` or
+`Array` directly as the `render` setting value, **`success` stage is assumed**.
 
 Here is what the full version of `Render object` looks like:
 
 ```js
 {
-    before: TDO,  // TDO — Template-description object.
-    '-before': TDO,
-    '+before': TDO,
+    before: AOO,  // AOO — All other options.
+    '-before': AOO,
+    '+before': AOO,
 
-    success: TDO,
-    '-success': TDO,
-    '+success': TDO,
+    success: AOO,
+    '-success': AOO,
+    '+success': AOO,
 
-    error: TDO,
-    '-error': TDO,
-    '+error': TDO,
+    error: AOO,
+    '-error': AOO,
+    '+error': AOO,
 
-    after: TDO,
-    '-after': TDO,
-    '+after': TDO,
+    after: AOO,
+    '-after': AOO,
+    '+after': AOO,
 
-    except: TDO,
-    '-except': TDO,
-    '+except': TDO
+    except: AOO,
+    '-except': AOO,
+    '+except': AOO
 }
 ```
 
@@ -577,6 +548,60 @@ will work.
 After `$CR.set('/world');` the Frame remains active, but we have the previous
 DOM already. If we will render the spinner, it will replace the previous DOM
 and will cause the page to blink, so we just change the opacity instead.
+
+
+##### `String`
+
+The string will be interpreted as a template name, this name will be passed to
+`callTemplate` callback of the [$CR.run()](#crrundefaults) method settings.
+
+
+##### `Function`
+
+The function will be called, `this` will point to this Frame, arguments are
+depending on the stage (basically, the first argument is a data, the second
+argument is a parameters object, the third argument is a form node, in case it
+is a Form). The function should return a string (this string will be used as a
+template name), a DOM node (this node, will be inserted into the document). The
+function could also return `false` (to stop calling the next handlers for this
+stage, see `Array` description below) and `undefined` (nothing will happen to
+the document, sometimes you just need to call a function).
+
+
+##### `$CR.TEMPLATE(settings)`
+
+To customize the template call result, `$CR.TEMPLATE` helper should be used.
+
+```js
+    ...
+    render: $CR.TEMPLATE({
+        template: String | Function, // The same to the descriptions above.
+        parent: String | Function | Node, // Personal parent for the result.
+        replace: false // Do not replace the DOM from the previous stage, `true` by default.
+    }),
+    ...
+```
+
+
+##### `$CR.URI(uri, params, reload, replace)`
+
+Sometimes, a location change is needed as the result of the Frame processing.
+This is true for the forms mostly, but could be used everywhere.
+
+`uri` is a string (reversed URI pattern) or a function (should return URI).
+
+`params` is a parameters object or a function that returns a parameters object
+(in case `uri` is a reversed URI pattern, ignored otherwise).
+
+`reload` and `replace` have the same meaning
+[$CR.set()](#crseturi--reload-replace) method has.
+
+
+##### `Array` *of any of the previous*
+
+`String`s, `Function`s, `$CR.TEMPLATE()`s and `$CR.URI()`s can be combined into
+an array, they will be handled one after another corresponding to the
+descriptions above.
 
 
 #### frames
@@ -913,6 +938,18 @@ $CR
 ```
 
 
+#### update
+
+`Number`
+
+*Experimental*. A timeout for background updates. After this timeout since
+the previous data was fetched, `conkitty-route` will rerequest the Frame data
+and silently rerender the Frame in case the data is changed. Only successful
+attempts to fetch the data will be considered and only `success` and `after`
+render stages will be called. You can customize the data equality check
+function using `$CR.DATA()` helper.
+
+
 ## Form
 
 ### Form summary
@@ -931,7 +968,8 @@ submitted.
 
 `String`  
 `Function`  
-`Data-description object`
+`$CR.DATA()`  
+`$CR.STATIC()`
 
 When you don't provide the `action` attribute for the form DOM node, this
 `action` setting is used.
@@ -942,10 +980,9 @@ to the [Frame `data` setting](#data)).
 When the `action` setting is a function, this function will be called, the
 first argument is a serialized form data, the second argument is this Form
 parent Frame runtime object, `this` will point to the DOM node of the form.
-The function should return an URI to submit the form to.
+The function should return the data of the submission result.
 
-The `action` setting could be the
-[`Data-description object`](#data-description-object).
+`$CR.DATA()` and `$CR.STATIC()` have the same meaning the Frame has.
 
 
 #### method

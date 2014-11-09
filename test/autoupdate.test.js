@@ -16,6 +16,7 @@ describe('Autoupdate test', function() {
         };
 
         var callNumber = 0,
+            callNumber2 = 0,
             events = [];
 
         $CR
@@ -32,7 +33,7 @@ describe('Autoupdate test', function() {
                             '?p2=:p2': {
                                 id: 'frame2',
                                 data: $CR.DATA({uri: function(params) { return '/api/data2/' + callNumber + '/' + params.p2; }}),
-                                render: 'Template2'
+                                render: ['Template2', function() { events.push(this.id + ' render'); }]
                             },
                             '?p1=p1': {
                                 id: 'frame4',
@@ -40,8 +41,14 @@ describe('Autoupdate test', function() {
                             },
                             '?p3=:p3': {
                                 id: 'frame3',
-                                data: $CR.DATA({uri: function(params) { return '/api/data3/' + callNumber + '/' + params.p3; }}),
-                                render: 'Template3'
+                                update: 300,
+                                data: $CR.DATA({
+                                    uri: function(params) {
+                                        events.push(this.id + ' request ' + ++callNumber2);
+                                        return '/api/data3/' + callNumber2 + '/' + params.p3; },
+                                    eq: function() { return true; }
+                                }),
+                                render: ['Template3', function() { events.push(this.id + ' render'); }]
                             }
                         }
                     }
@@ -107,11 +114,15 @@ describe('Autoupdate test', function() {
                 'success frame4',
                 'after frame4',
                 'before frame3',
+                'frame3 request 1',
+                'frame2 render',
                 'success frame2',
                 'after frame2',
+                'frame3 render',
                 'success frame3',
                 'after frame3',
-                'idle undefined'
+                'idle undefined',
+                'frame3 request 2'
             ]);
             events = [];
 
@@ -128,10 +139,14 @@ describe('Autoupdate test', function() {
                 {name: 'span', value: ['["Template2",{"url":"/api/data2/2/' + PARAM2 + '","method":"GET"},{"p2":"' + PARAM2 + '"}]']},
                 {name: 'div', value: ['Template4']},
                 {name: 'p', value: ['/sub1/' + PARAM1 + '/data1']},
-                {name: 'span', value: ['["Template3",{"url":"/api/data3/2/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
+                {name: 'span', value: ['["Template3",{"url":"/api/data3/1/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
             ]);
 
-            expect(events).toEqual([]);
+            expect(events).toEqual([
+                'frame3 request 3',
+                'frame2 render',
+                'frame3 request 4'
+            ]);
             events = [];
 
             waitInit();
@@ -147,10 +162,14 @@ describe('Autoupdate test', function() {
                 {name: 'span', value: ['["Template2",{"url":"/api/data2/3/' + PARAM2 + '","method":"GET"},{"p2":"' + PARAM2 + '"}]']},
                 {name: 'div', value: ['Template4']},
                 {name: 'p', value: ['/sub1/' + PARAM1 + '/data1']},
-                {name: 'span', value: ['["Template3",{"url":"/api/data3/3/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
+                {name: 'span', value: ['["Template3",{"url":"/api/data3/1/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
             ]);
 
-            expect(events).toEqual([]);
+            expect(events).toEqual([
+                'frame3 request 5',
+                'frame2 render',
+                'frame3 request 6'
+            ]);
             events = [];
 
             $CR.set('/nothing');

@@ -1527,7 +1527,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             waiting = 0,
             render = frame.render,
             resolve,
-            done = function(index, data, /**/i, children, r, errors) {
+            done = function(index, data, /**/i, children, r, errors, prevDatas) {
                 if (index !== undefined) {
                     datas[index] = data;
                     waiting--;
@@ -1542,6 +1542,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         if (update && errors) { frame[KEY_DATAERROR] = undefined; }
 
                         frame._l = undefined;
+                        prevDatas = frame._data;
                         frame._data = datas;
 
                         // Further stages might be delayed in case of `wait`
@@ -1553,6 +1554,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
 
                             stage = errors ? (update ? NULL : STR_ERROR) : STR_SUCCESS;
+
+                            if (stage && update) {
+                                r = true;
+                                for (i = datas.length; r && i--;) {
+                                    d = dataSource[i];
+                                    r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[i], prevDatas[i]);
+                                }
+                                if (r) { stage = NULL; }
+                            }
+
                             if (stage) {
                                 if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
                                     return;
@@ -1569,9 +1580,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 }
                             }
 
-                            if (frame.update) {
-                                self.u = setTimeout(function() {
+                            if (frame.update && (prevDatas || !errors)) {
+                                if (frame._u) { clearTimeout(frame._u); }
+                                frame._u = setTimeout(function() {
                                     new ProcessFrame(frame, true);
+                                    frame._u = NULL;
                                 }, frame.update);
                             }
                         };
@@ -1598,6 +1611,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!skip) {
             frame._l = self;
+            self.u = update;
             frame._w2 = d = frame._w;
 
             if (!frame.wait && !update) {
@@ -1683,16 +1697,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     ProcessFrame.prototype.reject = function() {
-        var self = this,
-            datas = self.datas,
+        var datas = this.datas,
             i,
             d;
 
-        self.rejected = true;
-        if (self.u) {
-            clearTimeout(self.u);
-            self.u = undefined;
-        }
+        this.rejected = true;
 
         for (i = datas.length; i--;) {
             d = datas[i];
@@ -1718,6 +1727,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (frame.isForm && !frame._c) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
+        }
+
+        if (frame._u) {
+            clearTimeout(frame._u);
+            frame._u = undefined;
         }
 
         if (frame._r) {

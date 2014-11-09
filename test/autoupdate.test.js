@@ -152,6 +152,31 @@ describe('Autoupdate test', function() {
 
             expect(events).toEqual([]);
             events = [];
+
+            $CR.set('/nothing');
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: ['NotFoundTemplate']},
+                {name: 'p', value: ['/nothing']}
+            ]);
+
+            expect(events).toEqual([
+                'leave frame2',
+                'leave frame4',
+                'leave frame3',
+                'leave frame1',
+                'leave frame0',
+                'before not-found',
+                'success not-found',
+                'after not-found'
+            ]);
+            events = [];
         });
     });
 });

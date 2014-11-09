@@ -231,7 +231,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     emitEvent(busyCount ? 'busy' : 'idle', API);
                 }
             }, 0);
-            backgroundUpdate();
         });
 
         addEvent('click', function(e) {
@@ -919,6 +918,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                     }
                 }
+
+                self.update = frameSettings.update;
             }
         }
 
@@ -1545,7 +1546,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                         // Further stages might be delayed in case of `wait`
                         // setting of the frame. Store these stages execution
-                        // in `frame[CALLBACK]`.
+                        // in `frame._r`.
                         frame._r = function(/**/defaultRenderParent, stage) {
                             frame._r = undefined;
 
@@ -1566,6 +1567,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 if (!update) {
                                     emitEvent(STR_AFTER, frame);
                                 }
+                            }
+
+                            if (frame.update) {
+                                self.u = setTimeout(function() {
+                                    new ProcessFrame(frame, true);
+                                }, frame.update);
                             }
                         };
 
@@ -1591,7 +1598,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!skip) {
             frame._l = self;
-            frame._u = update;
             frame._w2 = d = frame._w;
 
             if (!frame.wait && !update) {
@@ -1677,11 +1683,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     ProcessFrame.prototype.reject = function() {
-        var datas = this.datas,
+        var self = this,
+            datas = self.datas,
             i,
             d;
 
-        this.rejected = true;
+        self.rejected = true;
+        if (self.u) {
+            clearTimeout(self.u);
+            self.u = undefined;
+        }
 
         for (i = datas.length; i--;) {
             d = datas[i];
@@ -1702,14 +1713,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         // Cancel loading the data (if any).
         if (frame._l) {
+            frame._r = !frame._l.u;
             frame._l.reject();
             if (frame.isForm && !frame._c) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
-            frame._r = true;
         }
 
-        if (frame._r && !frame._u) {
+        if (frame._r) {
             // We've rejected the frame above and/or there were delayed stages.
             emitEvent('stop', frame);
         }
@@ -1801,15 +1812,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         return withFields ? [serialized, fields] : serialized;
-    }
-
-
-    function backgroundUpdate() {
-        if (busyCount) {
-
-        } else {
-
-        }
     }
 
 

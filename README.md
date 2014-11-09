@@ -332,8 +332,8 @@ Let's check out the `data` setting value type meanings:
 
 - [`String`](#string)
 - [`Function`](#function)
-- [`$CR.DATA()`](#cr-data)
-- [`$CR.STATIC()`](#cr-static)
+- [`$CR.DATA()`](#crdata)
+- [`$CR.STATIC()`](#crstatic)
 - [`Array` *of any of the previous*](#array-of-any-of-the-previous)
 
 ##### `String`

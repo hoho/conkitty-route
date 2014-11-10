@@ -568,17 +568,17 @@ stage, see `Array` description below) and `undefined` (nothing will happen to
 the document, sometimes you just need to call a function).
 
 
-##### `$CR.TEMPLATE(settings)`
+##### `$CR.TEMPLATE(name, parent, replace)`
 
 To customize the template call result, `$CR.TEMPLATE` helper should be used.
 
 ```js
     ...
-    render: $CR.TEMPLATE({
-        template: String | Function, // The same to the descriptions above.
-        parent: String | Function | Node, // Personal parent for the result.
-        replace: false // Do not replace the DOM from the previous stage, `true` by default.
-    }),
+    render: $CR.TEMPLATE(
+        String | Function, // Template name, the same to the descriptions above.
+        String | Function | Node, // Personal parent for the result.
+        false // Do not replace the DOM from the previous stage, `true` by default.
+    ),
     ...
 ```
 

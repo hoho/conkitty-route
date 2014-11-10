@@ -19,7 +19,9 @@ gulp.task('eslint', function() {
                 'no-underscore-dangle': 0,
                 'no-use-before-define': [2, 'nofunc'],
                 'no-new': 0,
-                'new-cap': 0
+                'new-cap': 0,
+                'no-multi-spaces': 0,
+                'comma-spacing': 0
             },
             env: {
                 'node': true,

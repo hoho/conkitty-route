@@ -938,25 +938,25 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 currentParams = {};
 
                 var match = pathname.match(pathnameExpr),
-                    i;
+                    j;
 
                 if (match) {
-                    for (i = pathParams.length; i--;) {
+                    for (j = pathParams.length; j--;) {
                         if (!checkAndSetParam(
                                 undefined,
-                                match[paramsOffset + i],
-                                pathParams[i],
+                                match[paramsOffset + j],
+                                pathParams[j],
                                 paramsConstraints,
                                 undefined,
                                 currentParams)
                             )
                         {
-                            i = false;
+                            j = false;
                             break;
                         }
                     }
 
-                    if (i === false || (!uriSearch && !uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
+                    if (j === false || (!uriSearch && !uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
                         deactivateFrame(self);
                         return false;
                     }
@@ -966,11 +966,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (((self._d = !match[paramsOffset + pathParams.length])) && self.final !== false) {
                         // Deepest matched frame and there is render for this frame.
                         self._a = 1;
-                        i = parent;
-                        while (i) {
+                        j = parent;
+                        while (j) {
                             // Tell parents about it.
-                            i._a++;
-                            i = i[KEY_PARENT];
+                            j._a++;
+                            j = j[KEY_PARENT];
                         }
                     }
                 }
@@ -1013,7 +1013,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 if (uriHash) {
                     frame.hash = function(hash) {
-                        var i = checkAndSetParam(
+                        var j = checkAndSetParam(
                                 undefined,
                                 hash || undefined,
                                 uriHash,
@@ -1028,11 +1028,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             :
                             false;
 
-                        if (!i) {
+                        if (!j) {
                             deactivateFrame(self);
                         }
 
-                        return i;
+                        return j;
                     };
                 }
             }

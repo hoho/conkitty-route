@@ -30,7 +30,7 @@ Build a single page application using routing tree.
         - [reduce](#reduce)
         - [form](#form)
         - [on](#on)
-        - [update](#update)
+        - [refresh](#refresh)
 - [Form](#form)
     - [Form summary](#form-summary)
     - [Form settings](#form-settings)
@@ -419,7 +419,7 @@ argument, `XMLHttRequest` object as the second argument, `this` will point to
 the Frame runtime object. The function should return the transformed data.
 
 When `eq` function is defined, it will be used instead of the default equality
-check function for the [automatic update](#update) functionality. The function
+check function for the [automatic refresh](#refresh) functionality. The function
 will receive the new data as the first argument and the previous data as the
 second argument, `this` will point to the Frame runtime object.
 
@@ -938,11 +938,11 @@ $CR
 ```
 
 
-#### update
+#### refresh
 
 `Number`
 
-*Experimental*. A timeout for background updates. After this timeout since
+*Experimental*. A timeout for a background refresh. After this timeout since
 the previous data was fetched, `conkitty-route` will rerequest the Frame data
 and silently rerender the Frame in case the data is changed. Only successful
 attempts to fetch the data will be considered and only `success` and `after`

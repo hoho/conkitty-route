@@ -161,7 +161,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 traverseCallback = function(f/**/, tmp, brk) {
                     if (f._a) {
                         // frame._w is a number of active frames in current branch, for
-                        // `wait: true` and autoupdates.
+                        // `wait: true` and autorefresh.
                         f._w++;
                         newFrames[(tmp = f._id)] = f;
                         newFramesCount++;
@@ -919,7 +919,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
 
-                self.update = frameSettings.update;
+                self.refresh = frameSettings.refresh;
             }
         }
 
@@ -1515,10 +1515,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function ProcessFrame(frame, update, formNode, formBody) {
+    function ProcessFrame(frame, refresh, formNode, formBody) {
         if (frame._l) { return; }
 
-        var skip = !update && ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
+        var skip = !refresh && ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSource = frame[KEY_DATASOURCE],
@@ -1538,8 +1538,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     children = frame.children;
 
                     if (!skip) {
-                        // Ignore errors during background update.
-                        if (update && errors) { frame[KEY_DATAERROR] = undefined; }
+                        // Ignore errors during background refresh.
+                        if (refresh && errors) { frame[KEY_DATAERROR] = undefined; }
 
                         frame._l = undefined;
                         prevDatas = frame._data;
@@ -1553,9 +1553,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                             defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
 
-                            stage = errors ? (update ? NULL : STR_ERROR) : STR_SUCCESS;
+                            stage = errors ? (refresh ? NULL : STR_ERROR) : STR_SUCCESS;
 
-                            if (stage && update) {
+                            if (stage && refresh) {
                                 r = true;
                                 for (i = datas.length; r && i--;) {
                                     d = dataSource[i];
@@ -1568,24 +1568,23 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
                                     return;
                                 }
-                                if (!update) {
-                                    emitEvent(stage, frame, errors || datas);
-                                }
 
-                                if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
-                                    return;
-                                }
-                                if (!update) {
+                                if (!refresh) {
+                                    emitEvent(stage, frame, errors || datas);
+
+                                    if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
+                                        return;
+                                    }
                                     emitEvent(STR_AFTER, frame);
                                 }
                             }
 
-                            if (frame.update && (prevDatas || !errors)) {
+                            if (frame.refresh && (prevDatas || !errors)) {
                                 if (frame._u) { clearTimeout(frame._u); }
                                 frame._u = setTimeout(function() {
                                     new ProcessFrame(frame, true);
                                     frame._u = NULL;
-                                }, frame.update);
+                                }, frame.refresh);
                             }
                         };
 
@@ -1596,13 +1595,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     // Update wait flags and call delayed callbacks if any.
-                    callDelayedStages(currentRootFrame, frame, errors || (!frame.wait && !update) ? frame._w2 : 1);
+                    callDelayedStages(currentRootFrame, frame, errors || (!frame.wait && !refresh) ? frame._w2 : 1);
 
                     if (!errors) {
                         for (i = 0; i < children.length; i++) {
                             r = children[i];
                             if (r._id in currentFrames) {
-                                new ProcessFrame(r, update);
+                                new ProcessFrame(r, refresh);
                             }
                         }
                     }
@@ -1611,10 +1610,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!skip) {
             frame._l = self;
-            self.u = update;
+            self.u = refresh;
             frame._w2 = d = frame._w;
 
-            if (!frame.wait && !update) {
+            if (!frame.wait && !refresh) {
                 // Update wait flags and call delayed callbacks if any.
                 callDelayedStages(currentRootFrame, frame, d);
             }
@@ -1625,7 +1624,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 :
                 i;
 
-            if (!update) {
+            if (!refresh) {
                 if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode)) {
                     return;
                 }

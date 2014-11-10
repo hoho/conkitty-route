@@ -1,5 +1,5 @@
-describe('Autoupdate test', function() {
-    it('runs autoupdate test', function() {
+describe('Autorefresh test', function() {
+    it('runs autorefresh test', function() {
         var flag;
         var waitInit = function() {
             flag = false;
@@ -26,7 +26,7 @@ describe('Autoupdate test', function() {
                 frames: {
                     '/:p1/data1': {
                         id: 'frame1',
-                        update: 600,
+                        refresh: 600,
                         data: $CR.DATA({uri: function() { return '/api/data1/' + ++callNumber; }}),
                         render: 'Template1',
                         frames: {
@@ -41,7 +41,7 @@ describe('Autoupdate test', function() {
                             },
                             '?p3=:p3': {
                                 id: 'frame3',
-                                update: 300,
+                                refresh: 300,
                                 data: $CR.DATA({
                                     uri: function(params) {
                                         events.push(this.id + ' request ' + ++callNumber2);

@@ -23,10 +23,10 @@
                             frames: {
                                 '/:?message': {
                                     id: 'message',
-                                    data: {
+                                    data: $CR.DATA({
                                         override: function(params) { if (!params.message) { return null; }},
-                                        uri: '/api/message?folder=::folder&message=:message'
-                                    },
+                                        uri: '/api/message?folder=:folder&message=:message'
+                                    }),
                                     render: {
                                         '-before': 'messages',
                                         success: ['messages', 'message']

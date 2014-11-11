@@ -1579,12 +1579,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 }
                             }
 
-                            if (frame.refresh && (prevDatas || !errors)) {
+                            if (((i = frame.refresh)) && (prevDatas || !errors)) {
                                 if (frame._u) { clearTimeout(frame._u); }
                                 frame._u = setTimeout(function() {
                                     new ProcessFrame(frame, true);
                                     frame._u = NULL;
-                                }, frame.refresh);
+                                }, isFunction(i) ? i.call(frame) : i);
                             }
                         };
 

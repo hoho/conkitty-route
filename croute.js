@@ -473,6 +473,20 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
+    API.REFRESH = function(settings) {
+        var ret = new InternalValue(5), // Magic number 5: Automatic background
+            r;                          // refresh configuration.
+
+        if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
+            throwError('Wrong refresh');
+        }
+        ret.o = settings.timeout;
+        ret.j = ((r = settings.join)) === undefined ? true : r;
+
+        return ret;
+    };
+
+
     proto.reload = function() {
         var self = this,
             parent;
@@ -919,7 +933,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
 
-                self.refresh = frameSettings.refresh;
+                if ((i = frameSettings.refresh)) {
+                    self.refresh = isInternalValue(5, i) ? i : API.REFRESH({refresh: i});
+                }
             }
         }
 
@@ -1580,6 +1596,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
 
                             if (((i = frame.refresh)) && (prevDatas || !errors)) {
+                                i = i.r;
                                 if (frame._u) { clearTimeout(frame._u); }
                                 frame._u = setTimeout(function() {
                                     new ProcessFrame(frame, true);

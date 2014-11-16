@@ -1596,29 +1596,28 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
 
                             if (((i = frame.refresh)) && (prevDatas || !errors)) {
-                                (function refresh(settings, timedOut/**/, timeout, delay) {
+                                (function refreshCallback(settings, timeout/**/, delay) {
                                     if (frame._u) { clearTimeout(frame._u); }
-                                    if (frame._o) { clearTimeout(frame._o); }
-
-                                    // Timeout.
-                                    if ((timeout = settings.o || 0)) {
-                                        timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
-                                        frame._o = setTimeout(function() {
-                                            frame._o = NULL;
-                                            refresh(settings, timeout);
-                                        }, timeout);
-                                    }
+                                    if (frame._o) { clearTimeout(frame._o); frame._o = NULL; }
 
                                     delay = isFunction((delay = settings.r)) ? delay.call(frame) : delay;
-                                    if (timedOut && !settings.j) { delay -= timedOut; }
+                                    if (timeout && !settings.j) { delay -= timeout; }
 
                                     // Auto refresh timer.
                                     frame._u = setTimeout(function() {
                                         frame._u = NULL;
-                                        if (frame._o) {
-                                            clearTimeout(frame._o);
-                                            frame._o = NULL;
+
+                                        // Timeout.
+                                        if ((timeout = settings.o || 0)) {
+                                            timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
+                                            frame._o = setTimeout(function() {
+                                                frame._o = NULL;
+                                                frame._l.reject();
+                                                frame._l = undefined;
+                                                refreshCallback(settings, timeout);
+                                            }, timeout);
                                         }
+
                                         new ProcessFrame(frame, true);
                                     }, delay < 0 ? 0 : delay);
                                 })(i);

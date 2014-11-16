@@ -1596,12 +1596,32 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
 
                             if (((i = frame.refresh)) && (prevDatas || !errors)) {
-                                i = i.r;
-                                if (frame._u) { clearTimeout(frame._u); }
-                                frame._u = setTimeout(function() {
-                                    new ProcessFrame(frame, true);
-                                    frame._u = NULL;
-                                }, isFunction(i) ? i.call(frame) : i);
+                                (function refresh(settings, timedOut/**/, timeout, delay) {
+                                    if (frame._u) { clearTimeout(frame._u); }
+                                    if (frame._o) { clearTimeout(frame._o); }
+
+                                    // Timeout.
+                                    if ((timeout = settings.o || 0)) {
+                                        timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
+                                        frame._o = setTimeout(function() {
+                                            frame._o = NULL;
+                                            refresh(settings, timeout);
+                                        }, timeout);
+                                    }
+
+                                    delay = isFunction((delay = settings.r)) ? delay.call(frame) : delay;
+                                    if (timedOut && !settings.j) { delay -= timedOut; }
+
+                                    // Auto refresh timer.
+                                    frame._u = setTimeout(function() {
+                                        frame._u = NULL;
+                                        if (frame._o) {
+                                            clearTimeout(frame._o);
+                                            frame._o = NULL;
+                                        }
+                                        new ProcessFrame(frame, true);
+                                    }, delay < 0 ? 0 : delay);
+                                })(i);
                             }
                         };
 
@@ -1745,9 +1765,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
-        if (frame._u) {
-            clearTimeout(frame._u);
+        // Reset auto refresh timer.
+        if ((i = frame._u)) {
+            clearTimeout(i);
             frame._u = undefined;
+        }
+
+        // Reset auto refresh timeout timer.
+        if ((i = frame._o)) {
+            clearTimeout(i);
+            frame._o = undefined;
         }
 
         if (frame._r) {

@@ -4,7 +4,7 @@
  */
 
 /* global $H */
-window.$CR = (function(document, decodeURIComponent, encodeURIComponent, location, undefined) {
+window.$CR = (function(document, decodeURIComponent, encodeURIComponent, location, setTimeout, clearTimeout, undefined) {
     'use strict';
 
     var defaultTitle,
@@ -1872,4 +1872,4 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     return API;
-})(document, decodeURIComponent, encodeURIComponent, location);
+})(document, decodeURIComponent, encodeURIComponent, location, setTimeout, clearTimeout);

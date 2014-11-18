@@ -139,12 +139,13 @@ describe('Autorefresh test', function() {
                 {name: 'span', value: ['["Template2",{"url":"/api/data2/2/' + PARAM2 + '","method":"GET"},{"p2":"' + PARAM2 + '"}]']},
                 {name: 'div', value: ['Template4']},
                 {name: 'p', value: ['/sub1/' + PARAM1 + '/data1']},
-                {name: 'span', value: ['["Template3",{"url":"/api/data3/1/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
+                {name: 'span', value: ['["Template3",{"url":"/api/data3/3/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
             ]);
 
             expect(events).toEqual([
                 'frame3 request 3',
                 'frame2 render',
+                'frame3 render',
                 'frame3 request 4'
             ]);
             events = [];
@@ -162,12 +163,13 @@ describe('Autorefresh test', function() {
                 {name: 'span', value: ['["Template2",{"url":"/api/data2/3/' + PARAM2 + '","method":"GET"},{"p2":"' + PARAM2 + '"}]']},
                 {name: 'div', value: ['Template4']},
                 {name: 'p', value: ['/sub1/' + PARAM1 + '/data1']},
-                {name: 'span', value: ['["Template3",{"url":"/api/data3/1/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
+                {name: 'span', value: ['["Template3",{"url":"/api/data3/5/' + PARAM3 + '","method":"GET"},{"p3":"' + PARAM3 + '"}]']}
             ]);
 
             expect(events).toEqual([
                 'frame3 request 5',
                 'frame2 render',
+                'frame3 render',
                 'frame3 request 6'
             ]);
             events = [];

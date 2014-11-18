@@ -1543,7 +1543,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             waiting = 0,
             render = frame.render,
             resolve,
-            done = function(index, data, /**/i, children, r, errors, prevDatas) {
+            done = function(index, data, /**/i, children, r, errors, prevDatas, stage) {
                 if (index !== undefined) {
                     datas[index] = data;
                     waiting--;
@@ -1561,24 +1561,32 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         prevDatas = frame._data;
                         frame._data = datas;
 
+                        stage = errors ? (refresh ? NULL : STR_ERROR) : STR_SUCCESS;
+
+                        // Initially, when refresh argument is passed, it equals
+                        // to 1. When some data is changed, it becomes 2 to
+                        // skip equality check for child frames and rerender
+                        // them anyway.
+                        if (stage && refresh && refresh !== 2) {
+                            r = true;
+                            for (i = datas.length; r && i--;) {
+                                d = dataSource[i];
+                                r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[i], prevDatas[i]);
+                            }
+                            if (r) {
+                                stage = NULL;
+                            } else {
+                                refresh = 2;
+                            }
+                        }
+
                         // Further stages might be delayed in case of `wait`
                         // setting of the frame. Store these stages execution
                         // in `frame._r`.
-                        frame._r = function(/**/defaultRenderParent, stage) {
+                        frame._r = function(/**/defaultRenderParent) {
                             frame._r = undefined;
 
                             defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
-
-                            stage = errors ? (refresh ? NULL : STR_ERROR) : STR_SUCCESS;
-
-                            if (stage && refresh) {
-                                r = true;
-                                for (i = datas.length; r && i--;) {
-                                    d = dataSource[i];
-                                    r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[i], prevDatas[i]);
-                                }
-                                if (r) { stage = NULL; }
-                            }
 
                             if (stage) {
                                 if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
@@ -1618,7 +1626,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                             }, timeout);
                                         }
 
-                                        new ProcessFrame(frame, true);
+                                        new ProcessFrame(frame, 1);
                                     }, delay < 0 ? 0 : delay);
                                 })(i);
                             }

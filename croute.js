@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.5.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.5.2, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1567,7 +1567,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         // to 1. When some data is changed, it becomes 2 to
                         // skip equality check for child frames and rerender
                         // them anyway.
-                        if (stage && refresh && refresh !== 2) {
+                        if (stage && refresh === 1) {
                             r = true;
                             for (i = datas.length; r && i--;) {
                                 d = dataSource[i];

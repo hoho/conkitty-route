@@ -1620,8 +1620,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                             timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
                                             frame._o = setTimeout(function() {
                                                 frame._o = NULL;
-                                                frame._l.reject();
-                                                frame._l = undefined;
+                                                if (frame._l) {
+                                                    frame._l.reject();
+                                                    frame._l = undefined;
+                                                }
                                                 refreshCallback(settings, timeout);
                                             }, timeout);
                                         }

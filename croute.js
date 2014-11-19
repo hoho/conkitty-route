@@ -1532,7 +1532,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     function ProcessFrame(frame, refresh, formNode, formBody) {
-        if (frame._l) { return; }
+        if (frame._l) {
+            if (!frame._l.u) {
+                return;
+            }
+            abortFrame(frame);
+        }
 
         var skip = !refresh && ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
             self = this,
@@ -1605,8 +1610,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                             if (((i = frame.refresh)) && (prevDatas || !errors)) {
                                 (function refreshCallback(settings, timeout/**/, delay) {
-                                    if (frame._u) { clearTimeout(frame._u); }
-                                    if (frame._o) { clearTimeout(frame._o); frame._o = NULL; }
+                                    abortFrame(frame);
 
                                     delay = isFunction((delay = settings.r)) ? delay.call(frame) : delay;
                                     if (timeout && !settings.j) { delay -= timeout; }
@@ -1614,16 +1618,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                     // Auto refresh timer.
                                     frame._u = setTimeout(function() {
                                         frame._u = NULL;
+                                        abortFrame(frame);
 
                                         // Timeout.
                                         if ((timeout = settings.o || 0)) {
                                             timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
                                             frame._o = setTimeout(function() {
                                                 frame._o = NULL;
-                                                if (frame._l) {
-                                                    frame._l.reject();
-                                                    frame._l = undefined;
-                                                }
                                                 refreshCallback(settings, timeout);
                                             }, timeout);
                                         }
@@ -1766,25 +1767,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }, undefined, true);
 
         // Cancel loading the data (if any).
-        if (frame._l) {
-            frame._r = !frame._l.u;
-            frame._l.reject();
+        if ((i = frame._l)) {
+            frame._r = !i.u;
             if (frame.isForm && !frame._c) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
         }
 
-        // Reset auto refresh timer.
-        if ((i = frame._u)) {
-            clearTimeout(i);
-            frame._u = undefined;
-        }
-
-        // Reset auto refresh timeout timer.
-        if ((i = frame._o)) {
-            clearTimeout(i);
-            frame._o = undefined;
-        }
+        abortFrame(frame);
 
         if (frame._r) {
             // We've rejected the frame above and/or there were delayed stages.
@@ -1794,7 +1784,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         // Reset the ready callback and the form existence flag if any.
         frame._r = frame._f = undefined;
 
-        if (frame._l !== undefined || frame._data !== undefined) {
+        if (i !== undefined || frame._data !== undefined) {
             frame._l = frame._data = frame[KEY_DATAERROR] = undefined;
 
             if (!(frame._id in activeFrames)) {
@@ -1814,6 +1804,27 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     frame._n = {};
                 }
             }
+        }
+    }
+
+
+    function abortFrame(frame/**/, tmp) {
+        // Reset auto refresh timer.
+        if ((tmp = frame._u)) {
+            clearTimeout(tmp);
+            frame._u = undefined;
+        }
+
+        // Reset auto refresh timeout timer.
+        if ((tmp = frame._o)) {
+            clearTimeout(tmp);
+            frame._o = undefined;
+        }
+
+        // Cancel loading the data (if any).
+        if ((tmp = frame._l)) {
+            tmp.reject();
+            frame._l = undefined;
         }
     }
 

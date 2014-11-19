@@ -41,7 +41,7 @@ describe('Autorefresh test', function() {
                             },
                             '?p3=:p3': {
                                 id: 'frame3',
-                                refresh: 300,
+                                refresh: 450,
                                 data: $CR.DATA({
                                     uri: function(params) {
                                         events.push(this.id + ' request ' + ++callNumber2);
@@ -145,8 +145,7 @@ describe('Autorefresh test', function() {
             expect(events).toEqual([
                 'frame3 request 3',
                 'frame2 render',
-                'frame3 render',
-                'frame3 request 4'
+                'frame3 render'
             ]);
             events = [];
 
@@ -167,10 +166,10 @@ describe('Autorefresh test', function() {
             ]);
 
             expect(events).toEqual([
+                'frame3 request 4',
                 'frame3 request 5',
                 'frame2 render',
-                'frame3 render',
-                'frame3 request 6'
+                'frame3 render'
             ]);
             events = [];
 

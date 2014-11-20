@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.5.3, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.5.4, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1055,15 +1055,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if ((childFrames = frameSettings && frameSettings.frames)) {
                 for (f in childFrames) {
-                    childFrame = new Frame(
-                        f,
-                        childFrames[f],
-                        self.reduce === false ? pathExpr : newPathExpr,
-                        paramsOffset + (self.reduce === false ? 0 : pathParams.length),
-                        self
-                    );
+                    tmp = isArray((tmp = childFrames[f])) ? tmp : [tmp];
+                    for (i = 0; i < tmp.length; i++) {
+                        childFrame = new Frame(
+                            f,
+                            tmp[i],
+                            self.reduce === false ? pathExpr : newPathExpr,
+                            paramsOffset + (self.reduce === false ? 0 : pathParams.length),
+                            self
+                        );
 
-                    self.children.push(childFrame);
+                        self.children.push(childFrame);
+                    }
                 }
             }
         }

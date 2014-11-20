@@ -21,7 +21,13 @@ describe('Simple test', function() {
             .add('/about', {
                 id: 'about',
                 title: 'About',
-                render: 'AboutTemplate'
+                render: 'AboutTemplate',
+                frames: {
+                    '/': [
+                        {id: 'about_sub1', render: 'AboutTemplateSub1'},
+                        {id: 'about_sub2', render: 'AboutTemplateSub2'}
+                    ]
+                }
             })
             .add(null, {
                 id: 'not-found',
@@ -64,6 +70,10 @@ describe('Simple test', function() {
         $CR.set('/about');
         expect(objectifyBody()).toEqual([
             {name: 'div', value: ['AboutTemplate']},
+            {name: 'p', value: ['/about']},
+            {name: 'div', value: ['AboutTemplateSub1']},
+            {name: 'p', value: ['/about']},
+            {name: 'div', value: ['AboutTemplateSub2']},
             {name: 'p', value: ['/about']}
         ]);
         expect(events).toEqual([
@@ -71,7 +81,13 @@ describe('Simple test', function() {
             'leave welcome',
             'before about',
             'success about',
-            'after about'
+            'after about',
+            'before about_sub1',
+            'success about_sub1',
+            'after about_sub1',
+            'before about_sub2',
+            'success about_sub2',
+            'after about_sub2'
         ]);
         events = [];
 
@@ -82,6 +98,8 @@ describe('Simple test', function() {
             {name: 'p', value: ['/blah']}
         ]);
         expect(events).toEqual([
+            'leave about_sub1',
+            'leave about_sub2',
             'leave about',
             'before not-found',
             'success not-found',
@@ -93,13 +111,23 @@ describe('Simple test', function() {
         window.history.back();
         expect(objectifyBody()).toEqual([
             {name: 'div', value: ['AboutTemplate']},
+            {name: 'p', value: ['/about']},
+            {name: 'div', value: ['AboutTemplateSub1']},
+            {name: 'p', value: ['/about']},
+            {name: 'div', value: ['AboutTemplateSub2']},
             {name: 'p', value: ['/about']}
         ]);
         expect(events).toEqual([
             'leave not-found',
             'before about',
             'success about',
-            'after about'
+            'after about',
+            'before about_sub1',
+            'success about_sub1',
+            'after about_sub1',
+            'before about_sub2',
+            'success about_sub2',
+            'after about_sub2'
         ]);
         events = [];
 
@@ -110,6 +138,8 @@ describe('Simple test', function() {
             {name: 'p', value: ['/']}
         ]);
         expect(events).toEqual([
+            'leave about_sub1',
+            'leave about_sub2',
             'leave about',
             '[{"p":"hello"},"welcome"]',
             'before inside welcome',
@@ -127,6 +157,10 @@ describe('Simple test', function() {
         window.history.forward();
         expect(objectifyBody()).toEqual([
             {name: 'div', value: ['AboutTemplate']},
+            {name: 'p', value: ['/about']},
+            {name: 'div', value: ['AboutTemplateSub1']},
+            {name: 'p', value: ['/about']},
+            {name: 'div', value: ['AboutTemplateSub2']},
             {name: 'p', value: ['/about']}
         ]);
         expect(events).toEqual([
@@ -134,7 +168,13 @@ describe('Simple test', function() {
             'leave welcome',
             'before about',
             'success about',
-            'after about'
+            'after about',
+            'before about_sub1',
+            'success about_sub1',
+            'after about_sub1',
+            'before about_sub2',
+            'success about_sub2',
+            'after about_sub2'
         ]);
         events = [];
     });

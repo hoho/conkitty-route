@@ -22,11 +22,25 @@ describe('Simple test', function() {
                 id: 'about',
                 title: 'About',
                 render: 'AboutTemplate',
+                group: [
+                    {id: 'about_sub1', render: 'AboutTemplateSub1'},
+                    {id: 'about_sub2', render: 'AboutTemplateSub2'}
+                ],
                 frames: {
-                    '/': [
-                        {id: 'about_sub1', render: 'AboutTemplateSub1'},
-                        {id: 'about_sub2', render: 'AboutTemplateSub2'}
-                    ]
+                    '/it': {
+                        id: 'about_sub3',
+                        render: 'AboutTemplateSub3',
+                        group: [
+                            {id: 'about_sub4', render: 'AboutTemplateSub4'},
+                            {id: 'about_sub5', render: 'AboutTemplateSub5'}
+                        ],
+                        frames: {
+                            '/yes': {
+                                id: 'about_sub6',
+                                render: 'AboutTemplateSub6'
+                            }
+                        }
+                    }
                 }
             })
             .add(null, {
@@ -38,6 +52,7 @@ describe('Simple test', function() {
 
         $CR.on('before success error after stop except leave busy idle', function(e) {
             events.push(e + ' ' + this.id);
+            //if (!this.id) { console.log(this); }
         });
 
         expect(objectifyBody()).toEqual([
@@ -67,7 +82,7 @@ describe('Simple test', function() {
         events = [];
 
 
-        $CR.set('/about');
+        $CR.set('/about/it/yes');
         expect(objectifyBody()).toEqual([
             {name: 'div', value: ['AboutTemplate']},
             {name: 'p', value: ['/about']},

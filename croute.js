@@ -1290,6 +1290,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 return {d: override};
             }
 
+            method = uri.method || method;
             parse = uri.parse;
             transform = uri.transform;
             uri = uri.uri;

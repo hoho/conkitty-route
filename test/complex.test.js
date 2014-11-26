@@ -72,7 +72,7 @@ describe('Complex test', function() {
                         render: 'AllParams'
                     },
                     '/deeper?param1=world&param2=:p&param3=:p2': {
-                        data: '/api/data3?that=:p&those=:p2',
+                        data: $CR.DATA({uri: '/api/data3?that=:p&those=:p2', method: 'POST'}),
                         parent: 'div.params',
                         render: 'DeeperTemplate',
                         id: 'dee',
@@ -294,7 +294,7 @@ describe('Complex test', function() {
                     '5',
                     {name: 'div', value: [
                         '6',
-                        'deeper: [{"url":"/api/data3?that=beautiful&those=hello","method":"GET"},{"p":"beautiful","p2":"hello"}]',
+                        'deeper: [{"url":"/api/data3?that=beautiful&those=hello","method":"POST"},{"p":"beautiful","p2":"hello"}]',
                         'deeperdeeper: [{"url":"/api/data4?arg1=world&arg2=hello&arg3=beautiful","method":"GET"},{"p":"world","p3":"beautiful"}]'
                     ], attr: {class: 'params'}},
                     '7'

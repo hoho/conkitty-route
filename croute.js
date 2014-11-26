@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.5.4, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -527,27 +527,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    proto.params = function(parent) {
-        var p = this;
-        parent = parent || 0;
-        while (p && parent > 0) {
-            p = p[KEY_PARENT];
-            parent--;
-        }
-
-        return p && p._p || undefined;
+    proto.params = function() {
+        return this._p || undefined;
     };
 
 
-    proto.data = function(index, parent) {
-        var p = this,
-            d;
-        parent = parent || 0;
-        while (p && parent > 0) {
-            p = p[KEY_PARENT];
-            parent--;
-        }
-        d = p && p._data;
+    proto.data = function(index) {
+        var d = this._data;
         return isArray(d) ? (index === -1 ? d : d[index || 0]) : undefined;
     };
 

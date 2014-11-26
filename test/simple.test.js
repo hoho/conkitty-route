@@ -18,31 +18,27 @@ describe('Simple test', function() {
                     leave: function(e) { events.push(e + ' inside ' + this.id); }
                 }
             })
-            .add('/about', [
-                {
-                    id: 'about',
-                    title: 'About',
-                    render: 'AboutTemplate',
-                    frames: {
-                        '/it': [
-                            {
-                                id: 'about_sub3',
-                                render: 'AboutTemplateSub3',
-                                frames: {
-                                    '/yes': {
-                                        id: 'about_sub6',
-                                        render: 'AboutTemplateSub6'
-                                    }
+            .add('/about', {
+                id: 'about',
+                title: 'About',
+                render: 'AboutTemplate',
+                frames: {
+                    '/it': [
+                        {
+                            id: 'about_sub1',
+                            render: 'AboutTemplateSub1',
+                            frames: {
+                                '/yes': {
+                                    id: 'about_sub2',
+                                    render: 'AboutTemplateSub2'
                                 }
-                            },
-                            {id: 'about_sub4', render: 'AboutTemplateSub4'},
-                            {id: 'about_sub5', render: 'AboutTemplateSub5'}
-                        ]
-                    }
-                },
-                {id: 'about_sub1', render: 'AboutTemplateSub1'},
-                {id: 'about_sub2', render: 'AboutTemplateSub2'}
-            ])
+                            }
+                        },
+                        {id: 'about_sub3', render: 'AboutTemplateSub3'},
+                        {id: 'about_sub4', render: 'AboutTemplateSub4'}
+                    ]
+                }
+            })
             .add(null, {
                 id: 'not-found',
                 title: 'Not Found',
@@ -93,10 +89,6 @@ describe('Simple test', function() {
             {name: 'div', value: ['AboutTemplateSub3']},
             {name: 'p', value: ['/about/it/yes']},
             {name: 'div', value: ['AboutTemplateSub4']},
-            {name: 'p', value: ['/about/it/yes']},
-            {name: 'div', value: ['AboutTemplateSub5']},
-            {name: 'p', value: ['/about/it/yes']},
-            {name: 'div', value: ['AboutTemplateSub6']},
             {name: 'p', value: ['/about/it/yes']}
         ]);
         expect(events).toEqual([
@@ -116,13 +108,7 @@ describe('Simple test', function() {
             'after about_sub3',
             'before about_sub4',
             'success about_sub4',
-            'after about_sub4',
-            'before about_sub5',
-            'success about_sub5',
-            'after about_sub5',
-            'before about_sub6',
-            'success about_sub6',
-            'after about_sub6'
+            'after about_sub4'
         ]);
         events = [];
 
@@ -133,13 +119,11 @@ describe('Simple test', function() {
             {name: 'p', value: ['/blah']}
         ]);
         expect(events).toEqual([
-            'leave about_sub6',
+            'leave about_sub2',
+            'leave about_sub1',
             'leave about_sub3',
             'leave about_sub4',
-            'leave about_sub5',
             'leave about',
-            'leave about_sub1',
-            'leave about_sub2',
             'before not-found',
             'success not-found',
             'after not-found'
@@ -158,10 +142,6 @@ describe('Simple test', function() {
             {name: 'div', value: ['AboutTemplateSub3']},
             {name: 'p', value: ['/about/it/yes']},
             {name: 'div', value: ['AboutTemplateSub4']},
-            {name: 'p', value: ['/about/it/yes']},
-            {name: 'div', value: ['AboutTemplateSub5']},
-            {name: 'p', value: ['/about/it/yes']},
-            {name: 'div', value: ['AboutTemplateSub6']},
             {name: 'p', value: ['/about/it/yes']}
         ]);
         expect(events).toEqual([
@@ -180,13 +160,7 @@ describe('Simple test', function() {
             'after about_sub3',
             'before about_sub4',
             'success about_sub4',
-            'after about_sub4',
-            'before about_sub5',
-            'success about_sub5',
-            'after about_sub5',
-            'before about_sub6',
-            'success about_sub6',
-            'after about_sub6'
+            'after about_sub4'
         ]);
         events = [];
 
@@ -197,12 +171,10 @@ describe('Simple test', function() {
             {name: 'p', value: ['/']}
         ]);
         expect(events).toEqual([
-            'leave about_sub6',
-            'leave about_sub4',
-            'leave about_sub5',
-            'leave about_sub3',
-            'leave about_sub1',
             'leave about_sub2',
+            'leave about_sub1',
+            'leave about_sub3',
+            'leave about_sub4',
             'leave about',
             '[{"p":"hello"},"welcome"]',
             'before inside welcome',
@@ -228,10 +200,6 @@ describe('Simple test', function() {
             {name: 'div', value: ['AboutTemplateSub3']},
             {name: 'p', value: ['/about/it/yes']},
             {name: 'div', value: ['AboutTemplateSub4']},
-            {name: 'p', value: ['/about/it/yes']},
-            {name: 'div', value: ['AboutTemplateSub5']},
-            {name: 'p', value: ['/about/it/yes']},
-            {name: 'div', value: ['AboutTemplateSub6']},
             {name: 'p', value: ['/about/it/yes']}
         ]);
         expect(events).toEqual([
@@ -251,13 +219,7 @@ describe('Simple test', function() {
             'after about_sub3',
             'before about_sub4',
             'success about_sub4',
-            'after about_sub4',
-            'before about_sub5',
-            'success about_sub5',
-            'after about_sub5',
-            'before about_sub6',
-            'success about_sub6',
-            'after about_sub6'
+            'after about_sub4'
         ]);
         events = [];
     });

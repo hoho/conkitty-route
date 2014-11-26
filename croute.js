@@ -176,12 +176,31 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                         return !!brk;
                     }
+                },
+                activateParallelFramesCallback = function(f/**/, parallel, j) {
+                    // Check if there are parallel frames.
+                    if ((parallel = f._g)) {
+                        for (j = parallel.length; j--;) {
+                            // Check if at least one active frame among the
+                            // arallel frames exists.
+                            if (parallel[j]._a) {
+                                for (j = parallel.length; j--;) {
+                                    // Activate the inactive parallel frames.
+                                    if (!((f = parallel[j]))._a && (f.final !== false)) {
+                                        setFrameActiveFlag(f, 1);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
                 };
 
             for (i = 0; i < frames.length; i++) {
                 frame = frames[i];
                 if (frame._a) {
-                    traverseFrame((newRootFrame = frame), traverseCallbackBefore, traverseCallback);
+                    traverseFrame((newRootFrame = frame), undefined, activateParallelFramesCallback);
+                    traverseFrame(frame, traverseCallbackBefore, traverseCallback);
                     break;
                 }
             }
@@ -561,7 +580,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (frame === tmp && ((i = frame.form))) {
             if (!((form = formNode[(tmp = KEY_FRAME + 'f')]))) {
-                form = formNode[tmp] = new Frame(undefined, i, undefined, undefined, frame, true);
+                form = formNode[tmp] = new Frame(
+                    undefined,
+                    undefined,
+                    undefined,
+                    i, // frameSettings
+                    undefined,
+                    undefined,
+                    frame, // parent
+                    true // form
+                );
             }
 
             data = serializeForm(formNode, true);
@@ -664,9 +692,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     );
 
 
-    function addFrame(uri, frameSettings/**/, frame) {
-        frame = new Frame(uri, frameSettings);
-        frames.push(frame);
+    function addFrame(uri, frameSettings) {
+        new Frame(frames, undefined, uri, frameSettings);
     }
 
 
@@ -847,18 +874,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function deactivateFrame(frame/**/, a) {
-        if ((a = frame._a)) {
+    function setFrameActiveFlag(frame, active/**/, a) {
+        // frame._a means active frame.
+        if (!!((a = frame._a)) === !active) {
             while (frame) {
                 // Tell parents about it.
-                frame._a -= a;
+                frame._a += (active || -a);
                 frame = frame[KEY_PARENT];
             }
         }
     }
 
 
-    function Frame(uri, frameSettings, pathExpr, paramsOffset, parent, form) {
+    function Frame(array, parallel, uri, frameSettings, pathExpr, paramsOffset, parent, form) {
         var self = this,
             i,
             childFrames,
@@ -866,7 +894,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             tmp,
             events,
             frame = /.*/, // Default value is for NotFound frame.
-            childFrame,
             pathnameExpr,
             pathParams,
             uriSearch,
@@ -898,6 +925,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.type = frameSettings.type;
                 self[STR_SUBMIT] = frameSettings[STR_SUBMIT];
             } else {
+                array.push(self);
+                if (parallel) {
+                    self._g = parallel;
+                    parallel.push(self);
+                }
+
                 paramsConstraints = frameSettings.params;
                 if ((i = self.id = frameSettings.id)) {
                     if (i in frameById) { throwError('Duplicate id: ' + i); }
@@ -973,21 +1006,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     if (j === false || (!uriSearch && !uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
-                        deactivateFrame(self);
+                        setFrameActiveFlag(self);
                         return false;
                     }
 
                     // self._d means that there are no further pathname components.
-                    // self._a means active frame.
                     if (((self._d = !match[paramsOffset + pathParams.length])) && self.final !== false) {
                         // Deepest matched frame and there is render for this frame.
-                        self._a = 1;
-                        j = parent;
-                        while (j) {
-                            // Tell parents about it.
-                            j._a++;
-                            j = j[KEY_PARENT];
-                        }
+                        setFrameActiveFlag(self, 1);
                     }
                 }
 
@@ -1019,7 +1045,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
 
                         if (queryparams === false || (!uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
-                            deactivateFrame(self);
+                            setFrameActiveFlag(self);
                             queryparams = false;
                         }
 
@@ -1045,7 +1071,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             false;
 
                         if (!j) {
-                            deactivateFrame(self);
+                            setFrameActiveFlag(self);
                         }
 
                         return j;
@@ -1055,17 +1081,21 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if ((childFrames = frameSettings && frameSettings.frames)) {
                 for (f in childFrames) {
-                    tmp = isArray((tmp = childFrames[f])) ? tmp : [tmp];
+                    if (isArray((tmp = childFrames[f]))) {
+                        parallel = [];
+                    } else {
+                        tmp = [tmp];
+                    }
                     for (i = 0; i < tmp.length; i++) {
-                        childFrame = new Frame(
+                        new Frame(
+                            self.children,
+                            parallel,
                             f,
                             tmp[i],
                             self.reduce === false ? pathExpr : newPathExpr,
                             paramsOffset + (self.reduce === false ? 0 : pathParams.length),
                             self
                         );
-
-                        self.children.push(childFrame);
                     }
                 }
             }

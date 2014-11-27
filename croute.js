@@ -297,7 +297,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     data = form._se; // Serialized form data.
 
                     form[KEY_DATASOURCE] = [isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        API.STATIC(action.call(formNode, data, frame))
+                        API.static(action.call(formNode, data, frame))
                         :
                         (action || location.href)];
                     form.method = formNode.getAttribute('method') || form._method || 'get';
@@ -465,7 +465,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.URI = function(uri, params, reload, replace) {
+    API.uri = function(uri, params, reload, replace) {
         var ret = new InternalValue(1); // Magic number 1: URI.
         ret.u = uri;
         ret.p = params;
@@ -475,14 +475,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.STATIC = function(value) {
+    API.static = function(value) {
         var ret = new InternalValue(2); // Magic number 2: Static data.
         ret.v = value;
         return ret;
     };
 
 
-    API.TEMPLATE = function(name, parent, replace) {
+    API.tpl = function(name, parent, replace) {
         var ret = new InternalValue(3); // Magic number 3: Template.
         ret.n = name;
         ret.p = parent;
@@ -491,7 +491,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.DATA = function(value) {
+    API.data = function(value) {
         var ret = new InternalValue(4); // Magic number 4: Data with additional
                                         // processing functions.
         if (!value || !value.uri) { throwError('No URI'); }
@@ -500,7 +500,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.REFRESH = function(settings) {
+    API.refresh = function(settings) {
         var ret = new InternalValue(5), // Magic number 5: Automatic background
             r;                          // refresh configuration.
 
@@ -961,7 +961,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if ((i = frameSettings.refresh)) {
-                    self.refresh = isInternalValue(5, i) ? i : API.REFRESH({refresh: i});
+                    self.refresh = isInternalValue(5, i) ? i : API.refresh({refresh: i});
                 }
             }
         }
@@ -1294,6 +1294,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
+        if (isFunction(method)) {
+            method = method.call(frame, frame._p);
+        }
+
         self.ok = [];
         self.err = [];
 
@@ -1461,7 +1465,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (formNode) { args.push(formNode); }
 
             if (isInternalValue(1, target)) {
-                // `target` is a $CR.URI() object.
+                // `target` is a $CR.uri() object.
                 if (isFunction((i = target.u))) {
                     i = i.apply(frame, args);
                 } else {
@@ -1472,7 +1476,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
                 API.set(i, target.r, target.e);
             } else if (target) {
-                // `target` is a string, a function or a $CR.TEMPLATE() object.
+                // `target` is a string, a function or a $CR.tpl() object.
                 if (isFunction(target)) {
                     node = target.apply(frame, args);
                     if (node === false) { return node; }

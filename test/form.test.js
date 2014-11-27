@@ -48,7 +48,7 @@ describe('Form test', function() {
                         parent: '.form2',
                         render: 'Form2',
                         form: {
-                            action: $CR.DATA({
+                            action: $CR.data({
                                 uri: function(params) { return '/api/' + this.id + '/' + params.p2; },
                                 parse: function(response, req) {
                                     return 'Form response: ' + this.id + ', ' + (typeof req.onreadystatechange) + ', ' + response;
@@ -86,7 +86,7 @@ describe('Form test', function() {
                     action: '/api/form3&pif=paf',
                     method: 'POST',
                     type: 'json',
-                    render: $CR.URI('/parent4?p1=:p1&p2=:p2', function(data, params, formNode) {
+                    render: $CR.uri('/parent4?p1=:p1&p2=:p2', function(data, params, formNode) {
                         return {
                             p1: JSON.stringify(['piupiu', params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]),
                             p2: JSON.stringify(data)

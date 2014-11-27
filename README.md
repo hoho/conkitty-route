@@ -321,8 +321,8 @@ $CR.set('/?p1=val2&p2=val4&p3=val6&p4=piu');
 
 `String`  
 `Function`  
-`$CR.DATA()`  
-`$CR.STATIC()`  
+`$CR.data()`  
+`$CR.static()`  
 `Array` *of any of the previous*
 
 Data fetching is an essential part of any application. With this setting, you
@@ -332,8 +332,8 @@ Let's check out the `data` setting value type meanings:
 
 - [`String`](#string)
 - [`Function`](#function)
-- [`$CR.DATA()`](#crdata)
-- [`$CR.STATIC()`](#crstatic)
+- [`$CR.data()`](#crdata)
+- [`$CR.static()`](#crstatic)
 - [`Array` *of any of the previous*](#array-of-any-of-the-previous)
 
 ##### `String`
@@ -377,12 +377,12 @@ the first argument, `this` will point to the Frame runtime object.
 The function should return a `Promise` or an actual data.
 
 
-##### `$CR.DATA()`
+##### `$CR.data()`
 
 It is possible to customize pretty much everything about the data fetching
-process. Use `$CR.DATA()` helper to do that.
+process. Use `$CR.data()` helper to do that.
 
-`$CR.DATA()` helper accepts a settings object, a full version of which looks
+`$CR.data()` helper accepts a settings object, a full version of which looks
 like:
 
 ```js
@@ -424,14 +424,14 @@ will receive the new data as the first argument and the previous data as the
 second argument, `this` will point to the Frame runtime object.
 
 
-##### `$CR.STATIC()`
+##### `$CR.static()`
 
-When you want to attach some static data to the Frame, `$CR.STATIC` helper
+When you want to attach some static data to the Frame, `$CR.static` helper
 should be used.
 
 ```js
     ...
-    data: $CR.STATIC([{some: 'static'}, 'data']),
+    data: $CR.static([{some: 'static'}, 'data']),
     ...
 ```
 
@@ -465,8 +465,8 @@ When the Frame itself and all its parent Frames have no `parent` setting,
 `Render object`  
 `String`  
 `Function`  
-`$CR.TEMPLATE()`  
-`$CR.URI()`  
+`$CR.tpl()`  
+`$CR.uri()`  
 `Array` *of any of the previous*
 
 The `render` setting is one of the trickiest and powerful parts of the Frame.
@@ -486,10 +486,10 @@ The DOM rendered on each stage replaces the DOM rendered on the previous stage
 ##### `Render object`
 
 `Render object` is an object with stage names as the keys and all other options
-(`String`, `Function`, `$CR.TEMPLATE()`, `$CR.URI()`, `Array` of the previous)
+(`String`, `Function`, `$CR.tpl()`, `$CR.uri()`, `Array` of the previous)
 as values.
 
-When you use `String`, `Function`, `$CR.TEMPLATE()`, `$CR.URI()` or
+When you use `String`, `Function`, `$CR.tpl()`, `$CR.uri()` or
 `Array` directly as the `render` setting value, **`success` stage is assumed**.
 
 Here is what the full version of `Render object` looks like:
@@ -568,13 +568,13 @@ stage, see `Array` description below) and `undefined` (nothing will happen to
 the document, sometimes you just need to call a function).
 
 
-##### `$CR.TEMPLATE(name, parent, replace)`
+##### `$CR.tpl(name, parent, replace)`
 
-To customize the template call result, `$CR.TEMPLATE` helper should be used.
+To customize the template call result, `$CR.tpl` helper should be used.
 
 ```js
     ...
-    render: $CR.TEMPLATE(
+    render: $CR.tpl(
         String | Function, // Template name, the same to the descriptions above.
         String | Function | Node, // Personal parent for the result.
         false // Do not replace the DOM from the previous stage, `true` by default.
@@ -583,7 +583,7 @@ To customize the template call result, `$CR.TEMPLATE` helper should be used.
 ```
 
 
-##### `$CR.URI(uri, params, reload, replace)`
+##### `$CR.uri(uri, params, reload, replace)`
 
 Sometimes, a location change is needed as the result of the Frame processing.
 This is true for the forms mostly, but could be used everywhere.
@@ -599,7 +599,7 @@ This is true for the forms mostly, but could be used everywhere.
 
 ##### `Array` *of any of the previous*
 
-`String`s, `Function`s, `$CR.TEMPLATE()`s and `$CR.URI()`s can be combined into
+`String`s, `Function`s, `$CR.tpl()`s and `$CR.uri()`s can be combined into
 an array, they will be handled one after another corresponding to the
 descriptions above.
 
@@ -947,7 +947,7 @@ the previous data was fetched, `conkitty-route` will rerequest the Frame data
 and silently rerender the Frame in case the data is changed. Only successful
 attempts to fetch the data will be considered and only `success` and `after`
 render stages will be called. You can customize the data equality check
-function using `$CR.DATA()` helper.
+function using `$CR.data()` helper.
 
 
 ## Form
@@ -968,8 +968,8 @@ submitted.
 
 `String`  
 `Function`  
-`$CR.DATA()`  
-`$CR.STATIC()`
+`$CR.data()`  
+`$CR.static()`
 
 When you don't provide the `action` attribute for the form DOM node, this
 `action` setting is used.
@@ -982,7 +982,7 @@ first argument is a serialized form data, the second argument is this Form
 parent Frame runtime object, `this` will point to the DOM node of the form.
 The function should return the data of the submission result.
 
-`$CR.DATA()` and `$CR.STATIC()` have the same meaning the Frame has.
+`$CR.data()` and `$CR.static()` have the same meaning the Frame has.
 
 
 #### method

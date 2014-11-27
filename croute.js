@@ -297,7 +297,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     data = form._se; // Serialized form data.
 
                     form[KEY_DATASOURCE] = [isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        API.static(action.call(formNode, data, frame))
+                        API.$.static(action.call(formNode, data, frame))
                         :
                         (action || location.href)];
                     form.method = formNode.getAttribute('method') || form._method || 'get';
@@ -465,52 +465,50 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.uri = function(uri, params, reload, replace) {
-        var ret = new InternalValue(1); // Magic number 1: URI.
-        ret.u = uri;
-        ret.p = params;
-        ret.r = reload;
-        ret.e = replace;
-        return ret;
-    };
+    API.$ = {
+        uri: function(uri, params, reload, replace) {
+            var ret = new InternalValue(1); // Magic number 1: URI.
+            ret.u = uri;
+            ret.p = params;
+            ret.r = reload;
+            ret.e = replace;
+            return ret;
+        },
 
+        static: function(value) {
+            var ret = new InternalValue(2); // Magic number 2: Static data.
+            ret.v = value;
+            return ret;
+        },
 
-    API.static = function(value) {
-        var ret = new InternalValue(2); // Magic number 2: Static data.
-        ret.v = value;
-        return ret;
-    };
+        tpl: function(name, parent, replace) {
+            var ret = new InternalValue(3); // Magic number 3: Template.
+            ret.n = name;
+            ret.p = parent;
+            ret.r = replace;
+            return ret;
+        },
 
+        data: function(value) {
+            var ret = new InternalValue(4); // Magic number 4: Data with additional
+                                            // processing functions.
+            if (!value || !value.uri) { throwError('No URI'); }
+            ret.v = value;
+            return ret;
+        },
 
-    API.tpl = function(name, parent, replace) {
-        var ret = new InternalValue(3); // Magic number 3: Template.
-        ret.n = name;
-        ret.p = parent;
-        ret.r = replace;
-        return ret;
-    };
+        refresh: function(settings) {
+            var ret = new InternalValue(5), // Magic number 5: Automatic background
+                r;                          // refresh configuration.
 
+            if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
+                throwError('Wrong refresh');
+            }
+            ret.o = settings.timeout;
+            ret.j = ((r = settings.join)) === undefined ? true : r;
 
-    API.data = function(value) {
-        var ret = new InternalValue(4); // Magic number 4: Data with additional
-                                        // processing functions.
-        if (!value || !value.uri) { throwError('No URI'); }
-        ret.v = value;
-        return ret;
-    };
-
-
-    API.refresh = function(settings) {
-        var ret = new InternalValue(5), // Magic number 5: Automatic background
-            r;                          // refresh configuration.
-
-        if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
-            throwError('Wrong refresh');
+            return ret;
         }
-        ret.o = settings.timeout;
-        ret.j = ((r = settings.join)) === undefined ? true : r;
-
-        return ret;
     };
 
 
@@ -961,7 +959,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if ((i = frameSettings.refresh)) {
-                    self.refresh = isInternalValue(5, i) ? i : API.refresh({refresh: i});
+                    self.refresh = isInternalValue(5, i) ? i : API.$.refresh({refresh: i});
                 }
             }
         }

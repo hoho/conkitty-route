@@ -27,12 +27,12 @@ describe('Autorefresh test', function() {
                     '/:p1/data1': {
                         id: 'frame1',
                         refresh: 600,
-                        data: $CR.data({uri: function() { return '/api/data1/' + ++callNumber; }}),
+                        data: $CR.$.data({uri: function() { return '/api/data1/' + ++callNumber; }}),
                         render: 'Template1',
                         frames: {
                             '?p2=:p2': {
                                 id: 'frame2',
-                                data: $CR.data({uri: function(params) { return '/api/data2/' + callNumber + '/' + params.p2; }}),
+                                data: $CR.$.data({uri: function(params) { return '/api/data2/' + callNumber + '/' + params.p2; }}),
                                 render: ['Template2', function() { events.push(this.id + ' render'); }]
                             },
                             '?p1=p1': {
@@ -42,7 +42,7 @@ describe('Autorefresh test', function() {
                             '?p3=:p3': {
                                 id: 'frame3',
                                 refresh: 450,
-                                data: $CR.data({
+                                data: $CR.$.data({
                                     uri: function(params) {
                                         events.push(this.id + ' request ' + ++callNumber2);
                                         return '/api/data3/' + callNumber2 + '/' + params.p3; },

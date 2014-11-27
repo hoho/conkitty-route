@@ -95,8 +95,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         API = function add(uri, frameSettings) {
             checkRunning();
             if (isString(uri) && isString(frameSettings)) {
-                // It's a rewrite.
-                $H.on(uri, frameSettings);
+                // It's a redirect.
+                addFrame(uri, {
+                    render: function(data, params) {
+                        API.set(
+                            makeURI(undefined, frameSettings, params),
+                            undefined,
+                            true
+                        );
+                    }
+                });
             } else {
                 if (uri) {
                     addFrame(uri, frameSettings);

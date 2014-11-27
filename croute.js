@@ -1672,11 +1672,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     // Update wait flags and call delayed callbacks if any.
                     callDelayedStages(currentRootFrame, frame, errors || (!frame.wait && !refresh) ? frame._w2 : 1);
 
-                    if (!errors) {
-                        for (i = 0; i < children.length; i++) {
-                            r = children[i];
-                            if (r._id in currentFrames) {
+                    for (i = 0; i < children.length; i++) {
+                        r = children[i];
+                        if (r._id in currentFrames) {
+                            if (!errors) {
                                 new ProcessFrame(r, refresh);
+                            } else {
+                                unprocessFrame(r, {});
+                                removeNodes(oldDOM, 0);
                             }
                         }
                     }
@@ -1812,7 +1815,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         // Reset the ready callback and the form existence flag if any.
         frame._r = frame._f = undefined;
 
-        if (i !== undefined || frame._data !== undefined) {
+        if (i !== undefined || frame._data !== undefined || Object.keys(frame._n).length) {
             frame._l = frame._data = frame[KEY_DATAERROR] = undefined;
 
             if (!(frame._id in activeFrames)) {

@@ -53,8 +53,8 @@ Build a single page application using routing tree.
     - [$CR.params()](#crparams)
     - [$CR.serializeForm(node *[, withFields]*)](#crserializeformnode--withfields)
 - [Frame API](#frame-api)
-    - [Frame.params(*[parent]*)](#frameparamsparent)
-    - [Frame.data(*[index, [parent]]*)](#framedataindex-parent)
+    - [Frame.params()](#frameparams)
+    - [Frame.data(*[index]*)](#framedataindex)
     - [Frame.makeURI(*[params]*)](#framemakeuriparams)
     - [Frame.active(andPrev)](#frameactiveandprev)
     - [Frame.reload()](#framereload)
@@ -1218,9 +1218,12 @@ console.log($CR.params());
 
 ## Frame API
 
-### Frame.params(*[parent]*)
+### Frame.params()
 
-### Frame.data(*[index, [parent]]*)
+Get the parameters object from the Frame runtime object.
+
+
+### Frame.data(*[index]*)
 
 ### Frame.makeURI(*[params]*)
 

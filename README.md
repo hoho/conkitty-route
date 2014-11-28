@@ -1084,16 +1084,14 @@ Set to `json` when you want to submit the form data as JSON (with
 
 `Function`
 
-Use this function to preprocess the data before the submission, to set
-additional headers for the forms XMLHttpRequest object, or to cancel the
+Use this function to preprocess the data before the submission or to cancel the
 submission.
 
-This function receives the form data as the first argument, XMLHttpRequest
-object as the second argument, the form Frame runtime object as the third
-argument. `this` will point to the DOM node of the form, the DOM node will be
-extended with the `cancel()` method to cancel the submission.
+This function receives the form data as the first argument, the form Frame
+runtime object as the second argument, cancel function as the third argument.
+`this` will point to the DOM node of the form.
 
-The function should return an actual data to send.
+The function should return an actual data to send or call cancel function.
 
 Example:
 
@@ -1104,14 +1102,25 @@ $CR
         form: {
             action: '/api/form',
             type: 'json',
-            submit: function(data, xhr, frame) {
-                // Use `this.cancel()` to cancel the submission.
+            submit: function(data, frame, cancel) {
+                // Use `cancel()` to cancel the submission.
                 return {values: data.map(function(item) { return item.value; })};
             },
             render: 'template2'
         }
     });
 ```
+
+
+### xhr
+
+`Function`
+
+Use this function to set additional headers for the form XMLHttpRequest object.
+
+This function receives XMLHttpRequest object as the first argument, the form
+data as the second argument, the form Frame runtime object as the third
+argument. `this` will point to the DOM node of the form.
 
 
 #### render

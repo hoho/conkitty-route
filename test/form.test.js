@@ -59,13 +59,17 @@ describe('Form test', function() {
                             }),
                             method: 'post',
                             render: 'Form2Result',
-                            submit: function(data, xhr, frame) {
+                            submit: function(data, frame) {
                                 return [
                                     {name: 'field1', value: this.id},
                                     {name: 'field2', value: JSON.stringify(data)},
-                                    {name: 'field3', value: typeof xhr.onreadystatechange},
-                                    {name: 'field4', value: frame.id}
+                                    {name: 'field3', value: frame.id}
                                 ];
+                            },
+                            xhr: function(xhr, data, frame) {
+                                calls.push('xhr: ' + (typeof xhr.onreadystatechange));
+                                calls.push('data: ' + JSON.stringify(data));
+                                calls.push('frame: ' + frame.id);
                             },
                             check: function(elem, val, data) {
                                 calls.push(['check', this.id, elem instanceof Node, elem.name || '', val, data]);
@@ -364,6 +368,11 @@ describe('Form test', function() {
                 ['state', 'form2', true, 'hi', 'valid', false],
                 ['check', 'form2', true, '', undefined, [{name: 'hello', value: 'world'}, {name: 'hi', value: 'all'}]],
                 ['state', 'form2', true, '', 'valid', false],
+
+                'xhr: function',
+                'data: [{"name":"field1","value":"fofo"},{"name":"field2","value":"[{\\"name\\":\\"hello\\",\\"value\\":\\"world\\"},{\\"name\\":\\"hi\\",\\"value\\":\\"all\\"}]"},{"name":"field3","value":"form2"}]',
+                'frame: form2',
+
                 ['state', 'form2', true, 'hello', 'sending', undefined],
                 ['state', 'form2', true, 'hi', 'sending', undefined],
                 ['state', 'form2', true, '', 'sending', undefined]
@@ -388,7 +397,7 @@ describe('Form test', function() {
                     '1',
                     {name: 'div', value: [
                         '2',
-                        '["Form response: form2, function, {\\"url\\":\\"/api/form2/alala\\",\\"method\\":\\"POST\\",\\"body\\":\\"field1=fofo&field2=%5B%7B%22name%22%3A%22hello%22%2C%22value%22%3A%22world%22%7D%2C%7B%22name%22%3A%22hi%22%2C%22value%22%3A%22all%22%7D%5D&field3=function&field4=form2\\"}|form2|function",{"p2":"alala"},"form2",true,"form"]'
+                        '["Form response: form2, function, {\\"url\\":\\"/api/form2/alala\\",\\"method\\":\\"POST\\",\\"body\\":\\"field1=fofo&field2=%5B%7B%22name%22%3A%22hello%22%2C%22value%22%3A%22world%22%7D%2C%7B%22name%22%3A%22hi%22%2C%22value%22%3A%22all%22%7D%5D&field3=form2\\"}|form2|function",{"p2":"alala"},"form2",true,"form"]'
                     ], attr: {class: 'form2'}},
                     '3'
                 ]}

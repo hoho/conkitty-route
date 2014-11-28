@@ -68,8 +68,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         NULL = null,
 
-        CANCELLED = {d: NULL},
-
         proto = Frame.prototype,
 
         InternalValue = function(type) {
@@ -281,7 +279,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 frame,
                 form,
                 data,
-                action;
+                action,
+                type,
+                submit,
+                cancelled;
 
             while (target && !((frame = target[KEY_FRAME]))) {
                 target = target.parentNode;
@@ -297,26 +298,36 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     data = form._se; // Serialized form data.
 
                     action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        API.$.static(action.call(formNode, data, frame))
+                        action.call(formNode, data, frame)
                         :
                         (action || location.href);
 
                     form.method = (formNode.getAttribute('method') || form._method || 'get').toLowerCase();
 
-                    if (form.method === 'get' && !form[STR_SUBMIT] && data.length) {
-                        action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(data);
-                    }
+                    data = (submit = form[STR_SUBMIT]) ?
+                        submit.call(formNode, data, frame, function() { cancelled = true; })
+                        :
+                        data;
 
-                    form[KEY_DATASOURCE] = [action];
+                    if (!cancelled) {
+                        type = form.type || 'qs';
 
-                    new ProcessFrame(
-                        form,
-                        undefined,
-                        formNode,
-                        function(xhr/**/, type, submit, cancelled) {
-                            type = form.type;
-                            xhr.setRequestHeader(
-                                'Content-Type',
+                        if (form.method === 'get' && type === 'qs') {
+                            if (data.length) {
+                                action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(data);
+                            }
+                            data = undefined;
+                        }
+
+                        form[KEY_DATASOURCE] = [action];
+
+                        new ProcessFrame(
+                            form,
+                            undefined,
+                            formNode,
+                            function(xhr/**/, xhrCallback) {
+                                xhr.setRequestHeader(
+                                    'Content-Type',
                                     type === 'text' ?
                                         'text/plain'
                                         :
@@ -324,32 +335,27 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                             'application/json'
                                             :
                                             'application/x-www-form-urlencoded')
-                            );
+                                );
 
-                            formNode.cancel = function() { form._c = cancelled = CANCELLED; };
-                            data = (submit = form[STR_SUBMIT]) ?
-                                submit.call(formNode, data, xhr, frame)
-                                :
-                                data;
-                            delete formNode.cancel;
+                                if ((xhrCallback = form.xhr)) {
+                                    xhrCallback.call(formNode, xhr, data, frame);
+                                }
 
-                            if (!cancelled) {
                                 setFormState(frame, form, FORM_STATE_SENDING);
-                            }
 
-                            return cancelled ||
-                                (type === 'json' ?
+                                return type === 'json' ?
                                     JSON.stringify(data)
                                     :
                                     (data ?
                                         (type === 'text' ?
-                                            data + ''
+                                        data + ''
                                             :
-                                            formToQuerystring(data))
+                                            formToQuerystring(data || []))
                                         :
-                                        undefined));
-                        }
-                    );
+                                        undefined);
+                            }
+                        );
+                    }
                 }
             }
 
@@ -923,6 +929,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.state = frameSettings.state;
                 self.type = frameSettings.type;
                 self[STR_SUBMIT] = frameSettings[STR_SUBMIT];
+                self.xhr = frameSettings.xhr;
             } else {
                 array.push(self);
                 if (parallel) {
@@ -1333,10 +1340,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             body = body(req);
         }
 
-        if (body === CANCELLED) {
-            return body;
-        }
-
         req.send(body);
     }
 
@@ -1737,18 +1740,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         // Static data.
                         d = d.v;
                     } else {
-                        if (!isFunction(d)) {
-                            d = new AJAX(d, frame, formBody);
-                            // When AJAX request is cancelled, constructor returns
-                            // object {d: ...} which is not instance of AJAX.
-                            if (!d.then) {
-                                d = d.d;
-                            }
-                        }
-
-                        if (isFunction(d)) {
-                            d = d.call(frame, frame._p);
-                        }
+                        d = isFunction(d) ?
+                            d.call(frame, frame._p)
+                            :
+                            new AJAX(d, frame, formBody);
                     }
 
                     datas.push(d);

@@ -388,6 +388,7 @@ like:
 ```js
 {
     uri: String | Function,
+    method: String | Function,
     override: Function,
     parse: Function,
     transform: Function,

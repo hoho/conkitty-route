@@ -296,11 +296,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                     data = form._se; // Serialized form data.
 
-                    form[KEY_DATASOURCE] = [isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                    action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
                         API.$.static(action.call(formNode, data, frame))
                         :
-                        (action || location.href)];
-                    form.method = formNode.getAttribute('method') || form._method || 'get';
+                        (action || location.href);
+
+                    form.method = (formNode.getAttribute('method') || form._method || 'get').toLowerCase();
+
+                    if (form.method === 'get' && !form[STR_SUBMIT] && data.length) {
+                        action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(data);
+                    }
+
+                    form[KEY_DATASOURCE] = [action];
 
                     new ProcessFrame(
                         form,
@@ -1302,7 +1309,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self.r = req = new XMLHttpRequest();
 
         req.open(
-            method || 'GET',
+            (method || 'GET').toUpperCase(),
             (req.uri = uriReady ? uri : makeURI(frame, uri)),
             true
         );

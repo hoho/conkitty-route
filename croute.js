@@ -296,18 +296,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     currentFrames[form._id] = form;
 
                     data = form._se; // Serialized form data.
-
-                    action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        action.call(formNode, data, frame)
-                        :
-                        (action || location.href);
-
                     form.method = (formNode.getAttribute('method') || form._method || 'get').toLowerCase();
 
                     data = (submit = form[STR_SUBMIT]) ?
                         submit.call(formNode, data, frame, function() { cancelled = true; })
                         :
                         data;
+
+                    action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                        action.call(formNode, data, frame)
+                        :
+                        (action || location.href);
 
                     if (!cancelled) {
                         type = form.type || 'qs';

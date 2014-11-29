@@ -20,7 +20,8 @@ describe('Form test', function() {
             Form2: '11<div>22<form id="fofo">33<input type="text" name="hello" value="world">|<input type="text" name="hi" value="all">44<input type="submit" value="submit">55</form>66</div>77',
             Form2Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); },
             Form3: '<div>1<form class="form3">2<input type="text" name="yo" value="piu">3<input type="submit" value="submit">4</form>5</div>',
-            Parent4: function(name, data, params) { return '<div>' + JSON.stringify(params) + '</div>'; }
+            Parent4: function(name, data, params) { return '<div>' + JSON.stringify(params) + '</div>'; },
+            Form5: '<form><input type="text" name="fififi" value="fafafa"><input type="hidden" name="fefefe" value="fufufu"></form>'
         };
 
         $CR
@@ -87,7 +88,7 @@ describe('Form test', function() {
                 id: 'form3',
                 render: 'Form3',
                 form: {
-                    action: '/api/form3&pif=paf',
+                    action: '/api/form3?pif=paf',
                     method: 'POST',
                     type: 'json',
                     render: $CR.$.uri('/parent4?p1=:p1&p2=:p2', function(data, params, formNode) {
@@ -100,6 +101,16 @@ describe('Form test', function() {
             })
             .add('/parent4?p1=:p1&p2=:p2', {
                 render: 'Parent4'
+            })
+            .add('/parent5', {
+                id: 'form5',
+                render: 'Form5',
+                form: {
+                    action: '/api/form5?pif=paf',
+                    render: function(data) {
+                        return document.createTextNode(JSON.stringify(data));
+                    }
+                }
             })
             .run({callTemplate: testCallTemplate});
 
@@ -445,8 +456,38 @@ describe('Form test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
-                    '{"p1":"[\\"piupiu\\",{\\"ppp\\":\\"poofpoof\\"},\\"form3\\",true,\\"form\\"]","p2":"{\\"url\\":\\"/api/form3%26pif%3Dpaf\\",\\"method\\":\\"POST\\",\\"body\\":\\"[{\\\\\\"name\\\\\\":\\\\\\"yo\\\\\\",\\\\\\"value\\\\\\":\\\\\\"piu\\\\\\"}]\\"}"}'
+                    '{"p1":"[\\"piupiu\\",{\\"ppp\\":\\"poofpoof\\"},\\"form3\\",true,\\"form\\"]","p2":"{\\"url\\":\\"/api/form3?pif=paf\\",\\"method\\":\\"POST\\",\\"body\\":\\"[{\\\\\\"name\\\\\\":\\\\\\"yo\\\\\\",\\\\\\"value\\\\\\":\\\\\\"piu\\\\\\"}]\\"}"}'
                 ]}
+            ]);
+
+            $CR.set('/parent5');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'form', value: [
+                    {name: 'input', value: [], attr: {type: 'text', name: 'fififi', value: 'fafafa'}},
+                    {name: 'input', value: [], attr: {type: 'hidden', name: 'fefefe', value: 'fufufu'}}
+                ]}
+            ]);
+
+            var e = document.createEvent('HTMLEvents');
+            e.initEvent('submit', true, true);
+            document.forms[0].dispatchEvent(e);
+
+            expect(objectifyBody()).toEqual([
+                {name: 'form', value: [
+                    {name: 'input', value: [], attr: {type: 'text', name: 'fififi', value: 'fafafa', disabled: ''}},
+                    {name: 'input', value: [], attr: {type: 'hidden', name: 'fefefe', value: 'fufufu', disabled: ''}}
+                ]}
+            ]);
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                '{"url":"/api/form5?pif=paf&fififi=fafafa&fefefe=fufufu","method":"GET"}'
             ]);
         });
     });

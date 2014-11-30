@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -39,7 +39,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             except: {},
             leave: {},
             busy: {},
-            idle: {}
+            idle: {},
+            xhr: {}
         },
 
         busy = false,
@@ -1339,12 +1340,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self.r = req = new XMLHttpRequest();
 
         req.open(
-            (method || 'GET').toUpperCase(),
+            (req.method = (method || 'GET').toUpperCase()),
             (req.uri = uriReady ? uri : makeURI(frame, uri)),
             true
         );
+
+        emitEvent('xhr', frame, [req, false]);
+
         req.onreadystatechange = function() {
             if (req.readyState === 4) { // Completed.
+                emitEvent('xhr', frame, [req, true]);
                 self.d = self.e = true;
                 if (req.status === 200) {
                     try {

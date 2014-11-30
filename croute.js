@@ -304,10 +304,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         :
                         data;
 
-                    if (data && isFunction(data.then)) {
-                        data.then(submitForm);
-                    } else if (!cancelled) {
-                        submitForm(data);
+                    if (!cancelled) {
+                        if (data && isFunction(data.then)) {
+                            data.then(submitForm);
+                        } else {
+                            submitForm(data);
+                        }
                     }
                 }
             }

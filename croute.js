@@ -524,6 +524,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
+    //API.refresh = function refresh(restart) {
+    //
+    //};
+
+
     proto.reload = function() {
         var self = this,
             parent;
@@ -1647,30 +1652,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 }
                             }
 
-                            if (((i = frame.refresh)) && (prevDatas || !errors)) {
-                                (function refreshCallback(settings, timeout/**/, delay) {
-                                    abortFrame(frame);
-
-                                    delay = isFunction((delay = settings.r)) ? delay.call(frame) : delay;
-                                    if (timeout && !settings.j) { delay -= timeout; }
-
-                                    // Auto refresh timer.
-                                    frame._u = setTimeout(function() {
-                                        frame._u = NULL;
-                                        abortFrame(frame);
-
-                                        // Timeout.
-                                        if ((timeout = settings.o || 0)) {
-                                            timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
-                                            frame._o = setTimeout(function() {
-                                                frame._o = NULL;
-                                                refreshCallback(settings, timeout);
-                                            }, timeout);
-                                        }
-
-                                        new ProcessFrame(frame, 1);
-                                    }, delay < 0 ? 0 : delay);
-                                })(i);
+                            if (((i = frame.refresh)) && (i.r !== undefined) && (prevDatas || !errors)) {
+                                refreshFrame(frame, i.r, i);
                             }
                         };
 
@@ -1859,6 +1842,34 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         if ((tmp = frame._l)) {
             tmp.reject();
             frame._l = undefined;
+        }
+    }
+
+
+    function refreshFrame(frame, delay, settings, force, timeout/**/, r) {
+        if (isFunction(delay)) { delay = delay.call(frame); }
+
+        if (delay !== undefined && (!((r = frame._l)) || (r.u && force))) {
+            abortFrame(frame);
+
+            if (timeout && !settings.j) { delay -= timeout; }
+
+            // Auto refresh timer.
+            frame._u = setTimeout(function() {
+                frame._u = NULL;
+                abortFrame(frame);
+
+                // Timeout.
+                if ((timeout = settings.o || 0)) {
+                    timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
+                    frame._o = setTimeout(function() {
+                        frame._o = NULL;
+                        refreshFrame(frame, settings.r, settings, false, timeout);
+                    }, timeout);
+                }
+
+                new ProcessFrame(frame, 1);
+            }, delay < 0 ? 0 : delay);
         }
     }
 

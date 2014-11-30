@@ -304,57 +304,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         :
                         data;
 
-                    action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                        action.call(formNode, data, frame)
-                        :
-                        (action || location.href);
-
-                    if (!cancelled) {
-                        type = form.type || 'qs';
-
-                        if (form.method === 'get' && type === 'qs') {
-                            if (data.length) {
-                                action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(data);
-                            }
-                            data = undefined;
-                        }
-
-                        form[KEY_DATASOURCE] = [action];
-
-                        new ProcessFrame(
-                            form,
-                            undefined,
-                            formNode,
-                            function(xhr/**/, xhrCallback) {
-                                xhr.setRequestHeader(
-                                    'Content-Type',
-                                    type === 'text' ?
-                                        'text/plain'
-                                        :
-                                        (type === 'json' ?
-                                            'application/json'
-                                            :
-                                            'application/x-www-form-urlencoded')
-                                );
-
-                                if ((xhrCallback = form.xhr)) {
-                                    xhrCallback.call(formNode, xhr, data, frame);
-                                }
-
-                                setFormState(frame, form, FORM_STATE_SENDING);
-
-                                return type === 'json' ?
-                                    JSON.stringify(data)
-                                    :
-                                    (data ?
-                                        (type === 'text' ?
-                                        data + ''
-                                            :
-                                            formToQuerystring(data || []))
-                                        :
-                                        undefined);
-                            }
-                        );
+                    if (data && isFunction(data.then)) {
+                        data.then(submitForm);
+                    } else if (!cancelled) {
+                        submitForm(data);
                     }
                 }
             }
@@ -368,6 +321,59 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     // IE doesn't supply <a> tag pathname with leading slash.
                     API.set((action[0] === '/' ? action : ('/' + action)) + (data.search ? '&' : '?') + formToQuerystring(serializeForm(formNode)));
                 }
+            }
+
+            function submitForm(data) {
+                action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
+                    action.call(formNode, data, frame)
+                    :
+                    (action || location.href);
+
+                type = form.type || 'qs';
+
+                if (form.method === 'get' && type === 'qs') {
+                    if (data.length) {
+                        action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(data);
+                    }
+                    data = undefined;
+                }
+
+                form[KEY_DATASOURCE] = [action];
+
+                new ProcessFrame(
+                    form,
+                    undefined,
+                    formNode,
+                    function(xhr/**/, xhrCallback) {
+                        xhr.setRequestHeader(
+                            'Content-Type',
+                            type === 'text' ?
+                                'text/plain'
+                                :
+                                (type === 'json' ?
+                                    'application/json'
+                                    :
+                                    'application/x-www-form-urlencoded')
+                        );
+
+                        if ((xhrCallback = form.xhr)) {
+                            xhrCallback.call(formNode, xhr, data, frame);
+                        }
+
+                        setFormState(frame, form, FORM_STATE_SENDING);
+
+                        return type === 'json' ?
+                            JSON.stringify(data)
+                            :
+                            (data ?
+                                (type === 'text' ?
+                                data + ''
+                                    :
+                                    formToQuerystring(data || []))
+                                :
+                                undefined);
+                    }
+                );
             }
         });
 

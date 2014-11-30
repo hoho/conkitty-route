@@ -71,11 +71,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         proto = Frame.prototype,
 
         InternalValue = function(type) {
-            this.t = type;
+            this._ = type;
         },
 
         isInternalValue = function(type, value) {
-            return (value instanceof InternalValue) && value.t === type;
+            return (value instanceof InternalValue) && value._ === type;
         },
 
         ParamsObject = function() {},
@@ -511,7 +511,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         refresh: function(settings) {
             var ret = new InternalValue(5), // Magic number 5: Automatic background
-                r;                          // refresh configuration.
+                r,                          // refresh timeout.
+                i,
+                tags = {};
 
             if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
                 throwError('Wrong refresh');
@@ -519,14 +521,31 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             ret.o = settings.timeout;
             ret.j = ((r = settings.join)) === undefined ? true : r;
 
+            if (isString((r = settings.tags))) {
+                r = r.split(whitespace);
+                for (i = r.length; i--;) {
+                    tags[r[i]] = true;
+                }
+            }
+            ret.t = tags;
+
             return ret;
         }
     };
 
 
-    //API.refresh = function refresh(restart) {
-    //
-    //};
+    API.refresh = function refresh(tags) {
+        tags = tags.split(whitespace);
+        traverseFrame(currentRootFrame, undefined, function(frame/**/, settings, frameTags, i) {
+            if (frame._id in currentFrames && ((settings = frame.refresh)) && ((frameTags = settings.tags))) {
+                for (i = tags.length; i--;) {
+                    if (tags[i] in frameTags) {
+                        refreshFrame(frame, 0, settings, true);
+                    }
+                }
+            }
+        });
+    };
 
 
     proto.reload = function() {

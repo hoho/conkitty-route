@@ -1329,7 +1329,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (((override = uri.override)) &&
                 (((override = override.call(frame, frame._p))) !== undefined))
             {
-                return {d: override};
+                return {o: override};
             }
 
             method = uri.method || method;
@@ -1762,7 +1762,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             d = d.call(frame, frame._p);
                         } else {
                             d = new AJAX(d, frame, formBody);
-                            if ('d' in d) { d = d.d; }
+                            if ('o' in d) { d = d.o; }
                         }
                     }
 

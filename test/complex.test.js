@@ -9,6 +9,8 @@ describe('Complex test', function() {
             waitsFor(function() { return flag; });
         };
 
+        var override;
+
         window.TEMPLATES = {
             HelloTemplate: '<div class="hello">1<div class="param1 param2">2</div>3<div class="param3">4</div>5<div class="params">6</div>7</div>',
             Param1Template: 'param<strong>1</strong><div class="hash2"></div><div class="hash1"></div>',
@@ -17,7 +19,8 @@ describe('Complex test', function() {
             DeeperTemplate: function(name, data, params) { return 'deeper: ' + JSON.stringify([data, params]); },
             DeeperDeeperTemplate: function(name, data, params) { return 'deeperdeeper: ' + JSON.stringify([data, params]); },
             Hash1Template: '<p>hash1</p>',
-            Hash2Template: '<p>hash2</p>'
+            Hash2Template: '<p>hash2</p>',
+            Override: function(name, data, params) { return '<h1>' + JSON.stringify([data, params]) + '</h1>'; }
         };
 
         var matcherParams;
@@ -85,6 +88,19 @@ describe('Complex test', function() {
                         }
                     }
                 }
+            })
+            .add('/override?p1=:p1&p2=:p2', {
+                data: $CR.$.data({
+                    uri: '/api/override',
+                    override: function(params) {
+                        if (override) {
+                            return {paparam: params};
+                        } else {
+                            override = true;
+                        }
+                    }
+                }),
+                render: 'Override'
             })
             .run({callTemplate: testCallTemplate});
 
@@ -312,6 +328,35 @@ describe('Complex test', function() {
                     {name: 'div', value: ['6'], attr: {class: 'params'}},
                     '7'
                 ], attr: {class: 'hello'}}
+            ]);
+
+            $CR.set('/override?p1=hello&p2=world');
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: ['2'], attr: {class: 'param1 param2'}},
+                    '3',
+                    {name: 'div', value: ['4'], attr: {class: 'param3'}},
+                    '5',
+                    {name: 'div', value: ['6'], attr: {class: 'params'}},
+                    '7'
+                ], attr: {class: 'hello'}}
+            ]);
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'h1', value: ['[{"url":"/api/override","method":"GET"},{"p1":"hello","p2":"world"}]']}
+            ]);
+
+            $CR.set('/override?p1=beautiful&p2=indeed');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'h1', value: ['[{"paparam":{"p1":"beautiful","p2":"indeed"}},{"p1":"beautiful","p2":"indeed"}]']}
             ]);
         });
     });

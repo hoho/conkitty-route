@@ -135,7 +135,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         defaults = defaults || {};
 
-        defaultTitle = defaults.title || '';
+        defaultTitle = defaults.title;
         defaultRender = normalizeRender(defaults.render);
         defaultParent = defaults[KEY_PARENT] || body;
         callTemplateFunc = defaults.callTemplate || function(name, data, params, formNode/**/, tpl, args) {
@@ -1726,11 +1726,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 callDelayedStages(currentRootFrame, frame, d);
             }
 
-            document.title = (i = (isFunction((i = frame.title)) ? i.call(frame, frame._p) : i)) === undefined
+            i = ((i = (isFunction((i = frame.title)) ? i.call(frame, frame._p) : i))) === undefined
                 ?
                 defaultTitle
                 :
                 i;
+            if (i !== undefined) {
+                document.title = i;
+            }
 
             if (!refresh) {
                 if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode)) {

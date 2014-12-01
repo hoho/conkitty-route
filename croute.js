@@ -522,18 +522,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             var ret = new InternalValue(5), // Magic number 5: Automatic background
                 r,                          // refresh timeout.
                 i,
+                t = settings.tags,
                 tags = {};
 
-            if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
+            if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number' && (!t || !isString(t))) {
                 throwError('Wrong refresh');
             }
             ret.o = settings.timeout;
             ret.j = ((r = settings.join)) === undefined ? true : r;
 
-            if (isString((r = settings.tags))) {
-                r = r.split(whitespace);
-                for (i = r.length; i--;) {
-                    tags[r[i]] = true;
+            if (t) {
+                t = t.split(whitespace);
+                for (i = t.length; i--;) {
+                    tags[t[i]] = true;
                 }
             }
             ret.t = tags;

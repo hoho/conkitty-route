@@ -547,7 +547,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     API.refresh = function refresh(tags) {
         tags = tags.split(whitespace);
         traverseFrame(currentRootFrame, undefined, function(frame/**/, settings, frameTags, i) {
-            if (frame._id in currentFrames && ((settings = frame.refresh)) && ((frameTags = settings.tags))) {
+            if (frame._id in currentFrames && ((settings = frame.refresh)) && ((frameTags = settings.t))) {
                 for (i = tags.length; i--;) {
                     if (tags[i] in frameTags) {
                         refreshFrame(frame, 0, settings, true);

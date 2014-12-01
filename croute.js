@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.2, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 

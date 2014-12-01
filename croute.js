@@ -1755,10 +1755,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         // Static data.
                         d = d.v;
                     } else {
-                        d = isFunction(d) ?
-                            d.call(frame, frame._p)
-                            :
-                            new AJAX(d, frame, formBody);
+                        if (isFunction(d)) {
+                            d = d.call(frame, frame._p);
+                        } else {
+                            d = new AJAX(d, frame, formBody);
+                            if ('d' in d) { d = d.d; }
+                        }
                     }
 
                     datas.push(d);

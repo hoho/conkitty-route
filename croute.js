@@ -184,18 +184,20 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         return !!brk;
                     }
                 },
-                activateParallelFramesCallback = function(f/**/, parallel, j) {
+                activateParallelFramesCallback = function(f/**/, parallel, j, s) {
                     // Check if there are parallel frames.
                     if ((parallel = f._g)) {
                         for (j = parallel.length; j--;) {
                             // Check if at least one active frame among the
                             // arallel frames exists.
-                            if (parallel[j]._a) {
+                            if (((s = parallel[j]))._a) {
+                                s = s._s;
                                 for (j = parallel.length; j--;) {
                                     // Activate the inactive parallel frames.
                                     if (!((f = parallel[j]))._a && (f.final !== false)) {
                                         setFrameActiveFlag(f, 1);
                                     }
+                                    f._s = s;
                                 }
                                 break;
                             }
@@ -1124,6 +1126,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         parallel = [];
                     } else {
                         tmp = [tmp];
+                        parallel = undefined;
                     }
                     for (i = 0; i < tmp.length; i++) {
                         new Frame(

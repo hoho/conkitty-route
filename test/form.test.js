@@ -91,7 +91,7 @@ describe('Form test', function() {
                     action: '/api/form3?pif=paf',
                     method: 'POST',
                     type: 'json',
-                    render: $CR.$.uri('/parent4?p1=:p1&p2=:p2', function(data, params, formNode) {
+                    render: $CR.$.uri('/parent4?p1=:p1&p2=:p2&ppp=:ppp', function(data, params, formNode) {
                         return {
                             p1: JSON.stringify(['piupiu', params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]),
                             p2: JSON.stringify(data)
@@ -99,7 +99,7 @@ describe('Form test', function() {
                     })
                 }
             })
-            .add('/parent4?p1=:p1&p2=:p2', {
+            .add('/parent4?p1=:p1&p2=:p2&ppp=:ppp', {
                 render: 'Parent4'
             })
             .add('/parent5', {
@@ -456,7 +456,7 @@ describe('Form test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [
-                    '{"p1":"[\\"piupiu\\",{\\"ppp\\":\\"poofpoof\\"},\\"form3\\",true,\\"form\\"]","p2":"{\\"url\\":\\"/api/form3?pif=paf\\",\\"method\\":\\"POST\\",\\"body\\":\\"[{\\\\\\"name\\\\\\":\\\\\\"yo\\\\\\",\\\\\\"value\\\\\\":\\\\\\"piu\\\\\\"}]\\"}"}'
+                    '{"p1":"[\\"piupiu\\",{\\"ppp\\":\\"poofpoof\\"},\\"form3\\",true,\\"form\\"]","p2":"{\\"url\\":\\"/api/form3?pif=paf\\",\\"method\\":\\"POST\\",\\"body\\":\\"[{\\\\\\"name\\\\\\":\\\\\\"yo\\\\\\",\\\\\\"value\\\\\\":\\\\\\"piu\\\\\\"}]\\"}","ppp":"poofpoof"}'
                 ]}
             ]);
 

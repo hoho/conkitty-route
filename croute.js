@@ -1520,7 +1520,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (isFunction((n = target.p))) {
                         n = n.apply(frame, args);
                     }
-                    i = makeURI(undefined, i, n);
+                    i = makeURI(undefined, i, createParamsObject(n, frame._p));
                 }
                 API.set(i, target.r, target.e);
             } else if (target) {

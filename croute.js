@@ -971,6 +971,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.type = frameSettings.type;
                 self[STR_SUBMIT] = frameSettings[STR_SUBMIT];
                 self.xhr = frameSettings.xhr;
+
             } else {
                 array.push(self);
                 if (parallel) {
@@ -1012,9 +1013,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                     }
                 }
+            }
 
-                if ((i = frameSettings.refresh)) {
-                    self.refresh = isInternalValue(5, i) ? i : API.$.refresh({refresh: i});
+            if ((i = tmp = frameSettings.refresh)) {
+                i = isInternalValue(5, i) ? i : API.$.refresh({refresh: i});
+                if (form) {
+                    self.tags = Object.keys(i.t).join(' ');
+                } else {
+                    self.refresh = i;
                 }
             }
         }
@@ -1686,6 +1692,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 }
 
                                 if (!refresh) {
+                                    if (frame.isForm && stage === STR_SUCCESS && frame.tags) {
+                                        API.refresh(frame.tags);
+                                    }
+
                                     emitEvent(stage, frame, errors || datas);
 
                                     if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {

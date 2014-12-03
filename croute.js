@@ -342,6 +342,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     data = undefined;
                 }
 
+                if (type === 'qs' && (!data || !data.length)) {
+                    data = type = undefined;
+                }
+
                 form[KEY_DATASOURCE] = [action];
 
                 new ProcessFrame(
@@ -349,16 +353,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     undefined,
                     formNode,
                     function(xhr/**/, xhrCallback) {
-                        xhr.setRequestHeader(
-                            'Content-Type',
-                            type === 'text' ?
-                                'text/plain'
-                                :
-                                (type === 'json' ?
-                                    'application/json'
+                        if (data !== undefined || type !== undefined) {
+                            xhr.setRequestHeader(
+                                'Content-Type',
+                                type === 'text' ?
+                                    'text/plain'
                                     :
-                                    'application/x-www-form-urlencoded')
-                        );
+                                    (type === 'json' ?
+                                        'application/json'
+                                        :
+                                        'application/x-www-form-urlencoded')
+                            );
+                        }
 
                         if ((xhrCallback = form.xhr)) {
                             xhrCallback.call(formNode, xhr, data, frame);

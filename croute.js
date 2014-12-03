@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.2, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.3, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1363,7 +1363,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (req.readyState === 4) { // Completed.
                 emitEvent('xhr', frame, [req, true]);
                 self.d = self.e = true;
-                if (req.status === 200) {
+                if (((req.status / 100) | 0) === 2) { // A clever Math.ceil(req.status / 100) === 2
                     try {
                         response = req.responseText;
                         response = parse ? parse.call(frame, response, req) : JSON.parse(response);

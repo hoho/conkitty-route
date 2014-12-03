@@ -1519,8 +1519,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], frame._p];
             if (formNode) { args.push(formNode); }
 
+            if (isFunction(target)) {
+                target = target.apply(frame, args);
+                if (target === false) { return target; }
+            }
+
             if (isInternalValue(1, target)) {
-                // `target` is a $CR.uri() object.
+                // `target` is a $CR.$.uri() object.
                 if (isFunction((i = target.u))) {
                     i = i.apply(frame, args);
                 } else {
@@ -1531,16 +1536,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
                 API.set(i, target.r, target.e);
             } else if (target) {
-                // `target` is a string, a function or a $CR.tpl() object.
-                if (isFunction(target)) {
-                    node = target.apply(frame, args);
-                    if (node === false) { return node; }
-                    if (node === NULL) { target = NULL; }
-                    if (isString(node)) { i = node; }
-                } else {
-                    i = isString(target) ? target : target.n;
-                    if (isFunction(i)) { node = i = i.apply(frame, args); }
-                }
+                // `target` is a string, a DOM node, a function or a $CR.$.tpl() object.
+                if (isNode(target)) { node = target; }
+
+                i = isString(target) ? target : target.n;
+                if (isFunction(i)) { node = i = i.apply(frame, args); }
 
                 if (isString(i)) {
                     args.unshift(i);

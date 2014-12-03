@@ -1365,8 +1365,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.d = self.e = true;
                 if (((req.status / 100) | 0) === 2) { // A clever Math.ceil(req.status / 100) === 2
                     try {
+                        // TODO: Look at HTTP status codes and handle them more carefully.
                         response = req.responseText;
-                        response = parse ? parse.call(frame, response, req) : JSON.parse(response);
+                        response = parse ? parse.call(frame, response, req) : (req.status === 204 ? undefined : JSON.parse(response));
                         self.j = transform ? transform.call(frame, response, req) : response;
                         self.e = false;
                     } catch(e) {}

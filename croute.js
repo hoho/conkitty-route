@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.3, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.4, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -136,7 +136,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         defaults = defaults || {};
 
         defaultTitle = defaults.title;
-        defaultRender = normalizeRender(defaults.render);
+        defaultRender = normalizeRender(defaults.render, 1);
         defaultParent = defaults[KEY_PARENT] || body;
         callTemplateFunc = defaults.callTemplate || function(name, data, params, formNode/**/, tpl, args) {
             /* global $C */
@@ -1179,12 +1179,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function normalizeRender(render) {
+    function normalizeRender(render, nullDefaults) {
         render = isTemplate(render) || isArray(render)
             ?
             {success: render}
             :
             render || {};
+
+        if (nullDefaults) {
+            if (render[STR_SUCCESS] === undefined) { render[STR_SUCCESS] = NULL; }
+            if (render[STR_ERROR] === undefined) { render[STR_ERROR] = NULL; }
+        }
 
         var ret = {},
             i,

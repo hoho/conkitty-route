@@ -69,6 +69,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         NULL = null,
 
+        KEY_MATCHES_SELECTOR = 'matches',
+
         proto = Frame.prototype,
 
         InternalValue = function(type) {
@@ -131,7 +133,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         checkRunning();
 
         var body = document.body,
-            addEvent = body.addEventListener.bind(body);
+            addEvent = body.addEventListener.bind(body),
+            prefixes = ['oM', 'msM', 'mozM', 'webkitM', 'm'];
+
+        while (KEY_MATCHES_SELECTOR && !body[KEY_MATCHES_SELECTOR]) {
+            KEY_MATCHES_SELECTOR = prefixes.pop() + 'atchesSelector';
+        }
 
         defaults = defaults || {};
 
@@ -292,10 +299,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
 
             if (frame && frame.form) {
-                e.preventDefault();
-
-                if (frame.checkForm(formNode)) {
+                if (((submit = frame.checkForm(formNode))) !== undefined) {
+                    e.preventDefault();
                     form = formNode[KEY_FRAME + 'f'];
+                }
+
+                if (submit) {
                     currentFrames[form._id] = form;
 
                     data = form._se; // Serialized form data.
@@ -610,6 +619,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     proto.checkForm = function(formNode) {
         var i = formNode,
+            j,
+            settings,
             tmp,
             frame = this,
             form,
@@ -626,36 +637,46 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (frame === tmp && ((i = frame.form))) {
             if (!((form = formNode[(tmp = KEY_FRAME + 'f')]))) {
-                form = formNode[tmp] = new Frame(
-                    undefined,
-                    undefined,
-                    undefined,
-                    i, // frameSettings
-                    undefined,
-                    undefined,
-                    frame, // parent
-                    true // form
-                );
+                if (!isArray(i)) { i = [i]; }
+
+                for (j = 0; j < i.length; j++) {
+                    settings = i[j];
+                    if (!settings.match || formNode[KEY_MATCHES_SELECTOR](settings.match)) {
+                        form = formNode[tmp] = new Frame(
+                            undefined,
+                            undefined,
+                            undefined,
+                            settings, // frameSettings
+                            undefined,
+                            undefined,
+                            frame, // parent
+                            true // form
+                        );
+                        break;
+                    }
+                }
             }
 
-            data = serializeForm(formNode, true);
-            fields = form._fi = data[1];
-            form._se = data = data[0];
-            check = form.check;
+            if (form) {
+                data = serializeForm(formNode, true);
+                fields = form._fi = data[1];
+                form._se = data = data[0];
+                check = form.check;
 
-            for (i = 0; i < fields.length; i++) {
-                field = fields[i];
-                error = check ? check.call(frame, field[0], field[1], data) : undefined;
-                setFieldState(
-                    frame,
-                    form,
-                    field,
-                    error ? ((hasError = true), FORM_STATE_INVALID) : FORM_STATE_VALID,
-                    error
-                );
+                for (i = 0; i < fields.length; i++) {
+                    field = fields[i];
+                    error = check ? check.call(frame, field[0], field[1], data) : undefined;
+                    setFieldState(
+                        frame,
+                        form,
+                        field,
+                        error ? ((hasError = true), FORM_STATE_INVALID) : FORM_STATE_VALID,
+                        error
+                    );
+                }
+
+                return !hasError;
             }
-
-            return !hasError;
         }
     };
 

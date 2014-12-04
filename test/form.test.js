@@ -3,7 +3,7 @@ describe('Form test', function() {
         var flag;
         var waitInit = function() {
             flag = false;
-            setTimeout(function() { flag = true; }, 500);
+            setTimeout(function() { flag = true; }, 200);
         };
         var wait = function() {
             waitsFor(function() { return flag; });
@@ -21,7 +21,8 @@ describe('Form test', function() {
             Form2Result: function(name, data, params, formNode) { return JSON.stringify([data, params, this.id, formNode instanceof Node, formNode.tagName.toLowerCase()]); },
             Form3: '<div>1<form class="form3">2<input type="text" name="yo" value="piu">3<input type="submit" value="submit">4</form>5</div>',
             Parent4: function(name, data, params) { return '<div>' + JSON.stringify(params) + '</div>'; },
-            Form5: '<form><input type="text" name="fififi" value="fafafa"><input type="hidden" name="fefefe" value="fufufu"></form>'
+            Form5: '<form><input type="text" name="fififi" value="fafafa"><input type="hidden" name="fefefe" value="fufufu"></form>',
+            Forms: '<div><form class="form6"><input type="text" name="i6" value="v6"></form><form class="form7"><input type="text" name="i7" value="v7"></form></div>'
         };
 
         $CR
@@ -111,6 +112,26 @@ describe('Form test', function() {
                         return document.createTextNode(JSON.stringify(data));
                     }
                 }
+            })
+            .add('/parent67', {
+                id: 'form67',
+                render: 'Forms',
+                form: [
+                    {
+                        match: '.form7',
+                        action: '/api/form7',
+                        render: function(data) {
+                            return document.createTextNode(JSON.stringify(data));
+                        }
+                    },
+                    {
+                        match: '.form6',
+                        action: '/api/form6',
+                        render: function(data) {
+                            return document.createTextNode(JSON.stringify(data));
+                        }
+                    }
+                ]
             })
             .run({callTemplate: testCallTemplate});
 
@@ -488,6 +509,88 @@ describe('Form test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 '{"url":"/api/form5?pif=paf&fififi=fafafa&fefefe=fufufu","method":"GET"}'
+            ]);
+
+            $CR.set('/parent67');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v6', name: 'i6'}}
+                    ], attr: {class: 'form6'}},
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v7', name: 'i7'}}
+                    ], attr: {class: 'form7'}}
+                ]}
+            ]);
+
+            var e = document.createEvent('HTMLEvents');
+            e.initEvent('submit', true, true);
+            document.forms[1].dispatchEvent(e);
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v6', name: 'i6'}}
+                    ], attr: {class: 'form6'}},
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v7', name: 'i7', disabled: ''}}
+                    ], attr: {class: 'form7'}}
+                ]}
+            ]);
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                '{"url":"/api/form7?i7=v7","method":"GET"}'
+            ]);
+
+            $CR.set('/parent67');
+
+            expect(objectifyBody()).toEqual([
+                '{"url":"/api/form7?i7=v7","method":"GET"}'
+            ]);
+
+            $CR.set('/parent67', true);
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v6', name: 'i6'}}
+                    ], attr: {class: 'form6'}},
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v7', name: 'i7'}}
+                    ], attr: {class: 'form7'}}
+                ]}
+            ]);
+
+            var e = document.createEvent('HTMLEvents');
+            e.initEvent('submit', true, true);
+            document.forms[0].dispatchEvent(e);
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v6', name: 'i6', disabled: ''}}
+                    ], attr: {class: 'form6'}},
+                    {name: 'form', value: [
+                        {name: 'input', value: [], attr: {type: 'text', value: 'v7', name: 'i7'}}
+                    ], attr: {class: 'form7'}}
+                ]}
+            ]);
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                '{"url":"/api/form6?i6=v6","method":"GET"}'
             ]);
         });
     });

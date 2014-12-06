@@ -1282,6 +1282,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             processedQueryparams = {};
         }
 
+        if (overrideParams !== undefined && (typeof overrideParams !== 'object')) {
+            throwError('Invalid params `' + overrideParams + '`');
+        }
+
         if (!frame || (frame && frame.reduce !== false)) {
             uri = parseParameterizedURI(uri, true, !overrideParams);
 

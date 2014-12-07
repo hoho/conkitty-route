@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.4, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.5, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1176,20 +1176,22 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
-        $H.on(frame, {
-            go: function(same) {
-                if (!uri) {
-                    // It's not found target, no URI matching functions have
-                    // been called, set active flag here.
-                    self._a = 1;
+        if (!form) {
+            $H.on(frame, {
+                go: function(same) {
+                    if (!uri) {
+                        // It's not found target, no URI matching functions have
+                        // been called, set active flag here.
+                        self._a = 1;
+                    }
+                    self._p = currentParams;
+                    self._s = same;
+                },
+                leave: function() {
+                    self._p = NULL;
                 }
-                self._p = currentParams;
-                self._s = same;
-            },
-            leave: function() {
-                self._p = NULL;
-            }
-        });
+            });
+        }
 
 
         function checkDataSource(ds) {

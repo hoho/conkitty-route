@@ -1724,7 +1724,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 }
 
                                 if (!refresh) {
-                                    if (frame.isForm && stage === STR_SUCCESS && frame.tags) {
+                                    if (frame.isForm && (stage === STR_SUCCESS) && frame.tags) {
                                         API.refresh(frame.tags);
                                     }
 
@@ -1769,6 +1769,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             frame._l = self;
             self.u = refresh;
             frame._w2 = d = frame._w;
+            frame[KEY_DATAERROR] = undefined;
 
             if (!frame.wait && !refresh) {
                 // Update wait flags and call delayed callbacks if any.

@@ -143,7 +143,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         defaults = defaults || {};
 
         defaultTitle = defaults.title;
-        defaultRender = normalizeRender(defaults.render, 1);
+        defaultRender = normalizeRender(defaults.render);
         defaultParent = defaults[KEY_PARENT] || body;
         callTemplateFunc = defaults.callTemplate || function(name, data, params, formNode/**/, tpl, args) {
             /* global $C */
@@ -1202,17 +1202,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function normalizeRender(render, nullDefaults) {
+    function normalizeRender(render) {
         render = isTemplate(render) || isArray(render)
             ?
             {success: render}
             :
             render || {};
-
-        if (nullDefaults) {
-            if (render[STR_SUCCESS] === undefined) { render[STR_SUCCESS] = NULL; }
-            if (render[STR_ERROR] === undefined) { render[STR_ERROR] = NULL; }
-        }
 
         var ret = {},
             i,

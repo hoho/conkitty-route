@@ -1528,6 +1528,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             try {
                 renderParents = {};
+
+                if (!target.length && ((stage === STR_SUCCESS) || (stage === STR_ERROR)) && Object.keys(frame._n).length) {
+                    // Frame has no render for success or error stage, but has
+                    // some DOM from defaultRender — remove this DOM.
+                    target = [{v: NULL}];
+                }
+
                 for (i = 0; i < target.length; i++) {
                     if (processRender(stage, render, datas, defaultRenderParent, frame, formNode, renderParents, target[i]) === false) {
                         break;

@@ -386,7 +386,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             :
                             (data ?
                                 (type === 'text' ?
-                                data + ''
+                                    data + ''
                                     :
                                     formToQuerystring(data || []))
                                 :

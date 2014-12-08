@@ -1554,7 +1554,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if (isFunction(target)) {
                 target = target.apply(frame, args);
-                if (target === false) { return target; }
+                if (target === false || target === undefined) { return target; }
             }
 
             if (isInternalValue(1, target)) {

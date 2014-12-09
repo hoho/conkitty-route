@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.5, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.6.6, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1529,10 +1529,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             try {
                 renderParents = {};
 
-                if (!target.length && ((stage === STR_SUCCESS) || (stage === STR_ERROR)) && Object.keys(frame._n).length) {
+                if (!target.length && ((stage === STR_SUCCESS) || (stage === STR_ERROR))) {
                     // Frame has no render for success or error stage, but has
-                    // some DOM from defaultRender — remove this DOM.
-                    target = [{v: NULL}];
+                    // some DOM (other than placeholders) from defaultRender —
+                    // remove this DOM.
+                    rememberedNodes = frame._n;
+                    for (i in rememberedNodes) {
+                        if (rememberedNodes[i].length > 1) {
+                            target = [{v: NULL}];
+                            break;
+                        }
+                    }
                 }
 
                 for (i = 0; i < target.length; i++) {

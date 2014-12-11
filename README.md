@@ -889,7 +889,8 @@ $CR.set('/'); // `template1`, `items` and `no-item-selected` are rendered.
 
 #### form
 
-`Form settings object`
+`Form settings object`  
+Array of `Form settings objects`
 
 Use the `form` setting when the Frame has an HTML form that needs to be
 processed. `conkitty-route` will intercept a `submit` event and process the
@@ -902,6 +903,9 @@ $CR
     .add('/:param', {
         render: 'template1',
         form: {
+            match: '.selector', // Optional matcher, if present, the form will
+                                // be processed in case the form's DOM node
+                                // matches the selector.
             action: '/api/:param',
             method: 'post',
             render: 'template2'

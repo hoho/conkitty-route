@@ -23,7 +23,7 @@
                             frames: {
                                 '/:?message': {
                                     id: 'message',
-                                    data: $CR.DATA({
+                                    data: $CR.$.data({
                                         override: function(params) { if (!params.message) { return null; }},
                                         uri: '/api/message?folder=:folder&message=:message'
                                     }),

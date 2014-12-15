@@ -93,8 +93,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             return new Params();
         },
 
-        API = function add(uri, frameSettings) {
+        API = function add(uri, isName, frameSettings) {
             checkRunning();
+
+            if (frameSettings === undefined) {
+                frameSettings = isName;
+                isName = false;
+            }
+
             if (isString(uri) && isString(frameSettings)) {
                 // It's a redirect.
                 addFrame(uri, {
@@ -108,7 +114,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 });
             } else {
                 if (uri) {
-                    addFrame(uri, frameSettings);
+                    addFrame(uri, frameSettings, isName);
                 } else if (!notFoundFrame) {
                     // NotFound frame needs to be last, we'll add it in
                     // run() method.
@@ -759,7 +765,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     );
 
 
-    function addFrame(uri, frameSettings) {
+    function addFrame(uri, frameSettings, isName) {
         new Frame(frames, undefined, uri, frameSettings);
     }
 

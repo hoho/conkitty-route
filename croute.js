@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.6.6, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -974,7 +974,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             paramsConstraints,
             currentParams = {},
             customMatcher,
-            newPathExpr;
+            newPathExpr,
+            paramsProcessed;
 
         self[KEY_PARENT] = parent;
         self.children = [];
@@ -1065,6 +1066,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             frame = function(pathname) {
                 currentParams = {};
+                paramsProcessed = {};
 
                 var match = pathname.match(pathnameExpr),
                     j;
@@ -1074,7 +1076,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         if (!checkAndSetParam(
                                 undefined,
                                 match[paramsOffset + j],
-                                pathParams[j],
+                                (tmp = pathParams[j]),
                                 paramsConstraints,
                                 undefined,
                                 currentParams)
@@ -1083,6 +1085,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             j = false;
                             break;
                         }
+
+                        if (tmp && ((tmp = tmp.param))) { paramsProcessed[tmp] = true; }
                     }
 
                     if (j === false || (!uriSearch && !uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
@@ -1113,7 +1117,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             if (!checkAndSetParam(
                                     queryparam,
                                     currentQueryParams[queryparam],
-                                    uriSearch[queryparam],
+                                    (tmp = uriSearch[queryparam]),
                                     paramsConstraints,
                                     queryparams,
                                     currentParams)
@@ -1122,6 +1126,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 queryparams = false;
                                 break;
                             }
+
+                            if (tmp && ((tmp = tmp.param))) { paramsProcessed[tmp] = true; }
                         }
 
                         if (queryparams === false || (!uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
@@ -1154,6 +1160,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             setFrameActiveFlag(self);
                         }
 
+                        if ((tmp = uriHash.param)) { paramsProcessed[tmp] = true; }
+
                         return j;
                     };
                 }
@@ -1184,11 +1192,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!form) {
             $H.on(frame, {
-                go: function(same) {
+                go: function(same/**/, name, val) {
                     if (!uri) {
                         // It's not found target, no URI matching functions have
                         // been called, set active flag here.
                         self._a = 1;
+                    }
+                    for (name in paramsConstraints) {
+                        if (!(name in paramsProcessed)) {
+                            val = paramsConstraints[name];
+                            if (((val = isFunction(val) ? val.call(self) : val)) !== undefined) {
+                                currentParams[name] = val;
+                            }
+                        }
                     }
                     self._p = currentParams;
                     self._s = same;

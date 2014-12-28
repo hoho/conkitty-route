@@ -173,10 +173,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 currentFramesCount = 0,
                 traverseCallbackBefore = function(f) {
                     f._w = 0;
-
-                    if (!(f._p instanceof ParamsObject)) {
-                        f._p = createParamsObject(f._p, ((f = f[KEY_PARENT])) && f._p);
-                    }
                 },
                 traverseCallback = function(f/**/, tmp, brk) {
                     if (f._a) {
@@ -972,10 +968,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             uriSearch,
             uriHash,
             paramsConstraints,
-            currentParams = {},
-            customMatcher,
+            currentParams = self._p = createParamsObject({}, parent && parent._p),
             newPathExpr,
-            paramsProcessed;
+            processedParams;
 
         self[KEY_PARENT] = parent;
         self.children = [];
@@ -1012,7 +1007,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     if (i in frameById) { throwError('Duplicate id: ' + i); }
                     frameById[i] = self;
                 }
-                customMatcher = frameSettings.matcher;
                 self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
                 self.final = frameSettings.final;
@@ -1065,8 +1059,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (!paramsOffset) { paramsOffset = 1; }
 
             frame = function(pathname) {
-                currentParams = {};
-                paramsProcessed = {};
+                processedParams = {};
 
                 var match = pathname.match(pathnameExpr),
                     j;
@@ -1086,10 +1079,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             break;
                         }
 
-                        if (tmp && ((tmp = tmp.param))) { paramsProcessed[tmp] = true; }
+                        if (tmp && ((tmp = tmp.param))) { processedParams[tmp] = true; }
                     }
 
-                    if (j === false || (!uriSearch && !uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
+                    if (j === false || (!uriSearch && !uriHash && !customMatcher())) {
                         setFrameActiveFlag(self);
                         return false;
                     }
@@ -1127,10 +1120,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 break;
                             }
 
-                            if (tmp && ((tmp = tmp.param))) { paramsProcessed[tmp] = true; }
+                            if (tmp && ((tmp = tmp.param))) { processedParams[tmp] = true; }
                         }
 
-                        if (queryparams === false || (!uriHash && customMatcher && !customMatcher.call(self, currentParams))) {
+                        if (queryparams === false || (!uriHash && !customMatcher())) {
                             setFrameActiveFlag(self);
                             queryparams = false;
                         }
@@ -1150,7 +1143,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 currentParams
                             )
                             &&
-                            (!customMatcher || customMatcher.call(self, currentParams))
+                            customMatcher()
                             ?
                             hash || true
                             :
@@ -1160,7 +1153,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             setFrameActiveFlag(self);
                         }
 
-                        if ((tmp = uriHash.param)) { paramsProcessed[tmp] = true; }
+                        if ((tmp = uriHash.param)) { processedParams[tmp] = true; }
 
                         return j;
                     };
@@ -1192,25 +1185,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (!form) {
             $H.on(frame, {
-                go: function(same/**/, name, val) {
+                go: function(same) {
                     if (!uri) {
                         // It's not found target, no URI matching functions have
                         // been called, set active flag here.
                         self._a = 1;
                     }
-                    for (name in paramsConstraints) {
-                        if (!(name in paramsProcessed)) {
-                            val = paramsConstraints[name];
-                            if (((val = isFunction(val) ? val.call(self) : val)) !== undefined) {
-                                currentParams[name] = val;
-                            }
-                        }
-                    }
-                    self._p = currentParams;
                     self._s = same;
-                },
-                leave: function() {
-                    self._p = NULL;
                 }
             });
         }
@@ -1220,6 +1201,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (!ds || !(isInternalValue(2, ds) || isInternalValue(4, ds) || isString(ds) || isFunction(ds))) {
                 throwError('Unexpected `' + ds + '` as data source');
             }
+        }
+
+        function customMatcher(/**/matcher, name, val) {
+            for (name in paramsConstraints) {
+                if (!(name in processedParams)) {
+                    val = paramsConstraints[name];
+                    if (((val = isFunction(val) ? val.call(self) : val)) !== undefined) {
+                        currentParams[name] = val;
+                    }
+                }
+            }
+
+            return (matcher = frameSettings.matcher) ? matcher.call(self, currentParams) : true;
         }
     }
 
@@ -1274,16 +1268,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function getURIParam(frame, param, overrideParams/**/, i, name) {
+    function getURIParam(frame, param, overrideParams/**/, name) {
         name = param.param;
-
-        if (overrideParams && (name in overrideParams)) {
-            i = overrideParams[name];
-        } else {
-            i = ((i = frame && frame._p)) ? i[name] : undefined;
-        }
-
-        return i;
+        return (overrideParams && (name in overrideParams) ? overrideParams : frame._p)[name];
     }
 
 
@@ -1942,6 +1929,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (!keepPlaceholders) {
                     frame._n = {};
                 }
+
+            }
+        }
+
+        if (!(frame._id in activeFrames)) {
+            // Reuse `nodes` and `nodesets` variables.
+            nodes = frame._p;
+            nodesets = Object.keys(nodes);
+            for (i = nodesets.length; i--;) {
+                delete nodes[nodesets[i]];
             }
         }
     }

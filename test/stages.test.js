@@ -46,7 +46,7 @@ describe('Stages test', function() {
                         render: {
                             before: [function() { return 'StagesBefore'; }, $CR.$.tpl(function() { return 'StagesBefore'; }), $CR.$.tpl(function() { return document.createTextNode('bebe'); }, '.sub2')],
                             error: 'StagesError',
-                            success: function() { return 'SomeSuccess'}
+                            success: function() { return 'SomeSuccess'; }
                         }
                     },
                     'sub3': {

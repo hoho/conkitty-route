@@ -118,3 +118,12 @@ describe('Empty test', function() {
         expect(true).toBe(true);
     });
 });
+
+
+function flattenParams(params) {
+    var ret = {};
+    for (var p in params) {
+        ret[p] = params[p];
+    }
+    return ret;
+}

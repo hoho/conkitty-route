@@ -969,6 +969,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             uriHash,
             paramsConstraints,
             currentParams = self._p = createParamsObject({}, parent && parent._p),
+            newParams,
             newPathExpr,
             processedParams;
 
@@ -1060,6 +1061,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             frame = function(pathname) {
                 processedParams = {};
+                newParams = {};
 
                 var match = pathname.match(pathnameExpr),
                     j;
@@ -1072,7 +1074,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 (tmp = pathParams[j]),
                                 paramsConstraints,
                                 undefined,
-                                currentParams)
+                                newParams)
                             )
                         {
                             j = false;
@@ -1094,7 +1096,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
 
-                return self._a ? currentParams : false;
+                return self._a ? newParams : false;
             };
 
 
@@ -1113,7 +1115,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                     (tmp = uriSearch[queryparam]),
                                     paramsConstraints,
                                     queryparams,
-                                    currentParams)
+                                    newParams)
                                 )
                             {
                                 queryparams = false;
@@ -1140,7 +1142,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 uriHash,
                                 paramsConstraints,
                                 undefined,
-                                currentParams
+                                newParams
                             )
                             &&
                             customMatcher()
@@ -1204,6 +1206,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         function customMatcher(/**/matcher, name, val) {
+            for (name in newParams) {
+                currentParams[name] = newParams[name];
+            }
             for (name in paramsConstraints) {
                 if (!(name in processedParams)) {
                     val = paramsConstraints[name];

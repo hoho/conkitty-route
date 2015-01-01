@@ -900,7 +900,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function checkAndSetParam(name, value, expected, constraints, queryparams, params/**/, constraint, ok) {
+    function checkAndSetParam(name, value, expected, constraints, queryParams, newParams, currentParams/**/, constraint, ok) {
         if (expected.param && constraints) {
             constraint = constraints[expected.param];
         }
@@ -935,8 +935,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         if (ok && value !== undefined) {
-            if (name !== undefined) { queryparams[name] = value; }
-            if (expected && expected.param) { params[expected.param] = value; }
+            if (name !== undefined) { queryParams[name] = value; }
+            if (expected && expected.param) {
+                // Using different objects to avoid wrong Histery.js sameMatch.
+                newParams[name] = currentParams[(name = expected.param)] = value;
+            }
         }
 
         return ok;
@@ -1074,7 +1077,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 (tmp = pathParams[j]),
                                 paramsConstraints,
                                 undefined,
-                                newParams)
+                                newParams,
+                                currentParams)
                             )
                         {
                             j = false;
@@ -1084,7 +1088,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         if (tmp && ((tmp = tmp.param))) { processedParams[tmp] = true; }
                     }
 
-                    if (j === false || (!uriSearch && !uriHash && !customMatcher())) {
+                    if (j === false || (!uriSearch && !uriHash && !finishMatching())) {
                         setFrameActiveFlag(self);
                         return false;
                     }
@@ -1105,7 +1109,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 if (uriSearch) {
                     frame.search = function() {
-                        var queryparams = {},
+                        var queryParams = {},
                             queryparam;
 
                         for (queryparam in uriSearch) {
@@ -1114,23 +1118,24 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                     currentQueryParams[queryparam],
                                     (tmp = uriSearch[queryparam]),
                                     paramsConstraints,
-                                    queryparams,
-                                    newParams)
+                                    queryParams,
+                                    newParams,
+                                    currentParams)
                                 )
                             {
-                                queryparams = false;
+                                queryParams = false;
                                 break;
                             }
 
                             if (tmp && ((tmp = tmp.param))) { processedParams[tmp] = true; }
                         }
 
-                        if (queryparams === false || (!uriHash && !customMatcher())) {
+                        if (queryParams === false || (!uriHash && !finishMatching())) {
                             setFrameActiveFlag(self);
-                            queryparams = false;
+                            queryParams = false;
                         }
 
-                        return queryparams;
+                        return queryParams;
                     };
                 }
 
@@ -1142,10 +1147,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 uriHash,
                                 paramsConstraints,
                                 undefined,
-                                newParams
+                                newParams,
+                                currentParams
                             )
                             &&
-                            customMatcher()
+                            finishMatching()
                             ?
                             hash || true
                             :
@@ -1205,10 +1211,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
-        function customMatcher(/**/matcher, name, val) {
-            for (name in newParams) {
-                currentParams[name] = newParams[name];
-            }
+        function finishMatching(/**/matcher, name, val) {
+            // Calculable parameters.
             for (name in paramsConstraints) {
                 if (!(name in processedParams)) {
                     val = paramsConstraints[name];
@@ -1218,6 +1222,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }
 
+            // Run custom matcher if any.
             return (matcher = frameSettings.matcher) ? matcher.call(self, currentParams) : true;
         }
     }

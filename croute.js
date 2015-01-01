@@ -900,7 +900,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function checkAndSetParam(name, value, expected, constraints, queryParams, newParams, currentParams/**/, constraint, ok) {
+    function checkAndSetParam(frame, name, value, expected, constraints, queryParams, newParams, currentParams/**/, constraint, ok) {
         if (expected.param && constraints) {
             constraint = constraints[expected.param];
         }
@@ -911,7 +911,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 break;
 
             case isFunction(constraint):
-                ok = (((value = constraint(value))) !== undefined) || expected.optional;
+                ok = (((value = constraint.call(frame, value, newParams))) !== undefined) || expected.optional;
                 break;
 
             case (value === undefined) && expected.optional:
@@ -936,9 +936,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (ok && value !== undefined) {
             if (name !== undefined) { queryParams[name] = value; }
-            if (expected && expected.param) {
+            if (expected && ((name = expected.param))) {
                 // Using different objects to avoid wrong Histery.js sameMatch.
-                newParams[name] = currentParams[(name = expected.param)] = value;
+                newParams[name] = currentParams[name] = value;
             }
         }
 
@@ -1070,8 +1070,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     j;
 
                 if (match) {
-                    for (j = pathParams.length; j--;) {
+                    for (j = 0; j < pathParams.length; j++) {
                         if (!checkAndSetParam(
+                                self,
                                 undefined,
                                 match[paramsOffset + j],
                                 (tmp = pathParams[j]),
@@ -1114,6 +1115,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                         for (queryparam in uriSearch) {
                             if (!checkAndSetParam(
+                                    self,
                                     queryparam,
                                     currentQueryParams[queryparam],
                                     (tmp = uriSearch[queryparam]),
@@ -1142,6 +1144,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (uriHash) {
                     frame.hash = function(hash) {
                         var j = checkAndSetParam(
+                                self,
                                 undefined,
                                 hash || undefined,
                                 uriHash,

@@ -59,14 +59,25 @@ describe('Stages test', function() {
                             error: 'StagesError'
                         }
                     },
-                    '/:sub4': {
+                    '/:sub4/:subsub4/:subsubsub4': {
                         id: 'sub4-id',
-                        params: {sub4: function(val) { return val === 'sub4' ? val : undefined; }},
+                        params: {
+                            subsub4: function(val, newParams) {
+                                expect(newParams).toEqual({sub4: 'sub4'});
+                                expect(this.id).toEqual('sub4-id');
+                                return val === 'subsub4' ? val : undefined;
+                            },
+                            subsubsub4: function(val, newParams) {
+                                expect(newParams).toEqual({sub4: 'sub4', subsub4: 'subsub4'});
+                                expect(this.id).toEqual('sub4-id');
+                                return val === 'subsubsub4' ? val : undefined;
+                            }
+                        },
                         title: 'Stages Sub4',
                         data: [
                             '/api/data1',
                             function(params) {
-                                expect(params).toEqual({sub4: 'sub4'});
+                                expect(params).toEqual({sub4: 'sub4', subsub4: 'subsub4', subsubsub4: 'subsubsub4'});
                                 expect(this.id).toEqual('sub4-id');
                                 return new Promise(function(resolve) { setTimeout(function() { resolve('oooo'); }, 100); });
                             },
@@ -222,7 +233,7 @@ describe('Stages test', function() {
                 'after'
             ]);
 
-            $CR.set('/stages/sub4');
+            $CR.set('/stages/sub4/subsub4/subsubsub4');
             waitInit();
 
             expect(document.title).toEqual('Stages Sub4');
@@ -257,7 +268,7 @@ describe('Stages test', function() {
                 'after',
                 'after',
                 {name: 'h1', value: ['[{"url":"/api/data1","method":"GET"},"oooo",{"url":"/api/data2","method":"GET"}]']},
-                {name: 'h2', value: ['{"sub4":"sub4"}']}
+                {name: 'h2', value: ['{"sub4":"sub4","subsub4":"subsub4","subsubsub4":"subsubsub4"}']}
             ]);
         });
     });

@@ -1014,6 +1014,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
                 self.final = frameSettings.final;
+                self.partial = frameSettings.partial;
                 self.reduce = frameSettings.reduce;
 
                 if (isArray((f = frameSettings.data))) {
@@ -1095,7 +1096,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     // self._d means that there are no further pathname components.
-                    if (((self._d = !match[paramsOffset + pathParams.length])) && self.final !== false) {
+                    if (((self._d = !match[paramsOffset + pathParams.length] || self.partial)) && self.final !== false) {
                         // Deepest matched frame and there is render for this frame.
                         setFrameActiveFlag(self, 1);
                     }

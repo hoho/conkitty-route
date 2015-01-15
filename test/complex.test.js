@@ -104,6 +104,52 @@ describe('Complex test', function() {
                 }),
                 render: 'Override'
             })
+            .add('/part1', {
+                render: 'Part1',
+                frames: {
+                    '/': [
+                        {
+                            frames: {
+                                '/': {
+                                    render: 'Part_1_1',
+                                    frames: {
+                                        '/part2': {
+                                            render: 'Part_1_2'
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            frames: {
+                                '/': {
+                                    render: 'Part_2_1',
+                                    frames: {
+                                        '/part2': {
+                                            partial: true,
+                                            render: 'Part_2_2'
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            render: 'Part_3_1',
+                            frames: {
+                                '/part2': {
+                                    render: 'Part_3_2',
+                                    frames: {
+                                        '/part3': {
+                                            partial: true,
+                                            render: 'Part_3_3'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            })
             .run({callTemplate: testCallTemplate});
 
         expect(objectifyBody()).toEqual([
@@ -374,6 +420,79 @@ describe('Complex test', function() {
 
             expect(objectifyBody()).toEqual([
                 {name: 'h1', value: ['[{"paparam":{"p1":"beautiful","p2":"indeed"}},{"p1":"beautiful","p2":"indeed"}]']}
+            ]);
+
+            $CR.set('/partial/part1');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: ['NotFoundTemplate']},
+                {name: 'p', value: [ '/partial/part1' ]}
+            ]);
+
+            $CR.set('/part1');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: ['Part1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_1_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_2_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_3_1']},
+                {name: 'p', value: ['/part1']}
+            ]);
+
+            $CR.set('/part1/part2');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: ['Part1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_1_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_2_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_3_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_1_2']},
+                {name: 'p', value: ['/part1/part2']},
+                {name: 'div', value: ['Part_2_2']},
+                {name: 'p', value: ['/part1/part2']},
+                {name: 'div', value: ['Part_3_2']},
+                {name: 'p', value: ['/part1/part2']}
+            ]);
+
+            $CR.set('/part1/part2/part3');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: ['Part1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_2_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_3_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_2_2']},
+                {name: 'p', value: ['/part1/part2']},
+                {name: 'div', value: ['Part_3_2']},
+                {name: 'p', value: ['/part1/part2']},
+                {name: 'div', value: ['Part_3_3']},
+                {name: 'p', value: ['/part1/part2/part3']}
+            ]);
+
+            $CR.set('/part1/part2/part3/part4');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: ['Part1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_2_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_3_1']},
+                {name: 'p', value: ['/part1']},
+                {name: 'div', value: ['Part_2_2']},
+                {name: 'p', value: ['/part1/part2']},
+                {name: 'div', value: ['Part_3_2']},
+                {name: 'p', value: ['/part1/part2']},
+                {name: 'div', value: ['Part_3_3']},
+                {name: 'p', value: ['/part1/part2/part3']}
             ]);
         });
     });

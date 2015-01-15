@@ -1055,7 +1055,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             uri = parseParameterizedURI(uri);
             newPathExpr = (pathExpr || []).concat(uri.pathname[0]);
 
-            pathnameExpr = new RegExp(newPathExpr.join('') + '(?:/(.*))?');
+            pathnameExpr = new RegExp('^' + newPathExpr.join('') + '(?:/(.*))?$');
             pathParams = uri.pathname[1];
             uriSearch = uri.search;
             uriHash = uri.hash;

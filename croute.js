@@ -1215,7 +1215,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
-        function finishMatching(/**/matcher, name, val) {
+        function finishMatching(/**/matcher, name, val, k) {
+            val = Object.keys(currentParams);
+            for (k = val.length; k--;) {
+                name = val[k];
+                if (!newParams.hasOwnProperty(name)) {
+                    delete currentParams[name];
+                }
+            }
+
             // Calculable parameters.
             for (name in paramsConstraints) {
                 if (!(name in processedParams)) {

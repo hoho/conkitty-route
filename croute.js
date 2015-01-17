@@ -30,6 +30,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         oldDOM = [],
 
+        partials,
+
         eventHandlers = {
             before: {},
             success: {},
@@ -167,6 +169,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             var newRootFrame,
                 newFrames = {},
                 i,
+                j,
                 frame,
                 haveNewFrames,
                 newFramesCount = 0,
@@ -217,8 +220,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             for (i = 0; i < frames.length; i++) {
                 frame = frames[i];
                 if (frame._a) {
-                    traverseFrame((newRootFrame = frame), undefined, activateParallelFramesCallback);
-                    traverseFrame(frame, traverseCallbackBefore, traverseCallback);
+                    newRootFrame = frame;
+                    for (j in partials) {
+                        frame = partials[j];
+                        if (frame.root === newRootFrame && !frame._a) {
+                            setFrameActiveFlag(frame, 1);
+                        }
+                    }
+                    traverseFrame(newRootFrame, undefined, activateParallelFramesCallback);
+                    traverseFrame(newRootFrame, traverseCallbackBefore, traverseCallback);
                     break;
                 }
             }
@@ -726,6 +736,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     $H.on(
         {
             search: function(search/**/, i, j, name, value, cur) {
+                // Reset partials.
+                partials = {};
+
                 // Reset active flags.
                 cur = function(r) { r._a = 0; };
                 for (i = frames.length; i--;) {
@@ -977,6 +990,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             processedParams;
 
         self[KEY_PARENT] = parent;
+        self.root = parent ? (parent.root || parent) : self;
         self.children = [];
         self.uri = uri;
         self._id = 'r' + (++frameId);
@@ -1095,13 +1109,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         return false;
                     }
 
-                    // self._d means that there are no further pathname components.
-                    if (((self._d = !match[paramsOffset + pathParams.length] || self.partial)) && self.final !== false) {
-                        setFrameActiveFlag(self, 1);
+                    if ((((j = !match[paramsOffset + pathParams.length])) || self.partial) && self.final !== false) {
+                        if (j) {
+                            setFrameActiveFlag(self, 1);
+                        } else {
+                            j = true;
+                            partials[self._id] = self;
+                        }
                     }
                 }
 
-                return self._a ? newParams : false;
+                return self._a || j ? newParams : false;
             };
 
 

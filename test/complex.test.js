@@ -21,7 +21,8 @@ describe('Complex test', function() {
             Hash1Template: '<p>hash1</p>',
             Hash2Template: '<p>hash2</p>',
             Override: function(name, data, params) { return '<h1>' + JSON.stringify([data, params]) + '</h1>'; },
-            Parallel: function(name, data, params) { return '<p>' + this.id + ':' + JSON.stringify([data, params]) + '</p>'; }
+            Parallel: function(name, data, params) { return '<p>' + this.id + ':' + JSON.stringify([data, params]) + '</p>'; },
+            Partial: function(name, data, params) { return '<p>' + this.id + ':' + location.pathname + ':' + JSON.stringify([data, params]) + '</p>'; }
         };
 
         var matcherParams;
@@ -127,17 +128,20 @@ describe('Complex test', function() {
                     ]
                 }
             })
-            .add('/part1', {
-                render: 'Part1',
+            .add('/part1?a=:a', {
+                id: 'p1',
+                render: 'Partial',
                 frames: {
-                    '/': [
+                    '/?b=:b': [
                         {
                             frames: {
-                                '/': {
-                                    render: 'Part_1_1',
+                                '/?c=:c': {
+                                    id: 'p11',
+                                    render: 'Partial',
                                     frames: {
-                                        '/part2': {
-                                            render: 'Part_1_2'
+                                        '/part2?d=:d': {
+                                            id: 'p12',
+                                            render: 'Partial'
                                         }
                                     }
                                 }
@@ -145,26 +149,31 @@ describe('Complex test', function() {
                         },
                         {
                             frames: {
-                                '/': {
-                                    render: 'Part_2_1',
+                                '/?e=:e': {
+                                    id: 'p21',
+                                    render: 'Partial',
                                     frames: {
-                                        '/part2': {
+                                        '/part2?f=:f': {
+                                            id: 'p22',
                                             partial: true,
-                                            render: 'Part_2_2'
+                                            render: 'Partial'
                                         }
                                     }
                                 }
                             }
                         },
                         {
-                            render: 'Part_3_1',
+                            id: 'p31',
+                            render: 'Partial',
                             frames: {
-                                '/part2': {
-                                    render: 'Part_3_2',
+                                '/part2?g=:g': {
+                                    id: 'p32',
+                                    render: 'Partial',
                                     frames: {
-                                        '/part3': {
+                                        '/part3?h=:h': {
+                                            id: 'p33',
                                             partial: true,
-                                            render: 'Part_3_3'
+                                            render: 'Partial'
                                         }
                                     }
                                 }
@@ -462,77 +471,50 @@ describe('Complex test', function() {
                 {name: 'p', value: ['par4:[null,{"p3":"pom"}]']}
             ]);
 
-            $CR.set('/partial/part1');
+            $CR.set('/partial/part1?a=aa&b=bb&c=cc&d=dd&e=ee&f=ff&g=gg&h=hh');
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: ['NotFoundTemplate']},
                 {name: 'p', value: [ '/partial/part1' ]}
             ]);
 
-            $CR.set('/part1');
+            $CR.set('/part1?a=aa&b=bb&c=cc&d=dd&e=ee&f=ff&g=gg&h=hh');
 
             expect(objectifyBody()).toEqual([
-                {name: 'div', value: ['Part1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_1_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_2_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_3_1']},
-                {name: 'p', value: ['/part1']}
+                {name: 'p', value: ['p1:/part1:[null,{"a":"aa"}]']},
+                {name: 'p', value: ['p11:/part1:[null,{"c":"cc"}]']},
+                {name: 'p', value: ['p21:/part1:[null,{"e":"ee"}]']},
+                {name: 'p', value: ['p31:/part1:[null,{"b":"bb"}]']}
             ]);
 
-            $CR.set('/part1/part2');
+            $CR.set('/part1/part2?a=aa&b=bb&c=cc&d=dd&e=ee&f=ff&g=gg&h=hh');
 
             expect(objectifyBody()).toEqual([
-                {name: 'div', value: ['Part1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_1_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_2_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_3_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_1_2']},
-                {name: 'p', value: ['/part1/part2']},
-                {name: 'div', value: ['Part_2_2']},
-                {name: 'p', value: ['/part1/part2']},
-                {name: 'div', value: ['Part_3_2']},
-                {name: 'p', value: ['/part1/part2']}
+                {name: 'p', value: ['p1:/part1:[null,{"a":"aa"}]']},
+                {name: 'p', value: ['p11:/part1:[null,{"c":"cc"}]']},
+                {name: 'p', value: ['p21:/part1:[null,{"e":"ee"}]']},
+                {name: 'p', value: ['p31:/part1:[null,{"b":"bb"}]']},
+                {name: 'p', value: ['p12:/part1/part2:[null,{"d":"dd"}]']},
+                {name: 'p', value: ['p22:/part1/part2:[null,{"f":"ff"}]']},
+                {name: 'p', value: ['p32:/part1/part2:[null,{"g":"gg"}]']}
             ]);
 
-            $CR.set('/part1/part2/part3');
+            $CR.set('/part1/part2/part3?a=aa&b=bb&c=cc&d=dd&e=ee&f=ff&g=gg&h=hh');
 
             expect(objectifyBody()).toEqual([
-                {name: 'div', value: ['Part1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_2_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_3_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_2_2']},
-                {name: 'p', value: ['/part1/part2']},
-                {name: 'div', value: ['Part_3_2']},
-                {name: 'p', value: ['/part1/part2']},
-                {name: 'div', value: ['Part_3_3']},
-                {name: 'p', value: ['/part1/part2/part3']}
+                {name: 'p', value: ['p1:/part1:[null,{"a":"aa"}]']},
+                {name: 'p', value: ['p21:/part1:[null,{"e":"ee"}]']},
+                {name: 'p', value: ['p31:/part1:[null,{"b":"bb"}]']},
+                {name: 'p', value: ['p22:/part1/part2:[null,{"f":"ff"}]']},
+                {name: 'p', value: ['p32:/part1/part2:[null,{"g":"gg"}]']},
+                {name: 'p', value: ['p33:/part1/part2/part3:[null,{"h":"hh"}]']}
             ]);
 
-            $CR.set('/part1/part2/part3/part4');
+            $CR.set('/part1/part2/part3/part4?a=aa&b=bb&c=cc&d=dd&e=ee&f=ff&g=gg&h=hh');
 
             expect(objectifyBody()).toEqual([
-                {name: 'div', value: ['Part1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_2_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_3_1']},
-                {name: 'p', value: ['/part1']},
-                {name: 'div', value: ['Part_2_2']},
-                {name: 'p', value: ['/part1/part2']},
-                {name: 'div', value: ['Part_3_2']},
-                {name: 'p', value: ['/part1/part2']},
-                {name: 'div', value: ['Part_3_3']},
-                {name: 'p', value: ['/part1/part2/part3']}
+                {name: 'div', value: ['NotFoundTemplate']},
+                {name: 'p', value: ['/part1/part2/part3/part4']}
             ]);
         });
     });

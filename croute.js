@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -29,6 +29,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         notFoundFrame,
 
         oldDOM = [],
+
+        partials,
 
         eventHandlers = {
             before: {},
@@ -217,8 +219,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             for (i = 0; i < frames.length; i++) {
                 frame = frames[i];
                 if (frame._a) {
-                    traverseFrame((newRootFrame = frame), undefined, activateParallelFramesCallback);
-                    traverseFrame(frame, traverseCallbackBefore, traverseCallback);
+                    newRootFrame = frame;
+                    while ((frame = partials.pop())) {
+                        if (frame.root === newRootFrame) {
+                            setFrameActiveFlag(frame, 1);
+                        }
+                    }
+                    traverseFrame(newRootFrame, undefined, activateParallelFramesCallback);
+                    traverseFrame(newRootFrame, traverseCallbackBefore, traverseCallback);
                     break;
                 }
             }
@@ -726,6 +734,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     $H.on(
         {
             search: function(search/**/, i, j, name, value, cur) {
+                // Reset partials.
+                partials = [];
+
                 // Reset active flags.
                 cur = function(r) { r._a = 0; };
                 for (i = frames.length; i--;) {
@@ -977,6 +988,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             processedParams;
 
         self[KEY_PARENT] = parent;
+        self.root = parent ? (parent.root || parent) : self;
         self.children = [];
         self.uri = uri;
         self._id = 'r' + (++frameId);
@@ -1096,9 +1108,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
 
                     // self._d means that there are no further pathname components.
-                    if (((self._d = !match[paramsOffset + pathParams.length] || self.partial)) && self.final !== false) {
-                        // Deepest matched frame and there is render for this frame.
-                        setFrameActiveFlag(self, 1);
+                    if ((((j = !match[paramsOffset + pathParams.length])) || self.partial) && self.final !== false) {
+                        if (j) {
+                            setFrameActiveFlag(self, 1);
+                        } else if (self.partial) {
+                            partials.push(self);
+                        }
                     }
                 }
 

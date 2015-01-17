@@ -20,7 +20,8 @@ describe('Complex test', function() {
             DeeperDeeperTemplate: function(name, data, params) { return 'deeperdeeper: ' + JSON.stringify([data, params]); },
             Hash1Template: '<p>hash1</p>',
             Hash2Template: '<p>hash2</p>',
-            Override: function(name, data, params) { return '<h1>' + JSON.stringify([data, params]) + '</h1>'; }
+            Override: function(name, data, params) { return '<h1>' + JSON.stringify([data, params]) + '</h1>'; },
+            Parallel: function(name, data, params) { return '<p>' + this.id + ':' + JSON.stringify([data, params]) + '</p>'; }
         };
 
         var matcherParams;
@@ -103,6 +104,28 @@ describe('Complex test', function() {
                     }
                 }),
                 render: 'Override'
+            })
+            .add('/parallel', {
+                id: 'par1',
+                render: 'Parallel',
+                frames: {
+                    '/:p1/:p2': [
+                        {
+                            id: 'par2',
+                            render: 'Parallel'
+                        },
+                        {
+                            id: 'par3',
+                            render: 'Parallel',
+                            frames: {
+                                '/:p3': {
+                                    id: 'par4',
+                                    render: 'Parallel'
+                                }
+                            }
+                        }
+                    ]
+                }
             })
             .add('/part1', {
                 render: 'Part1',
@@ -420,6 +443,23 @@ describe('Complex test', function() {
 
             expect(objectifyBody()).toEqual([
                 {name: 'h1', value: ['[{"paparam":{"p1":"beautiful","p2":"indeed"}},{"p1":"beautiful","p2":"indeed"}]']}
+            ]);
+
+            $CR.set('/parallel/pum/pam');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['par1:[null,{}]']},
+                {name: 'p', value: ['par2:[null,{"p1":"pum","p2":"pam"}]']},
+                {name: 'p', value: ['par3:[null,{"p1":"pum","p2":"pam"}]']}
+            ]);
+
+            $CR.set('/parallel/pum/pam/pom');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['par1:[null,{}]']},
+                {name: 'p', value: ['par2:[null,{"p1":"pum","p2":"pam"}]']},
+                {name: 'p', value: ['par3:[null,{"p1":"pum","p2":"pam"}]']},
+                {name: 'p', value: ['par4:[null,{"p3":"pom"}]']}
             ]);
 
             $CR.set('/partial/part1');

@@ -196,17 +196,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         return !!brk;
                     }
                 },
-                activateParallelFramesCallback = function(f/**/, parallel, j, s) {
+                activateParallelFramesCallback = function(f/**/, parallel, k, s) {
                     // Check if there are parallel frames.
                     if ((parallel = f._g)) {
-                        for (j = parallel.length; j--;) {
+                        for (k = parallel.length; k--;) {
                             // Check if at least one active frame among the
                             // arallel frames exists.
-                            if (((s = parallel[j]))._a) {
+                            if (((s = parallel[k]))._a) {
                                 s = s._s;
-                                for (j = parallel.length; j--;) {
+                                for (k = parallel.length; k--;) {
                                     // Activate the inactive parallel frames.
-                                    if (!((f = parallel[j]))._a && (f.final !== false)) {
+                                    if (!((f = parallel[k]))._a && (f.final !== false)) {
                                         setFrameActiveFlag(f, 1);
                                     }
                                     f._s = s;
@@ -348,23 +348,23 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }
 
-            function submitForm(data) {
+            function submitForm(formData) {
                 action = isFunction((action = formNode.getAttribute('action') || form.action)) ?
-                    action.call(formNode, data, frame)
+                    action.call(formNode, formData, frame)
                     :
                     (action || location.href);
 
                 type = form.type || 'qs';
 
                 if (form.method === 'get' && type === 'qs') {
-                    if (data.length) {
-                        action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(data);
+                    if (formData.length) {
+                        action += (~action.indexOf('?') ? '&' : '?') + formToQuerystring(formData);
                     }
-                    data = undefined;
+                    formData = undefined;
                 }
 
-                if (type === 'qs' && (!data || !data.length)) {
-                    data = type = undefined;
+                if (type === 'qs' && (!formData || !formData.length)) {
+                    formData = type = undefined;
                 }
 
                 form[KEY_DATASOURCE] = [action];
@@ -374,7 +374,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     undefined,
                     formNode,
                     function(xhr/**/, xhrCallback) {
-                        if (data !== undefined || type !== undefined) {
+                        if (formData !== undefined || type !== undefined) {
                             xhr.setRequestHeader(
                                 'Content-Type',
                                 type === 'text' ?
@@ -388,19 +388,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
 
                         if ((xhrCallback = form.xhr)) {
-                            xhrCallback.call(formNode, xhr, data, frame);
+                            xhrCallback.call(formNode, xhr, formData, frame);
                         }
 
                         setFormState(frame, form, FORM_STATE_SENDING);
 
                         return type === 'json' ?
-                            JSON.stringify(data)
+                            JSON.stringify(formData)
                             :
-                            (data ?
+                            (formData ?
                                 (type === 'text' ?
-                                    data + ''
+                                    formData + ''
                                     :
-                                    formToQuerystring(data || []))
+                                    formToQuerystring(formData || []))
                                 :
                                 undefined);
                     }
@@ -1730,7 +1730,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             waiting = 0,
             render = frame.render,
             resolve,
-            done = function(index, data, /**/i, children, r, errors, prevDatas, stage) {
+            done = function(index, data, /**/j, children, r, errors, prevDatas, stage) {
                 if (index !== undefined) {
                     datas[index] = data;
                     waiting--;
@@ -1756,9 +1756,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         // them anyway.
                         if (stage && refresh === 1) {
                             r = true;
-                            for (i = datas.length; r && i--;) {
-                                d = dataSource[i];
-                                r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[i], prevDatas[i]);
+                            for (j = datas.length; r && j--;) {
+                                d = dataSource[j];
+                                r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[j], prevDatas[j]);
                             }
                             if (r) {
                                 stage = NULL;
@@ -1794,8 +1794,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 }
                             }
 
-                            if (((i = frame.refresh)) && (i.r !== undefined) && (prevDatas || !errors)) {
-                                refreshFrame(frame, i.r, i);
+                            if (((j = frame.refresh)) && (j.r !== undefined) && (prevDatas || !errors)) {
+                                refreshFrame(frame, j.r, j);
                             }
                         };
 
@@ -1808,8 +1808,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     // Update wait flags and call delayed callbacks if any.
                     callDelayedStages(currentRootFrame, frame, errors || (!frame.wait && !refresh) ? frame._w2 : 1);
 
-                    for (i = 0; i < children.length; i++) {
-                        r = children[i];
+                    for (j = 0; j < children.length; j++) {
+                        r = children[j];
                         if (r._id in currentFrames) {
                             if (!errors) {
                                 new ProcessFrame(r, refresh);
@@ -1887,21 +1887,21 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         done();
 
-        function callDelayedStages(frame, finished, finishedCount/**/, i) {
+        function callDelayedStages(frm, finished, finishedCount/**/, j) {
             // XXX: Probably optimize this somehow, to avoid traversing the tree
             //      from the root node.
-            if (frame) {
+            if (frm) {
                 if (finishedCount) {
-                    for (i = finished; i && i._w2; i = i[KEY_PARENT]) {
-                        i._w2 -= finishedCount;
+                    for (j = finished; j && j._w2; j = j[KEY_PARENT]) {
+                        j._w2 -= finishedCount;
                     }
                 }
 
-                if (!frame._w2 && frame._r && (!((i = frame[KEY_PARENT])) || !i._r)) {
-                    frame._r();
+                if (!frm._w2 && frm._r && (!((j = frm[KEY_PARENT])) || !j._r)) {
+                    frm._r();
                 }
 
-                traverseFrame(frame, callDelayedStages, undefined, true);
+                traverseFrame(frm, callDelayedStages, undefined, true);
             }
         }
     }

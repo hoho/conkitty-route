@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.2, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1245,7 +1245,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             for (name in paramsConstraints) {
                 if (!(name in processedParams)) {
                     val = paramsConstraints[name];
-                    if (((val = isFunction(val) ? val.call(self) : val)) !== undefined) {
+                    if (((val = isFunction(val) ? val.call(self, currentParams) : val)) !== undefined) {
                         currentParams[name] = val;
                     }
                 }

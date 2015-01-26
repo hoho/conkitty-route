@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.2, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.3, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -280,18 +280,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }, 0);
         });
 
-        addEvent('click', function(e) {
+        addEvent('click', function(e/**/, replace) {
             var elem = e.target;
             while (elem && !(elem instanceof HTMLAnchorElement)) {
                 elem = elem.parentNode;
             }
             if (elem &&
-                !elem.target &&
+                (!((replace = elem.target)) || ((replace = replace === '$CR.replace'))) &&
                 (elem.host === location.host) &&
                 !(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.which !== 1)))
             {
                 e.preventDefault();
-                API.set(elem.href);
+                API.set(elem.href, undefined, replace);
             }
         }, false);
 

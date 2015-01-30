@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.3, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.4, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -959,8 +959,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function setFrameActiveFlag(frame, active/**/, a) {
+    function setFrameActiveFlag(frame, active, noTraverse/**/, a) {
         // frame._a means active frame.
+        if (!active && !noTraverse) {
+            // Deactivate children, if any.
+            traverseFrame(frame, undefined, function(f) {
+                if (f._a) {
+                    setFrameActiveFlag(f, active, true);
+                }
+            }, true);
+        }
         if (!!((a = frame._a)) === !active) {
             while (frame) {
                 // Tell parents about it.

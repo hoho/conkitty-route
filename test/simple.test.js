@@ -46,6 +46,16 @@ describe('Simple test', function() {
             })
             .run({callTemplate: testCallTemplate});
 
+
+        var tmpURI;
+        tmpURI = $CR.makeURI('/a/:b/c?aa=aa&bb=:bb&cc=cc#:bbb', {b: 'x', bb: 'yy', bbb: 'zzz'});
+        expect(tmpURI).toEqual('/a/x/c?aa=aa&bb=yy&cc=cc#zzz');
+        tmpURI = $CR.makeURI('//ya.ru/a/:b/c?aa=aa&bb=:bb&cc=cc#:bbb', {b: 'x', bb: 'yy', bbb: 'zzz'});
+        expect(tmpURI).toEqual('http://ya.ru/a/x/c?aa=aa&bb=yy&cc=cc#zzz');
+        tmpURI = $CR.makeURI('https://ya.ru/a/:b/c?aa=aa&bb=:bb&cc=cc#:bbb', {b: 'x', bb: 'yy', bbb: 'zzz'});
+        expect(tmpURI).toEqual('https://ya.ru/a/x/c?aa=aa&bb=yy&cc=cc#zzz');
+
+
         $CR.on('before success error after stop except leave busy idle', function(e) {
             events.push(e + ' ' + this.id);
             //if (!this.id) { console.log(this); }

@@ -1321,7 +1321,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function makeURI(frame, uri, overrideParams, pathname, queryparams, processedQueryparams, hash, child) {
+    function makeURI(frame, uri, overrideParams, pathname, queryparams, processedQueryparams, hash, child, origin) {
         // TODO: Test params and throw errors when necessary.
         var i,
             j,
@@ -1337,6 +1337,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (overrideParams !== undefined && (typeof overrideParams !== 'object')) {
             throwError('Invalid params `' + overrideParams + '`');
+        }
+
+        if (!child) {
+            i = document.createElement('a');
+            i.href = uri;
+            if ((origin = i.protocol !== location.protocol || i.host !== location.host ? i.protocol + '//' + i.host : '')) {
+                uri = i.pathname + i.search;
+                if (((j = i.hash)) && j.length > 1) { uri += j; }
+            }
         }
 
         if (!frame || (frame && frame.reduce !== false)) {
@@ -1387,12 +1396,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (overrideParams && frame && ((i = frame[KEY_PARENT]))) {
             // Building frame URI from frames tree, current state and params to override.
-            makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true);
+            makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true, origin);
         }
 
         if (!child) {
             // Skip this part for recursive call.
-            pathname = ('/' + pathname.join('/')).replace(/\/+/g, '/');
+            pathname = origin + ('/' + pathname.join('/')).replace(/\/+/g, '/');
 
             if (queryparams.length) {
                 pathname += '?' + queryparams.join('&');

@@ -28,8 +28,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         notFoundFrame,
 
-        oldDOM = [],
-
         partials,
 
         eventHandlers = {
@@ -254,7 +252,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
 
             if (!haveNewFrames && (newFramesCount < currentFramesCount)) {
-                removeNodes(oldDOM, 0);
+                removeOldNodes();
             }
 
             currentFrames = newFrames;
@@ -412,7 +410,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         $H.run();
 
         // Exposing debug information.
-        API._debug = {f: frames, o: oldDOM};
+        API._debug = {f: frames};
     };
 
 
@@ -1003,6 +1001,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self.uri = uri;
         self._id = 'r' + (++frameId);
         self._n = {};
+        self._d = [];
 
         if (frameSettings) {
             self.title = frameSettings.title || (parent && parent.title);
@@ -1677,7 +1676,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if (!target || isNode(node)) {
                 // Remove nodes from previous frames if any.
-                removeNodes(oldDOM, 0);
+                removeOldNodes();
 
                 // `target` is a string or InternalValue(3).
                 renderParent = getRenderParent(frame, target && target.p, defaultRenderParent);
@@ -1695,7 +1694,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     for (i in rememberedNodes) {
                         i = rememberedNodes[i];
                         if (!renderParents._ || i === mem) {
-                            removeNodes(i, 1);
+                            frame._d = frame._d.concat(i.splice(1, i.length - 1));
+                            removeOldNodes();
                         }
                     }
                 }
@@ -1720,11 +1720,19 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function removeNodes(nodes, stop/**/, parent, node) {
-        while (nodes.length > stop) {
-            node = nodes.pop();
-            if ((parent = node.parentNode)) {
-                parent.removeChild(node);
+    function removeOldNodes(frame/**/, i) {
+        if (frame) {
+            traverseFrame(frame, function(f/**/, nodes, parent, node) {
+                nodes = f._d;
+                while ((node = nodes.pop())) {
+                    if ((parent = node.parentNode)) {
+                        parent.removeChild(node);
+                    }
+                }
+            });
+        } else {
+            for (i = frames.length; i--;) {
+                removeOldNodes(frames[i]);
             }
         }
     }
@@ -1832,7 +1840,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 new ProcessFrame(r, refresh);
                             } else {
                                 unprocessFrame(r, {});
-                                removeNodes(oldDOM, 0);
+                                removeOldNodes();
                             }
                         }
                     }
@@ -1978,7 +1986,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 for (i in nodesets) {
                     nodes = nodesets[i];
                     while (nodes.length > keepPlaceholders) {
-                        oldDOM.push(nodes.pop());
+                        frame._d.push(nodes.pop());
                     }
                 }
 

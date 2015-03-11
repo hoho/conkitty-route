@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.5, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.6, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -1341,6 +1341,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         if (!child) {
             i = document.createElement('a');
             i.href = uri;
+            // The next line is yet one more hello to Internet Explorer which
+            // doesn't populate i.protocol and i.host without this line.
+            i.href = i.href;
             if ((origin = i.protocol !== location.protocol || i.host !== location.host ? i.protocol + '//' + i.host : '')) {
                 uri = i.pathname + i.search;
                 if (((j = i.hash)) && j.length > 1) { uri += j; }

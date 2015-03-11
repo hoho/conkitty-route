@@ -51,7 +51,7 @@ describe('Simple test', function() {
         tmpURI = $CR.makeURI('/a/:b/c?aa=aa&bb=:bb&cc=cc#:bbb', {b: 'x', bb: 'yy', bbb: 'zzz'});
         expect(tmpURI).toEqual('/a/x/c?aa=aa&bb=yy&cc=cc#zzz');
         tmpURI = $CR.makeURI('//ya.ru/a/:b/c?aa=aa&bb=:bb&cc=cc#:bbb', {b: 'x', bb: 'yy', bbb: 'zzz'});
-        // IE adds port event if it is a default protocol port.
+        // IE adds port even if it is a default protocol port.
         expect(tmpURI.replace(/ya\.ru:80/, 'ya.ru')).toEqual('http://ya.ru/a/x/c?aa=aa&bb=yy&cc=cc#zzz');
         tmpURI = $CR.makeURI('https://ya.ru/a/:b/c?aa=aa&bb=:bb&cc=cc#:bbb', {b: 'x', bb: 'yy', bbb: 'zzz'});
         expect(tmpURI.replace(/ya\.ru:443/, 'ya.ru')).toEqual('https://ya.ru/a/x/c?aa=aa&bb=yy&cc=cc#zzz');

@@ -1487,7 +1487,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             body = body(req);
         }
 
-        req.send(body);
+        // When there is an argument, Internet Explorer converts it to
+        // string and sends anyway (event if the argument has undefined
+        // value).
+        if (body !== undefined) {
+            req.send(body);
+        } else {
+            req.send();
+        }
     }
 
 

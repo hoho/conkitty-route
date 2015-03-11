@@ -3,9 +3,13 @@ if (!window.Promise) {
     // present.
     (function() {
         var Promise = function(cb) {
-            cb(this.resolve.bind(this), this.reject.bind(this));
-            this.ok = [];
-            this.err = [];
+            var self = this;
+            self.ok = [];
+            self.err = [];
+            setTimeout(function() {
+                cb(function(data) { self.resolve.call(self, data); },
+                   function(data) { self.reject.call(self, data); });
+            }, 0);
         };
         window.Promise = Promise;
 

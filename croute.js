@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.6, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.7.7, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -131,7 +131,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     API.set = function set(uri, reload, replace) {
         checkRunning(true);
         reloadCurrent = reload;
-        return $H.go(uri, undefined, replace);
+        uri = createURLParingAnchor(uri);
+        if (!replace) { replace = location.href === uri.href; }
+        return $H.go(uri.href, undefined, replace);
     };
 
 
@@ -336,8 +338,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
 
             if (!form && formNode.method === 'get' && !formNode.target) {
-                data = document.createElement('a');
-                data.href = formNode.action;
+                data = createURLParingAnchor(formNode.action);
                 if (data.host === location.host) {
                     e.preventDefault();
                     action = data.pathname + data.search;
@@ -1320,6 +1321,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
+    function createURLParingAnchor(href/**/, a) {
+        a = document.createElement('a');
+        a.href = href;
+        // The next line is yet one more hello to Internet Explorer which
+        // doesn't populate a.protocol and a.host without this line.
+        a.href = a.href;
+        return a;
+    }
+
+
     function makeURI(frame, uri, overrideParams, pathname, queryparams, processedQueryparams, hash, child, origin) {
         // TODO: Test params and throw errors when necessary.
         var i,
@@ -1339,11 +1350,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         if (!child) {
-            i = document.createElement('a');
-            i.href = uri;
-            // The next line is yet one more hello to Internet Explorer which
-            // doesn't populate i.protocol and i.host without this line.
-            i.href = i.href;
+            i = createURLParingAnchor(uri);
             if ((origin = i.protocol !== location.protocol || i.host !== location.host ? i.protocol + '//' + i.host : '')) {
                 uri = i.pathname + i.search;
                 if (((j = i.hash)) && j.length > 1) { uri += j; }

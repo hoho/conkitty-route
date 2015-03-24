@@ -516,6 +516,16 @@ describe('Complex test', function() {
                 {name: 'div', value: ['NotFoundTemplate']},
                 {name: 'p', value: ['/part1/part2/part3/part4']}
             ]);
+
+            expect(history.length).toEqual(20);
+            $CR.set('/nothing');
+            expect(history.length).toEqual(21);
+            $CR.set('/nothing2');
+            expect(history.length).toEqual(22);
+            $CR.set('/nothing2');
+            expect(history.length).toEqual(22);
+            $CR.set('/nothing3');
+            expect(history.length).toEqual(23);
         });
     });
 });

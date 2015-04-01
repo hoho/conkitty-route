@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.7.7, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.8.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -93,13 +93,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             return new Params();
         },
 
-        API = function add(uri, isName, frameSettings) {
+        API = function add(uri, frameSettings) {
             checkRunning();
-
-            if (frameSettings === undefined) {
-                frameSettings = isName;
-                isName = false;
-            }
 
             if (isString(uri) && isString(frameSettings)) {
                 // It's a redirect.
@@ -114,7 +109,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 });
             } else {
                 if (uri) {
-                    addFrame(uri, frameSettings, isName);
+                    addFrame(uri, frameSettings);
                 } else if (!notFoundFrame) {
                     // NotFound frame needs to be last, we'll add it in
                     // run() method.
@@ -692,6 +687,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
+    proto.named = function(name, show) {
+        var namedFrame = this.namedChildren[name];
+        if (namedFrame) {
+            new ProcessFrame(namedFrame);
+        }
+    };
+
+
     function setFieldState(frame, form, field, stateValue, msg) {
         var state = form.state,
             input = field[0],
@@ -773,7 +776,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     );
 
 
-    function addFrame(uri, frameSettings, isName) {
+    function addFrame(uri, frameSettings) {
         new Frame(frames, undefined, uri, frameSettings);
     }
 
@@ -978,7 +981,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function Frame(array, parallel, uri, frameSettings, pathExpr, paramsOffset, parent, form) {
+    function Frame(container, parallel, uri, frameSettings, pathExpr, paramsOffset, parent, form, named) {
         var self = this,
             i,
             childFrames,
@@ -999,6 +1002,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         self[KEY_PARENT] = parent;
         self.root = parent ? (parent.root || parent) : self;
         self.children = [];
+        self.namedChildren = {};
         self.uri = uri;
         self._id = 'r' + (++frameId);
         self._n = {};
@@ -1022,22 +1026,29 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.xhr = frameSettings.xhr;
 
             } else {
-                array.push(self);
-                if (parallel) {
-                    self._g = parallel;
-                    parallel.push(self);
+                if (named) {
+                    self.isNamed = true;
+                    container[uri] = self;
+                    uri = undefined;
+                } else {
+                    container.push(self);
+                    if (parallel) {
+                        self._g = parallel;
+                        parallel.push(self);
+                    }
+
+                    paramsConstraints = frameSettings.params;
+                    if ((i = self.id = frameSettings.id)) {
+                        if (i in frameById) { throwError('Duplicate id: ' + i); }
+                        frameById[i] = self;
+                    }
+                    self.break = frameSettings.break;
+                    self.final = frameSettings.final;
+                    self.partial = frameSettings.partial;
+                    self.reduce = frameSettings.reduce;
                 }
 
-                paramsConstraints = frameSettings.params;
-                if ((i = self.id = frameSettings.id)) {
-                    if (i in frameById) { throwError('Duplicate id: ' + i); }
-                    frameById[i] = self;
-                }
-                self.break = frameSettings.break;
                 self.keep = frameSettings.keep;
-                self.final = frameSettings.final;
-                self.partial = frameSettings.partial;
-                self.reduce = frameSettings.reduce;
 
                 if (isArray((f = frameSettings.data))) {
                     self._da = true; // Indicate that it is an Array originally.
@@ -1218,9 +1229,25 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
             }
+
+            if ((childFrames = frameSettings && frameSettings.named)) {
+                for (f in childFrames) {
+                    new Frame(
+                        self.namedChildren,
+                        undefined,
+                        f,
+                        childFrames[f], // frameSettings
+                        undefined,
+                        undefined,
+                        self, // parent
+                        undefined, // form
+                        true
+                    );
+                }
+            }
         }
 
-        if (!form) {
+        if (!form && !named) {
             $H.on(frame, {
                 go: function(same) {
                     if (!uri) {
@@ -1843,6 +1870,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                         if (frame.isForm) {
                             setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
+                            frame._r();
+                        }
+
+                        if (frame.isNamed) {
                             frame._r();
                         }
                     }

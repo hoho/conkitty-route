@@ -231,7 +231,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             for (i in currentFrames) {
                 currentFramesCount++;
                 frame = currentFrames[i];
+
+                if (frame.isNamed && (frame[KEY_PARENT]._id in newFrames)) {
+                    newFrames[frame._id] = frame;
+                }
+
                 i = i in newFrames;
+
                 if (!i ||
                     reloadCurrent ||
                     !frame._s ||
@@ -240,6 +246,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 {
                     unprocessFrame(frame, newFrames);
                 }
+
                 if (i) {
                     // A flag for frame.active(true) to show that this frame
                     // is not just active, but was active in previous location
@@ -428,15 +435,25 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function traverseFrame(frame, callbackBefore, callback, childrenOnly/**/, i, children, f, ret) {
+    function traverseFrame(frame, callbackBefore, callback, childrenOnly, withNamed/**/, i, children, f, ret) {
         if (!childrenOnly && callbackBefore) {
             callbackBefore(frame);
         }
-        children = frame.children;
+
+        children = frame.children.slice(0);
+
+        if (withNamed) {
+            f = frame.namedChildren;
+            for (i in f) {
+                children.push(f[i]);
+            }
+        }
+
         for (i = 0; i < children.length; i++) {
-            ret = traverseFrame((f = children[i]), callbackBefore, callback);
+            ret = traverseFrame((f = children[i]), callbackBefore, callback, undefined, withNamed);
             if (ret) { break; }
         }
+
         return !childrenOnly && callback && callback(frame);
     }
 
@@ -688,9 +705,26 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     proto.named = function(name, show) {
-        var namedFrame = this.namedChildren[name];
-        if (namedFrame) {
-            new ProcessFrame(namedFrame);
+        var namedFrame = this.namedChildren[name],
+            active;
+
+        if (namedFrame && namedFrame[KEY_PARENT].active()) {
+            active = namedFrame._id in currentFrames;
+
+            if (show === undefined) {
+                show = !active;
+            }
+
+            if (show && !active) {
+                currentFrames[namedFrame._id] = namedFrame;
+                new ProcessFrame(namedFrame);
+            }
+
+            if (!show && active) {
+                delete currentFrames[namedFrame._id];
+                unprocessFrame(namedFrame, {});
+                removeOldNodes(namedFrame);
+            }
         }
     };
 
@@ -1773,7 +1807,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         parent.removeChild(node);
                     }
                 }
-            });
+            }, undefined, undefined, true/* withNamed*/);
         } else {
             for (i = frames.length; i--;) {
                 removeOldNodes(frames[i]);

@@ -9,8 +9,6 @@ describe('Named frames test', function() {
             waitsFor(function() { return flag; });
         };
 
-        var override;
-
         window.TEMPLATES = {
             Frame1: function(name, data, params) { return '<h1>' + JSON.stringify([data, params]) + '</h1>'; },
             Named1: function(name, data, params) { return '<p>' + JSON.stringify([data, params, params.p1]) + '</p>'; },

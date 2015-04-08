@@ -1,6 +1,6 @@
 {
     "name": "conkitty-route",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "description": "Build a single page application using routing tree",
     "main": "croute.js",
     "directories": {

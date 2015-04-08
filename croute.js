@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.8.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.8.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -704,26 +704,51 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    proto.named = function(name, show) {
+    proto.named = function(name, params) {
         var namedFrame = this.namedChildren[name],
-            active;
+            show,
+            active,
+            currentParams,
+            oldParamNames,
+            oldParams,
+            tmp,
+            i;
 
         if (namedFrame && namedFrame[KEY_PARENT].active()) {
             active = namedFrame._id in currentFrames;
+            show = params !== false;
+            currentParams = namedFrame._p;
 
-            if (show === undefined) {
-                show = !active;
+            oldParams = {};
+            oldParamNames = Object.keys(currentParams);
+            for (i = oldParamNames.length; i--;) {
+                tmp = oldParamNames[i];
+                oldParams[tmp] = currentParams[tmp];
             }
 
-            if (show && !active) {
-                currentFrames[namedFrame._id] = namedFrame;
-                new ProcessFrame(namedFrame);
-            }
+            tmp = !$H.eq(oldParams, params || {});
 
-            if (!show && active) {
+            if ((!show && active) || tmp) {
                 delete currentFrames[namedFrame._id];
                 unprocessFrame(namedFrame, {});
-                removeOldNodes(namedFrame);
+
+                if (!show && active) {
+                    removeOldNodes(namedFrame);
+                }
+
+                for (i = oldParamNames.length; i--;) {
+                    delete currentParams[oldParamNames[i]];
+                }
+            }
+
+            if (show && (!active || tmp)) {
+                currentFrames[namedFrame._id] = namedFrame;
+                if (params) {
+                    for (tmp in params) {
+                        currentParams[tmp] = params[tmp];
+                    }
+                }
+                new ProcessFrame(namedFrame);
             }
         }
     };

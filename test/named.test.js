@@ -85,7 +85,7 @@ describe('Named frames test', function() {
                         render: 'Named3'
                     },
                     n8: {
-                        data: '/api/named',
+                        data: '/api/named?piu=:oops',
                         render: 'Named8'
                     }
                 }
@@ -97,7 +97,7 @@ describe('Named frames test', function() {
                     nform: {
                         render: 'NamedForm',
                         form: {
-                            action: '/api/named/form',
+                            action: '/api/named/form?data=:param',
                             method: 'POST',
                             render: 'NamedFormOK'
                         }
@@ -111,31 +111,37 @@ describe('Named frames test', function() {
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']}
         ]);
 
-        $CR.get('frame1').named('n1');
+        $CR.get('frame1').named('n1', {np1: 111, np2: '222'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
-            {name: 'p', value: ['[null,{},"v1"]']}
+            {name: 'p', value: ['[null,{"np1":111,"np2":"222"},"v1"]']}
+        ]);
+
+        $CR.get('frame1').named('n1', {np1: 123, np2: '321'});
+        expect(objectifyBody()).toEqual([
+            {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
+            {name: 'p', value: ['[null,{"np1":123,"np2":"321"},"v1"]']}
         ]);
 
         $CR.get('frame1').named('n2');
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
-            {name: 'p', value: ['[null,{},"v1"]']},
+            {name: 'p', value: ['[null,{"np1":123,"np2":"321"},"v1"]']},
             {name: 'div', value: ['[null,{},"v2"]']}
         ]);
 
-        $CR.get('frame1').named('n1');
+        $CR.get('frame1').named('n1', false);
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'div', value: ['[null,{},"v2"]']}
         ]);
 
-        $CR.get('frame1').named('n2', true);
-        $CR.get('frame1').named('n1');
+        $CR.get('frame1').named('n2');
+        $CR.get('frame1').named('n1', {np1: 100500, np3: 'ololo'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'div', value: ['[null,{},"v2"]']},
-            {name: 'p', value: ['[null,{},"v1"]']}
+            {name: 'p', value: ['[null,{"np1":100500,"np3":"ololo"},"v1"]']}
         ]);
 
         $CR.set('/frame2');
@@ -220,7 +226,7 @@ describe('Named frames test', function() {
 
         $CR.set('/frame3');
         $CR.get('frame3').named('n3');
-        $CR.get('frame3').named('n8');
+        $CR.get('frame3').named('n8', {oops: 'arf'});
         expect(objectifyBody()).toEqual([
             {name: 'span', value: ['Named3']}
         ]);
@@ -233,11 +239,11 @@ describe('Named frames test', function() {
             expect(objectifyBody()).toEqual([
                 {name: 'h3', value: ['{"url":"/api/frame3","method":"GET"}']},
                 {name: 'span', value: ['Named3']},
-                {name: 'em', value: ['{"url":"/api/named","method":"GET"}']}
+                {name: 'em', value: ['{"url":"/api/named?piu=arf","method":"GET"}']}
             ]);
 
             $CR.set('/frame4');
-            $CR.get('frame4').named('nform');
+            $CR.get('frame4').named('nform', {param: 'pampam'});
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: ['Frame4']},
@@ -272,10 +278,10 @@ describe('Named frames test', function() {
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: ['Frame4']},
                 {name: 'p', value: ['/frame4']},
-                {name: 'strong', value: ['{"url":"/api/named/form","method":"POST","body":"field=val"}']}
+                {name: 'strong', value: ['{"url":"/api/named/form?data=pampam","method":"POST","body":"field=val"}']}
             ]);
 
-            $CR.get('frame4').named('nform');
+            $CR.get('frame4').named('nform', false);
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: ['Frame4']},

@@ -1022,7 +1022,7 @@ $CR
         form: {
             action: '/api/form',
             check: function(elem, val, data) {
-                return Math.random() < 0.5 'The Fortune errors this field' : false;
+                return Math.random() < 0.5 ? 'The Fortune errors this field' : false;
             },
             render: 'template2'
         }

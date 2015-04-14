@@ -117,7 +117,7 @@ describe('Named frames test', function() {
             {name: 'p', value: ['[null,{"np1":111,"np2":"222"},"v1"]']}
         ]);
 
-        $CR.get('frame1').get('n1').activate({np1: 123, np2: '321'});
+        $CR.get('frame1', 'n1').activate({np1: 123, np2: '321'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'p', value: ['[null,{"np1":123,"np2":"321"},"v1"]']}
@@ -130,13 +130,13 @@ describe('Named frames test', function() {
             {name: 'div', value: ['[null,{},"v2"]']}
         ]);
 
-        $CR.get('frame1').get('n1').deactivate();
+        $CR.get('frame1', 'n1').deactivate();
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'div', value: ['[null,{},"v2"]']}
         ]);
 
-        $CR.get('frame1').get('n2').activate();
+        $CR.get('frame1', 'n2').activate();
         $CR.get('frame1').get('n1').activate({np1: 100500, np3: 'ololo'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
@@ -194,7 +194,7 @@ describe('Named frames test', function() {
         ]);
 
         $CR.get('frame2sub2').get('n7').activate();
-        expect(function() { $CR.get('frame2sub1').get('n5').activate(); }).toThrow('Parent is not active');
+        expect(function() { $CR.get('frame2sub1', 'n5').activate(); }).toThrow('Parent is not active');
         $CR.get('frame2sub2').get('n6').activate();
         expect(objectifyBody()).toEqual([
             {name: 'h2', value: ['Frame2']},

@@ -516,8 +516,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    API.get = function get(id) {
-        return frameById[id];
+    API.get = function get(id, name) {
+        var ret = frameById[id];
+        return name ? ret && ret.get(name) : ret;
     };
 
 

@@ -1330,6 +1330,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             });
         }
 
+        if (!named) {
+            self.activate = self.deactivate = undefined;
+        }
+
 
         function checkDataSource(ds) {
             if (!ds || !(isInternalValue(2, ds) || isInternalValue(4, ds) || isString(ds) || isFunction(ds))) {

@@ -111,6 +111,8 @@ describe('Named frames test', function() {
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']}
         ]);
 
+        expect($CR.get('frame1').activate).toEqual(undefined);
+        expect($CR.get('frame1').deactivate).toEqual(undefined);
         $CR.get('frame1').get('n1').activate({np1: 111, np2: '222'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},

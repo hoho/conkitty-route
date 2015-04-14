@@ -111,33 +111,33 @@ describe('Named frames test', function() {
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']}
         ]);
 
-        $CR.get('frame1').named('n1', {np1: 111, np2: '222'});
+        $CR.get('frame1').get('n1').activate({np1: 111, np2: '222'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'p', value: ['[null,{"np1":111,"np2":"222"},"v1"]']}
         ]);
 
-        $CR.get('frame1').named('n1', {np1: 123, np2: '321'});
+        $CR.get('frame1').get('n1').activate({np1: 123, np2: '321'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'p', value: ['[null,{"np1":123,"np2":"321"},"v1"]']}
         ]);
 
-        $CR.get('frame1').named('n2');
+        $CR.get('frame1').get('n2').activate();
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'p', value: ['[null,{"np1":123,"np2":"321"},"v1"]']},
             {name: 'div', value: ['[null,{},"v2"]']}
         ]);
 
-        $CR.get('frame1').named('n1', false);
+        $CR.get('frame1').get('n1').deactivate();
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'div', value: ['[null,{},"v2"]']}
         ]);
 
-        $CR.get('frame1').named('n2');
-        $CR.get('frame1').named('n1', {np1: 100500, np3: 'ololo'});
+        $CR.get('frame1').get('n2').activate();
+        $CR.get('frame1').get('n1').activate({np1: 100500, np3: 'ololo'});
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"v1","p2":"v2"}]']},
             {name: 'div', value: ['[null,{},"v2"]']},
@@ -149,7 +149,7 @@ describe('Named frames test', function() {
             {name: 'h2', value: ['Frame2']}
         ]);
 
-        $CR.get('frame2').named('n4');
+        $CR.get('frame2').get('n4').activate();
         expect(objectifyBody()).toEqual([
             {name: 'h2', value: ['Frame2']},
             {name: 'span', value: ['Named4']}
@@ -163,7 +163,7 @@ describe('Named frames test', function() {
             {name: 'p', value: ['/frame2/sub1']}
         ]);
 
-        $CR.get('frame2').named('n3');
+        $CR.get('frame2').get('n3').activate();
         expect(objectifyBody()).toEqual([
             {name: 'h2', value: ['Frame2']},
             {name: 'span', value: ['Named4']},
@@ -172,9 +172,9 @@ describe('Named frames test', function() {
             {name: 'span', value: ['Named3']}
         ]);
 
-        $CR.get('frame2sub1').named('n5');
-        $CR.get('frame2sub1').named('n100500');
-        $CR.get('frame2sub2').named('n6');
+        $CR.get('frame2sub1').get('n5').activate();
+        expect($CR.get('frame2sub1').get('n100500')).toEqual(undefined);
+        expect(function() { $CR.get('frame2sub2').get('n6').activate(); }).toThrow('Parent is not active');
         expect(objectifyBody()).toEqual([
             {name: 'h2', value: ['Frame2']},
             {name: 'span', value: ['Named4']},
@@ -193,9 +193,9 @@ describe('Named frames test', function() {
             {name: 'p', value: ['/frame2/sub2']}
         ]);
 
-        $CR.get('frame2sub2').named('n7');
-        $CR.get('frame2sub1').named('n5');
-        $CR.get('frame2sub2').named('n6');
+        $CR.get('frame2sub2').get('n7').activate();
+        expect(function() { $CR.get('frame2sub1').get('n5').activate(); }).toThrow('Parent is not active');
+        $CR.get('frame2sub2').get('n6').activate();
         expect(objectifyBody()).toEqual([
             {name: 'h2', value: ['Frame2']},
             {name: 'span', value: ['Named4']},
@@ -218,15 +218,15 @@ describe('Named frames test', function() {
             {name: 'h1', value: ['[null,{"p1":"vv1","p2":"vv2"}]']}
         ]);
 
-        $CR.get('frame1').named('n2');
+        $CR.get('frame1').get('n2').activate();
         expect(objectifyBody()).toEqual([
             {name: 'h1', value: ['[null,{"p1":"vv1","p2":"vv2"}]']},
             {name: 'div', value: ['[null,{},"vv2"]']}
         ]);
 
         $CR.set('/frame3');
-        $CR.get('frame3').named('n3');
-        $CR.get('frame3').named('n8', {oops: 'arf'});
+        $CR.get('frame3').get('n3').activate();
+        $CR.get('frame3').get('n8').activate({oops: 'arf'});
         expect(objectifyBody()).toEqual([
             {name: 'span', value: ['Named3']}
         ]);
@@ -243,7 +243,7 @@ describe('Named frames test', function() {
             ]);
 
             $CR.set('/frame4');
-            $CR.get('frame4').named('nform', {param: 'pampam'});
+            $CR.get('frame4').get('nform').activate({param: 'pampam'});
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: ['Frame4']},
@@ -281,7 +281,7 @@ describe('Named frames test', function() {
                 {name: 'strong', value: ['{"url":"/api/named/form?data=pampam","method":"POST","body":"field=val"}']}
             ]);
 
-            $CR.get('frame4').named('nform', false);
+            $CR.get('frame4').get('nform').deactivate();
 
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: ['Frame4']},

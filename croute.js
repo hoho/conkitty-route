@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.8.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.9.0, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -704,19 +704,29 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    proto.named = function(name, params) {
-        var namedFrame = this.namedChildren[name],
-            show,
-            active,
-            currentParams,
-            oldParamNames,
-            oldParams,
-            tmp,
-            i;
+    proto.get = function(name) {
+        return this.namedChildren[name];
+    };
+    proto.activate = function(params) {
+        activateNamedFrame(true, this, params);
+    };
+    proto.deactivate = function() {
+        activateNamedFrame(false, this);
+    };
+    function activateNamedFrame(activate, namedFrame, params) {
+        if (namedFrame) {
+            if (activate && !namedFrame[KEY_PARENT].active()) {
+                throwError('Parent is not active');
+            }
 
-        if (namedFrame && namedFrame[KEY_PARENT].active()) {
+            var active,
+                currentParams,
+                oldParamNames,
+                oldParams,
+                tmp,
+                i;
+
             active = namedFrame._id in currentFrames;
-            show = params !== false;
             currentParams = namedFrame._p;
 
             oldParams = {};
@@ -728,11 +738,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             tmp = !$H.eq(oldParams, params || {});
 
-            if ((!show && active) || tmp) {
+            if ((!activate && active) || tmp) {
                 delete currentFrames[namedFrame._id];
                 unprocessFrame(namedFrame, {});
 
-                if (!show && active) {
+                if (!activate && active) {
                     removeOldNodes(namedFrame);
                 }
 
@@ -741,7 +751,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }
 
-            if (show && (!active || tmp)) {
+            if (activate && (!active || tmp)) {
                 currentFrames[namedFrame._id] = namedFrame;
                 if (params) {
                     for (tmp in params) {
@@ -751,7 +761,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 new ProcessFrame(namedFrame);
             }
         }
-    };
+    }
 
 
     function setFieldState(frame, form, field, stateValue, msg) {

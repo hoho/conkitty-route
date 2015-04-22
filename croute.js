@@ -368,7 +368,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     formData = type = undefined;
                 }
 
-                form[KEY_DATASOURCE] = [action];
+                form[KEY_DATASOURCE] = [false, [action]];
 
                 new ProcessFrame(
                     form,
@@ -617,6 +617,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 new ProcessFrame(self);
             }
         }
+    };
+
+
+    proto.refresh = function(force, data) {
+        refreshFrame(this, 0, {}, force, 0, adjustData(data));
     };
 
 
@@ -1120,15 +1125,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 self.keep = frameSettings.keep;
 
-                if (isArray((f = frameSettings.data))) {
-                    self._da = true; // Indicate that it is an Array originally.
-                } else {
-                    f = f !== undefined ? [f] : [];
-                }
-                for (i = 0; i < f.length; i++) {
-                    checkDataSource(f[i]);
-                }
-                self[KEY_DATASOURCE] = f;
+                self[KEY_DATASOURCE] = adjustData(frameSettings.data);
 
                 self.form = frameSettings.form;
                 self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
@@ -1335,12 +1332,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
 
-        function checkDataSource(ds) {
-            if (!ds || !(isInternalValue(2, ds) || isInternalValue(4, ds) || isString(ds) || isFunction(ds))) {
-                throwError('Unexpected `' + ds + '` as data source');
-            }
-        }
-
         function finishMatching(/**/matcher, name, val, k) {
             val = Object.keys(currentParams);
             for (k = val.length; k--; ) {
@@ -1362,6 +1353,29 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             // Run custom matcher if any.
             return (matcher = frameSettings.matcher) ? matcher.call(self, currentParams) : true;
+        }
+    }
+
+
+    function adjustData(data/**/, ret, sources, i) {
+        // ret[0] indicates that it is an Array originally.
+        i = isArray(data);
+        ret = [
+            i,
+            (sources = (data === undefined ? [] : (i ? data : [data])))
+        ];
+
+        for (i = 0; i < sources.length; i++) {
+            checkDataSource(sources[i]);
+        }
+
+        return ret;
+    }
+
+
+    function checkDataSource(ds) {
+        if (!ds || !(isInternalValue(2, ds) || isInternalValue(4, ds) || isString(ds) || isFunction(ds))) {
+            throwError('Unexpected `' + ds + '` as data source');
         }
     }
 
@@ -1686,7 +1700,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function processRender(stage, render, datas, defaultRenderParent, frame, formNode, renderParents, target) {
+    function processRender(stage, render, datas, defaultRenderParent, frame, formNode, dataSourceIsArray, renderParents, target) {
         var i,
             mem,
             node,
@@ -1727,7 +1741,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 for (i = 0; i < target.length; i++) {
-                    if (processRender(stage, render, datas, defaultRenderParent, frame, formNode, renderParents, target[i]) === false) {
+                    if (processRender(stage, render, datas, defaultRenderParent, frame, formNode, dataSourceIsArray, renderParents, target[i]) === false) {
                         break;
                     }
                 }
@@ -1738,7 +1752,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 datas = [e, stage, i, target[i]];
-                processRender(STR_EXCEPT, render, datas, defaultRenderParent, frame, formNode, renderParents);
+                processRender(STR_EXCEPT, render, datas, defaultRenderParent, frame, formNode, dataSourceIsArray, renderParents);
                 emitEvent(STR_EXCEPT, frame, datas);
                 ret = true;
             }
@@ -1747,7 +1761,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 frame = frame[KEY_PARENT];
             }
             // null-value target could be used to remove previous render nodes.
-            args = [frame._da || stage === STR_EXCEPT ? datas : datas[0], frame._p];
+            args = [dataSourceIsArray || stage === STR_EXCEPT ? datas : datas[0], frame._p];
             if (formNode) { args.push(formNode); }
 
             if (isFunction(target)) {
@@ -1858,7 +1872,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function ProcessFrame(frame, refresh, formNode, formBody) {
+    function ProcessFrame(frame, refresh, formNode, formBody, overrideData) {
         if (frame._l) {
             if (!frame._l.u) {
                 return;
@@ -1869,7 +1883,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         var skip = !refresh && ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
-            dataSource = frame[KEY_DATASOURCE],
+            dataSourceIsArray,
+            dataSource = overrideData || frame[KEY_DATASOURCE],
             i,
             d,
             waiting = 0,
@@ -1921,7 +1936,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
 
                             if (stage) {
-                                if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode)) {
+                                if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode, dataSourceIsArray)) {
                                     return;
                                 }
 
@@ -1932,7 +1947,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                                     emitEvent(stage, frame, errors || datas);
 
-                                    if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode)) {
+                                    if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode, dataSourceIsArray)) {
                                         return;
                                     }
                                     emitEvent(STR_AFTER, frame);
@@ -1971,6 +1986,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             };
 
+        dataSourceIsArray = dataSource[0];
+        dataSource = dataSource[1];
+
         if (!skip) {
             frame._l = self;
             self.u = refresh;
@@ -1992,7 +2010,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
 
             if (!refresh) {
-                if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode)) {
+                if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode, dataSourceIsArray)) {
                     return;
                 }
                 emitEvent(STR_BEFORE, frame);
@@ -2153,7 +2171,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function refreshFrame(frame, delay, settings, force, timeout/**/, r) {
+    function refreshFrame(frame, delay, settings, force, timeout, data/**/, r) {
         if (isFunction(delay)) { delay = delay.call(frame); }
 
         if (delay !== undefined && (!((r = frame._l)) || (r.u && force))) {
@@ -2175,7 +2193,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }, timeout);
                 }
 
-                new ProcessFrame(frame, 1);
+                new ProcessFrame(frame, 1, undefined, undefined, data);
             }, delay < 0 ? 0 : delay);
         }
     }

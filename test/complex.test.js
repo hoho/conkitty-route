@@ -412,6 +412,30 @@ describe('Complex test', function() {
                 ], attr: {class: 'hello'}}
             ]);
 
+            $CR.get('deedee').refresh(true, $CR.$.static({ololo: 'piupiu refreshed'}));
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'div', value: [
+                    '1',
+                    {name: 'div', value: ['2'], attr: {class: 'param1 param2'}},
+                    '3',
+                    {name: 'div', value: ['4'], attr: {class: 'param3'}},
+                    '5',
+                    {name: 'div', value: [
+                        '6',
+                        'deeper: [{"url":"/api/data3?that=beautiful&those=hello","method":"POST"},{"p":"beautiful","p2":"hello"}]',
+                        'deeperdeeper: [{"ololo":"piupiu refreshed"},{"p":"world","p3":"beautiful"}]'
+                    ], attr: {class: 'params'}},
+                    '7'
+                ], attr: {class: 'hello'}}
+            ]);
+
             $CR.set('/hello');
             expect(objectifyBody()).toEqual([
                 {name: 'div', value: [

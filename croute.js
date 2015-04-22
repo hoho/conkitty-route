@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.9.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.9.1, https://github.com/hoho/conkitty-route
  * (c) 2014 Marat Abdullin, MIT license
  */
 
@@ -194,12 +194,12 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 activateParallelFramesCallback = function(f/**/, parallel, k, s) {
                     // Check if there are parallel frames.
                     if ((parallel = f._g)) {
-                        for (k = parallel.length; k--;) {
+                        for (k = parallel.length; k--; ) {
                             // Check if at least one active frame among the
                             // arallel frames exists.
                             if (((s = parallel[k]))._a) {
                                 s = s._s;
-                                for (k = parallel.length; k--;) {
+                                for (k = parallel.length; k--; ) {
                                     // Activate the inactive parallel frames.
                                     if (!((f = parallel[k]))._a && (f.final !== false)) {
                                         setFrameActiveFlag(f, 1);
@@ -477,7 +477,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     currentHandlers.push(handler);
                 }
             } else {
-                for (i = event.length; i--;) {
+                for (i = event.length; i--; ) {
                     API.on(event[i], handler, frame);
                 }
             }
@@ -500,14 +500,14 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (((currentHandlers = eventHandlers[event])) &&
                     ((currentHandlers = currentHandlers[i])))
                 {
-                    for (i = currentHandlers.length; i--;) {
+                    for (i = currentHandlers.length; i--; ) {
                         if (currentHandlers[i] === handler) {
                             currentHandlers.splice(i, 1);
                         }
                     }
                 }
             } else {
-                for (i = event.length; i--;) {
+                for (i = event.length; i--; ) {
                     API.on(event[i], handler, frame);
                 }
             }
@@ -574,7 +574,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             if (t) {
                 t = t.split(whitespace);
-                for (i = t.length; i--;) {
+                for (i = t.length; i--; ) {
                     tags[t[i]] = true;
                 }
             }
@@ -589,7 +589,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         tags = tags.split(whitespace);
         traverseFrame(currentRootFrame, undefined, function(frame/**/, settings, frameTags, i) {
             if (frame._id in currentFrames && ((settings = frame.refresh)) && ((frameTags = settings.t))) {
-                for (i = tags.length; i--;) {
+                for (i = tags.length; i--; ) {
                     if (tags[i] in frameTags) {
                         refreshFrame(frame, 0, settings, true);
                     }
@@ -732,7 +732,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             oldParams = {};
             oldParamNames = Object.keys(currentParams);
-            for (i = oldParamNames.length; i--;) {
+            for (i = oldParamNames.length; i--; ) {
                 tmp = oldParamNames[i];
                 oldParams[tmp] = currentParams[tmp];
             }
@@ -747,7 +747,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     removeOldNodes(namedFrame);
                 }
 
-                for (i = oldParamNames.length; i--;) {
+                for (i = oldParamNames.length; i--; ) {
                     delete currentParams[oldParamNames[i]];
                 }
             }
@@ -813,7 +813,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 // Reset active flags.
                 cur = function(r) { r._a = 0; };
-                for (i = frames.length; i--;) {
+                for (i = frames.length; i--; ) {
                     traverseFrame(frames[i], undefined, cur);
                 }
 
@@ -1343,7 +1343,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         function finishMatching(/**/matcher, name, val, k) {
             val = Object.keys(currentParams);
-            for (k = val.length; k--;) {
+            for (k = val.length; k--; ) {
                 name = val[k];
                 if (!newParams.hasOwnProperty(name)) {
                     delete currentParams[name];
@@ -1384,7 +1384,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             RENDER_KEYS = [STR_BEFORE, STR_SUCCESS, STR_ERROR, STR_AFTER, STR_EXCEPT],
             SUBSTAGES = {'-': false, '': undefined, '+': true};
 
-        for (i = RENDER_KEYS.length; i--;) {
+        for (i = RENDER_KEYS.length; i--; ) {
             j = '';
             val2 = undefined;
             for (j in SUBSTAGES) {
@@ -1463,7 +1463,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
             pathObj = uri.pathname[0];
 
-            for (i = pathObj.length; i--;) {
+            for (i = pathObj.length; i--; ) {
                 part = pathObj[i];
                 val = part.param ? getURIParam(frame, part, overrideParams) : part;
 
@@ -1584,7 +1584,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         response = parse ? parse.call(frame, response, req) : (req.status === 204 ? undefined : JSON.parse(response));
                         self.j = transform ? transform.call(frame, response, req) : response;
                         self.e = false;
-                    } catch(e) {}
+                    } catch(e) {
+                        // Empty.
+                    }
                 }
                 self.done();
                 self.r = undefined;
@@ -1849,7 +1851,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }, undefined, undefined, true/* withNamed*/);
         } else {
-            for (i = frames.length; i--;) {
+            for (i = frames.length; i--; ) {
                 removeOldNodes(frames[i]);
             }
         }
@@ -1899,7 +1901,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         // them anyway.
                         if (stage && refresh === 1) {
                             r = true;
-                            for (j = datas.length; r && j--;) {
+                            for (j = datas.length; r && j--; ) {
                                 d = dataSource[j];
                                 r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[j], prevDatas[j]);
                             }
@@ -2061,7 +2063,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         this.rejected = true;
 
-        for (i = datas.length; i--;) {
+        for (i = datas.length; i--; ) {
             d = datas[i];
             if (isFunction(d.abort)) { d.abort(); }
             if (isFunction(d.reject)) { d.reject(); }
@@ -2123,7 +2125,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             // Reuse `nodes` and `nodesets` variables.
             nodes = frame._p;
             nodesets = Object.keys(nodes);
-            for (i = nodesets.length; i--;) {
+            for (i = nodesets.length; i--; ) {
                 delete nodes[nodesets[i]];
             }
         }

@@ -1,6 +1,6 @@
 /*!
- * conkitty-route v0.9.1, https://github.com/hoho/conkitty-route
- * (c) 2014 Marat Abdullin, MIT license
+ * conkitty-route v0.9.2, https://github.com/hoho/conkitty-route
+ * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
 /* global $H */
@@ -1880,7 +1880,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             abortFrame(frame);
         }
 
-        var skip = !refresh && ((frame._data !== undefined) || frame._l) && !frame[KEY_DATAERROR],
+        var skip = !refresh && ((!frame.isForm && (frame._data !== undefined)) || frame._l) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSourceIsArray,

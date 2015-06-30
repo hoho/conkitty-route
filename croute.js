@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.9.2, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.9.3, https://github.com/hoho/conkitty-route
  * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
@@ -1959,6 +1959,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
                         };
 
+                        frame._r.u = refresh;
+
                         if (frame.isForm) {
                             setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
                             frame._r();
@@ -2098,18 +2100,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             unprocessFrame(f, activeFrames);
         }, undefined, true);
 
-        // Cancel loading the data (if any).
-        if ((i = frame._l)) {
-            frame._r = !i.u;
-            if (frame.isForm) {
-                unprocessFrame(frame[KEY_PARENT], activeFrames, true);
-            }
+        if (((i = frame._l)) && frame.isForm) {
+            unprocessFrame(frame[KEY_PARENT], activeFrames, true);
         }
 
+        // Cancel the data loading (if any).
         abortFrame(frame);
 
-        if (frame._r) {
-            // We've rejected the frame above and/or there were delayed stages.
+        if ((i && !i.u) || (frame._r && !frame._r.u)) {
+            // It's not a background refresh.
             emitEvent('stop', frame);
         }
 

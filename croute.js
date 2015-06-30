@@ -2101,7 +2101,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         // Cancel loading the data (if any).
         if ((i = frame._l)) {
             frame._r = !i.u;
-            if (frame.isForm && !frame._c) {
+            if (frame.isForm) {
                 unprocessFrame(frame[KEY_PARENT], activeFrames, true);
             }
         }
@@ -2113,8 +2113,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             emitEvent('stop', frame);
         }
 
-        // Reset the ready callback and the form existence flag if any.
-        frame._r = frame._f = undefined;
+        // Reset the ready callback.
+        frame._r = undefined;
 
         if (i !== undefined || frame._data !== undefined || Object.keys(frame._n).length) {
             frame._l = frame._data = frame[KEY_DATAERROR] = undefined;

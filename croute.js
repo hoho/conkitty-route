@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.9.3, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.9.4, https://github.com/hoho/conkitty-route
  * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
@@ -1873,14 +1873,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     function ProcessFrame(frame, refresh, formNode, formBody, overrideData) {
+        if ((frame._l && !frame._l.u) || (frame._r && !frame._r.u)) {
+            return;
+        }
+
         if (frame._l) {
-            if (!frame._l.u) {
-                return;
-            }
             abortFrame(frame);
         }
 
-        var skip = !refresh && ((!frame.isForm && (frame._data !== undefined)) || frame._l) && !frame[KEY_DATAERROR],
+        var skip = !refresh && ((!frame.isForm && (frame._data !== undefined)) || frame._l || frame._r) && !frame[KEY_DATAERROR],
             self = this,
             datas = self.datas = [],
             dataSourceIsArray,
@@ -2162,7 +2163,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             frame._o = undefined;
         }
 
-        // Cancel loading the data (if any).
+        // Cancel the data loading (if any).
         if ((tmp = frame._l)) {
             tmp.reject();
             frame._l = undefined;

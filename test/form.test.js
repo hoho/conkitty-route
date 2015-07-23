@@ -280,19 +280,7 @@ describe('Form test', function() {
                     '1',
                     {name: 'div', value: [
                         '2',
-                        '11',
-                        {name: 'div', value: [
-                            '22',
-                            {name: 'form', value: [
-                                '33',
-                                {name: 'input', value: [], attr: {type: 'text', name: 'hello', value: 'world'}},
-                                '44',
-                                {name: 'input', value: [], attr: {type: 'submit', value: 'submit'}},
-                                '55'
-                            ]},
-                            '66'
-                        ]},
-                        '{"p1":"ololo2"}'
+                        '[{"url":"/api/form1/ololo2","method":"POST","body":"[{\\"name\\":\\"hello\\",\\"value\\":\\"world\\"}]"},{"p1":"ololo2"},"form1",true,"form"]'
                     ], attr: {class: 'form1'}},
                     '3'
                 ]}

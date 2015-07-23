@@ -10,10 +10,13 @@ describe('Wait test', function() {
         };
 
         var calls = [];
+
+        var stageCount = 0;
+
         $CR
             .add('/', {
                 wait: true,
-                data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
+                data: function() { return new Promise(function(resolve) { setTimeout(function() { calls.push(++stageCount); resolve(true); }, 50); }); },
                 render: {
                     before: function() { calls.push('before1'); },
                     success: function() { calls.push('success1'); },
@@ -36,7 +39,7 @@ describe('Wait test', function() {
                                 frames: {
                                     'c': {
                                         wait: false,
-                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
+                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { calls.push(++stageCount); resolve(true); }, 50); }); },
                                         render: {
                                             before: function() { calls.push('before4'); },
                                             success: function() { calls.push('success4'); },
@@ -59,7 +62,7 @@ describe('Wait test', function() {
                                                         },
                                                         frames: {
                                                             'f': {
-                                                                data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
+                                                                data: function() { return new Promise(function(resolve) { setTimeout(function() { calls.push(++stageCount); resolve(true); }, 50); }); },
                                                                 render: {
                                                                     before: function() { calls.push('before7'); },
                                                                     success: function() { calls.push('success7'); },
@@ -81,7 +84,7 @@ describe('Wait test', function() {
                                                                                 },
                                                                                 frames: {
                                                                                     '?p1=1': {
-                                                                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 50); }); },
+                                                                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { calls.push(++stageCount); resolve(true); }, 50); }); },
                                                                                         render: {
                                                                                             before: function() { calls.push('before10'); },
                                                                                             success: function() { calls.push('success10'); },
@@ -107,7 +110,7 @@ describe('Wait test', function() {
                                                                                         }
                                                                                     },
                                                                                     '?p4=4': {
-                                                                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve(true); }, 200); }); },
+                                                                                        data: function() { return new Promise(function(resolve) { setTimeout(function() { calls.push(++stageCount); resolve(true); }, 200); }); },
                                                                                         wait: false,
                                                                                         render: {
                                                                                             before: function() { calls.push('before13'); },
@@ -186,6 +189,7 @@ describe('Wait test', function() {
         runs(function() {
             expect(calls).toEqual([
                 'before1',
+                1,
                 'before2',
                 'before3',
                 'success1',
@@ -195,6 +199,7 @@ describe('Wait test', function() {
                 'success3',
                 'after3',
                 'before4',
+                2,
                 'success4',
                 'after4',
                 'before5',
@@ -202,6 +207,7 @@ describe('Wait test', function() {
                 'after5',
                 'before6',
                 'before7',
+                3,
                 'before8',
                 'before9',
                 'before10',
@@ -209,6 +215,7 @@ describe('Wait test', function() {
                 'before16',
                 'before17',
                 'before18',
+                4,
                 'before11',
                 'before12',
                 'success6',
@@ -231,6 +238,7 @@ describe('Wait test', function() {
                 'after17',
                 'success18',
                 'after18',
+                5,
                 'success13',
                 'after13',
                 'before14',

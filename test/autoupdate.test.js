@@ -145,7 +145,8 @@ describe('Autorefresh test', function() {
             expect(events).toEqual([
                 'frame3 request 3',
                 'frame2 render',
-                'frame3 render'
+                'frame3 render',
+                'frame3 request 4'
             ]);
             events = [];
 
@@ -166,10 +167,10 @@ describe('Autorefresh test', function() {
             ]);
 
             expect(events).toEqual([
-                'frame3 request 4',
                 'frame3 request 5',
                 'frame2 render',
-                'frame3 render'
+                'frame3 render',
+                'frame3 request 6'
             ]);
             events = [];
 

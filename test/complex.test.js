@@ -412,7 +412,7 @@ describe('Complex test', function() {
                 ], attr: {class: 'hello'}}
             ]);
 
-            $CR.get('deedee').refresh(true, $CR.$.static({ololo: 'piupiu refreshed'}));
+            $CR.get('deedee').refresh($CR.$.static({ololo: 'piupiu refreshed'}));
 
             waitInit();
         });

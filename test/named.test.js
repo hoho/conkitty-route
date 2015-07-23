@@ -230,7 +230,8 @@ describe('Named frames test', function() {
         $CR.get('frame3').get('n3').activate();
         $CR.get('frame3').get('n8').activate({oops: 'arf'});
         expect(objectifyBody()).toEqual([
-            {name: 'span', value: ['Named3']}
+            {name: 'h1', value: ['[null,{"p1":"vv1","p2":"vv2"}]']},
+            {name: 'div', value: ['[null,{},"vv2"]']}
         ]);
 
         waitInit();

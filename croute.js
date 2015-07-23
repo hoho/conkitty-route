@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.9.4, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.10.0, https://github.com/hoho/conkitty-route
  * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
@@ -18,6 +18,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         currentQueryParams,
         currentFrames = {},
         currentRootFrame,
+        currentLoading,
+        currentRefreshing = {},
 
         reloadCurrent,
 
@@ -50,7 +52,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         whitespace = /[\x20\t\r\n\f]+/,
         KEY_FRAME = '_$Cf',
         KEY_DATASOURCE = 'dataSource',
-        KEY_DATAERROR = '_dataError',
 
         FORM_STATE_VALID = 'valid',
         FORM_STATE_INVALID = 'invalid',
@@ -64,7 +65,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         STR_SUBMIT = 'submit',
 
-        KEY_PARENT = 'parent',
         KEY_RENDER_PARENT = 'renderParent',
 
         NULL = null,
@@ -147,7 +147,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         defaultTitle = defaults.title;
         defaultRender = normalizeRender(defaults.render);
-        defaultParent = defaults[KEY_PARENT] || body;
+        defaultParent = defaults.parent || body;
         callTemplateFunc = defaults.callTemplate || function(name, data, params, formNode/**/, tpl, args) {
             /* global $C */
             if (!((tpl = $C.tpl[name]))) { throwError('No `' + name + '` template'); }
@@ -160,6 +160,113 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             addFrame(undefined, notFoundFrame);
         }
 
+        currentLoading = new LoadingRoot({
+            before: function(loading, frame/**/, title, except) {
+                title = ((title = (isFunction((title = frame.title)) ?
+                    title.call(frame, frame._p)
+                    :
+                    title))) === undefined ?
+                    defaultTitle
+                    :
+                    title;
+
+                if (title !== undefined) {
+                    document.title = title;
+                }
+
+                emitEvent(STR_BEFORE, frame);
+
+                if ((except = processRender(STR_BEFORE, [], frame, loading.form))) {
+                    emitEvent(STR_EXCEPT, frame, except);
+                    processRender(STR_EXCEPT, except, frame, loading.form);
+                    loading.remove();
+                }
+            },
+
+            stop: function(loading, frame) {
+                emitEvent('stop', frame);
+            },
+
+            success: function(loading, frame/**/, except) {
+                frame._data = loading.loaded;
+
+                if ((except = processRender(STR_SUCCESS, loading.loaded, frame, loading.form, loading.isArray))) {
+                    emitEvent(STR_EXCEPT, frame, except);
+                    processRender(STR_EXCEPT, except, frame, loading.form);
+                    loading.remove();
+                } else {
+                    emitEvent(STR_SUCCESS, frame, loading.loaded);
+
+                    if ((except = processRender(STR_AFTER, [], frame, loading.form))) {
+                        emitEvent(STR_EXCEPT, frame, except);
+                        processRender(STR_EXCEPT, except, frame, loading.form);
+                        loading.remove();
+                    } else {
+                        emitEvent(STR_AFTER, frame);
+                    }
+                }
+
+                if (frame.isForm) {
+                    setFormState(frame.parent, frame, FORM_STATE_VALID);
+                }
+
+                if (frame.isForm && frame.tags) {
+                    API.refresh(frame.tags);
+                }
+            },
+
+            error: function(loading, frame/**/, except) {
+                if ((except = processRender(STR_ERROR, loading.errors, frame, loading.form, loading.isArray))) {
+                    emitEvent(STR_EXCEPT, frame, except);
+                    processRender(STR_EXCEPT, except, frame, loading.form);
+                    loading.remove();
+                } else {
+                    emitEvent(STR_ERROR, frame, loading.errors);
+
+                    if ((except = processRender(STR_AFTER, [true], frame, loading.form))) {
+                        emitEvent(STR_EXCEPT, frame, except);
+                        processRender(STR_EXCEPT, except, frame, loading.form);
+                        loading.remove();
+                    } else {
+                        emitEvent(STR_AFTER, frame);
+                    }
+                }
+
+                if (frame.isForm) {
+                    setFormState(frame.parent, frame, FORM_STATE_VALID);
+                }
+            },
+
+            load: function(loading, frame) {
+                cancelRefresh(frame._id);
+            },
+
+            ready: function(loading, frame) {
+                if (frame._refresh) {
+                    refreshFrame(frame, frame._refresh);
+                }
+            },
+
+            remove: function(loading, frame/**/, nodesets, keepPlaceholders, i) {
+                cancelRefresh(frame._id);
+
+                nodesets = frame._n;
+
+                keepPlaceholders = keepPlaceholders ? 1 : 0;
+
+                for (i in nodesets) {
+                    var nodes = nodesets[i];
+                    while (nodes.length > keepPlaceholders) {
+                        frame._d.push(nodes.pop());
+                    }
+                }
+
+                if (!keepPlaceholders) {
+                    frame._n = {};
+                }
+            }
+        });
+
         $H.on(undefined, function() {
             var newRootFrame,
                 newFrames = {},
@@ -169,14 +276,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 haveNewFrames,
                 newFramesCount = 0,
                 currentFramesCount = 0,
-                traverseCallbackBefore = function(f) {
-                    f._w = 0;
-                },
                 traverseCallback = function(f/**/, tmp, brk) {
                     if (f._a) {
-                        // frame._w is a number of active frames in current branch, for
-                        // `wait: true` and autorefresh.
-                        f._w++;
                         newFrames[(tmp = f._id)] = f;
                         newFramesCount++;
                         if (!haveNewFrames && !(tmp in currentFrames)) {
@@ -184,9 +285,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                         if (isFunction((brk = f.break))) {
                             brk = brk.call(f);
-                        }
-                        if ((tmp = f[KEY_PARENT])) {
-                            tmp._w += f._w;
                         }
                         return !!brk;
                     }
@@ -223,7 +321,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                     }
                     traverseFrame(newRootFrame, undefined, activateParallelFramesCallback);
-                    traverseFrame(newRootFrame, traverseCallbackBefore, traverseCallback);
+                    traverseFrame(newRootFrame, undefined, traverseCallback);
                     break;
                 }
             }
@@ -232,39 +330,50 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 currentFramesCount++;
                 frame = currentFrames[i];
 
-                if (frame.isNamed && (frame[KEY_PARENT]._id in newFrames)) {
-                    newFrames[frame._id] = frame;
+                if (frame.isNamed && (frame.parent._id in newFrames)) {
+                    newFrames[i] = frame;
                 }
 
                 i = i in newFrames;
 
-                if (!i ||
-                    reloadCurrent ||
-                    !frame._s ||
-                    frame.keep === false ||
-                    frame[KEY_DATAERROR])
-                {
-                    unprocessFrame(frame, newFrames);
-                }
-
                 if (i) {
+                    j = currentLoading.all[frame._id];
+
+                    if (j &&
+                        (reloadCurrent ||
+                         j.errors ||
+                         (!frame._s && !frame.isNamed) ||
+                         frame.keep === false))
+                    {
+                        j.remove();
+                    }
+
                     // A flag for frame.active(true) to show that this frame
                     // is not just active, but was active in previous location
                     // too.
                     frame._s = 1;
-                }
-            }
+                } else {
+                    emitEvent('leave', frame);
 
-            if (!haveNewFrames && (newFramesCount < currentFramesCount)) {
-                removeOldNodes();
+                    frame._data = undefined;
+
+                    // The frame is no longer active, remove parameters.
+                    var params = frame._p;
+                    var keys = Object.keys(params);
+                    for (i = keys.length; i--; ) {
+                        delete params[keys[i]];
+                    }
+                }
             }
 
             currentFrames = newFrames;
             reloadCurrent = undefined;
             currentRootFrame = newRootFrame;
 
-            if (newRootFrame) {
-                new ProcessFrame(newRootFrame);
+            currentLoading.mount(newRootFrame);
+
+            if (!haveNewFrames && (newFramesCount < currentFramesCount)) {
+                removeOldNodes();
             }
         });
 
@@ -370,9 +479,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 form[KEY_DATASOURCE] = [false, [action]];
 
-                new ProcessFrame(
+                currentLoading.all[frame._id].submit(
                     form,
-                    undefined,
                     formNode,
                     function(xhr/**/, xhrCallback) {
                         if (formData !== undefined || type !== undefined) {
@@ -570,7 +678,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 throwError('Wrong refresh');
             }
             ret.o = settings.timeout;
-            ret.j = ((r = settings.join)) === undefined ? true : r;
 
             if (t) {
                 t = t.split(whitespace);
@@ -588,10 +695,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     API.refresh = function refresh(tags) {
         tags = tags.split(whitespace);
         traverseFrame(currentRootFrame, undefined, function(frame/**/, settings, frameTags, i) {
-            if (frame._id in currentFrames && ((settings = frame.refresh)) && ((frameTags = settings.t))) {
+            if ((frame._id in currentFrames) && ((settings = frame._refresh)) && ((frameTags = settings.t))) {
                 for (i = tags.length; i--; ) {
                     if (tags[i] in frameTags) {
-                        refreshFrame(frame, 0, settings, true);
+                        refreshFrame(frame, settings, true);
+                        break;
                     }
                 }
             }
@@ -601,27 +709,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     proto.reload = function() {
         var self = this,
-            parent;
+            loading = currentLoading.all[self._id];
 
-        if (self._id in currentFrames) {
-            parent = self[KEY_PARENT];
-            while (parent) {
-                // Check if none of parent frames is in progress.
-                if (parent._l) {
-                    break;
-                }
-                parent = parent[KEY_PARENT];
-            }
-            if (!parent) {
-                unprocessFrame(self, currentFrames, true);
-                new ProcessFrame(self);
-            }
+        if (loading) {
+            loading.remove();
+            currentLoading.mount(currentRootFrame);
         }
     };
 
 
-    proto.refresh = function(force, data) {
-        refreshFrame(this, 0, {}, force, 0, adjustData(data));
+    proto.refresh = function(data) {
+        refreshFrame(this, {}, true, adjustData(data));
     };
 
 
@@ -721,18 +819,20 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
     function activateNamedFrame(activate, namedFrame, params) {
         if (namedFrame) {
-            if (activate && !namedFrame[KEY_PARENT].active()) {
-                throwError('Parent is not active');
-            }
-
             var active,
                 currentParams,
                 oldParamNames,
                 oldParams,
                 tmp,
-                i;
+                i,
+                parent = namedFrame.parent,
+                id = namedFrame._id;
 
-            active = namedFrame._id in currentFrames;
+            if (activate && !parent.active()) {
+                throwError('Parent is not active');
+            }
+
+            active = id in currentFrames;
             currentParams = namedFrame._p;
 
             oldParams = {};
@@ -745,8 +845,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             tmp = !$H.eq(oldParams, params || {});
 
             if ((!activate && active) || tmp) {
-                delete currentFrames[namedFrame._id];
-                unprocessFrame(namedFrame, {});
+                delete currentFrames[id];
+
+                if ((i = currentLoading.all[id])) {
+                    i.remove();
+                }
 
                 if (!activate && active) {
                     removeOldNodes(namedFrame);
@@ -758,13 +861,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
 
             if (activate && (!active || tmp)) {
-                currentFrames[namedFrame._id] = namedFrame;
+                currentFrames[id] = namedFrame;
                 if (params) {
                     for (tmp in params) {
                         currentParams[tmp] = params[tmp];
                     }
                 }
-                new ProcessFrame(namedFrame);
+
+                tmp = currentLoading.all[parent._id];
+                tmp = new LoadingFrame(namedFrame, tmp, currentLoading, true);
+                tmp.load();
             }
         }
     }
@@ -890,7 +996,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     function emitEvent(event, frame, args/**/, handlers, cur, i) {
         if ((handlers = eventHandlers[event])) {
-            frame = frame.isForm ? frame[KEY_PARENT] : frame;
+            frame = frame.isForm ? frame.parent : frame;
 
             args = [event].concat(args || []);
 
@@ -1050,7 +1156,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             while (frame) {
                 // Tell parents about it.
                 frame._a += (active || -a);
-                frame = frame[KEY_PARENT];
+                frame = frame.parent;
             }
         }
     }
@@ -1074,7 +1180,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             newPathExpr,
             processedParams;
 
-        self[KEY_PARENT] = parent;
+        self.parent = parent;
         self.root = parent ? (parent.root || parent) : self;
         self.children = [];
         self.namedChildren = {};
@@ -1085,7 +1191,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         if (frameSettings) {
             self.title = frameSettings.title || (parent && parent.title);
-            self[KEY_RENDER_PARENT] = frameSettings[KEY_PARENT] || (parent && parent[KEY_RENDER_PARENT]);
+            self[KEY_RENDER_PARENT] = frameSettings.parent || (parent && parent[KEY_RENDER_PARENT]);
             self.render = normalizeRender(frameSettings.render);
 
             if (form) {
@@ -1121,6 +1227,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     self.final = frameSettings.final;
                     self.partial = frameSettings.partial;
                     self.reduce = frameSettings.reduce;
+                    self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
                 }
 
                 self.keep = frameSettings.keep;
@@ -1128,7 +1235,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self[KEY_DATASOURCE] = adjustData(frameSettings.data);
 
                 self.form = frameSettings.form;
-                self.wait = ((i = frameSettings.wait) === undefined ? parent && parent.wait : i) || false;
 
                 if ((events = frameSettings.on)) {
                     for (tmp in eventHandlers) {
@@ -1147,7 +1253,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (form) {
                     self.tags = Object.keys(i.t).join(' ');
                 } else {
-                    self.refresh = i;
+                    self._refresh = i;
                 }
             }
         }
@@ -1518,7 +1624,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
         }
 
-        if (overrideParams && frame && ((i = frame[KEY_PARENT]))) {
+        if (overrideParams && frame && ((i = frame.parent))) {
             // Building frame URI from frames tree, current state and params to override.
             makeURI(i, i.uri, overrideParams, pathname, queryparams, processedQueryparams, hash, true, origin);
         }
@@ -1551,7 +1657,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         // self.j = Parsed response JSON.
 
         method = frame.method;
-        frame = frame.isForm ? frame[KEY_PARENT] : frame;
+        frame = frame.isForm ? frame.parent : frame;
 
         if (isInternalValue(4, uri) && ((uri = uri.v))) {
             if (((override = uri.override)) &&
@@ -1670,7 +1776,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     function getRenderParent(frame, parent1, parent2/**/, src, id, n) {
         src = parent1;
-        frame = frame.isForm ? frame[KEY_PARENT] : frame;
+        frame = frame.isForm ? frame.parent : frame;
         if (isString(parent2)) { parent2 = undefined; }
         parent1 = parent1 || parent2 || defaultParent;
 
@@ -1700,13 +1806,15 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function processRender(stage, render, datas, defaultRenderParent, frame, formNode, dataSourceIsArray, renderParents, target) {
+    function processRender(stage, datas, frame, formNode, dataSourceIsArray, renderParents, target) {
         var i,
             mem,
             node,
             parent,
             renderParent,
             renderParentId,
+            defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]),
+            render = frame.render,
             placeholder,
             args,
             ret,
@@ -1741,7 +1849,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 for (i = 0; i < target.length; i++) {
-                    if (processRender(stage, render, datas, defaultRenderParent, frame, formNode, dataSourceIsArray, renderParents, target[i]) === false) {
+                    if (processRender(stage, datas, frame, formNode, dataSourceIsArray, renderParents, target[i]) === false) {
                         break;
                     }
                 }
@@ -1751,22 +1859,23 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     throw e;
                 }
 
-                datas = [e, stage, i, target[i]];
-                processRender(STR_EXCEPT, render, datas, defaultRenderParent, frame, formNode, dataSourceIsArray, renderParents);
-                emitEvent(STR_EXCEPT, frame, datas);
-                ret = true;
+                ret = [e, stage, i, target[i]];
             }
         } else if (target || target === NULL) {
             if (frame.isForm) {
-                frame = frame[KEY_PARENT];
+                frame = frame.parent;
             }
             // null-value target could be used to remove previous render nodes.
             args = [dataSourceIsArray || stage === STR_EXCEPT ? datas : datas[0], frame._p];
-            if (formNode) { args.push(formNode); }
+            if (formNode) {
+                args.push(formNode);
+            }
 
             if (isFunction(target)) {
                 target = target.apply(frame, args);
-                if (target === false || target === undefined) { return target; }
+                if (target === false || target === undefined) {
+                    return target;
+                }
             }
 
             if (isInternalValue(1, target)) {
@@ -1785,7 +1894,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (isNode(target)) { node = target; }
 
                 i = isString(target) ? target : target.n;
-                if (isFunction(i)) { node = i = i.apply(frame, args); }
+
+                if (isFunction(i)) {
+                    node = i = i.apply(frame, args);
+                }
 
                 if (isString(i)) {
                     args.unshift(i);
@@ -1805,7 +1917,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
 
-                if (node === false) { return node; }
+                if (node === false) {
+                    return node;
+                }
             }
 
             if (!target || isNode(node)) {
@@ -1814,7 +1928,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 // `target` is a string or InternalValue(3).
                 renderParent = getRenderParent(frame, target && target.p, defaultRenderParent);
-                if (isString(renderParent)) { throwError(renderParent); }
+                if (isString(renderParent)) {
+                    throwError(renderParent);
+                }
 
                 rememberedNodes = frame._n;
                 mem = rememberedNodes[(renderParentId = renderParent._$Cid)];
@@ -1841,7 +1957,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         n = placeholder.previousSibling;
                         parent.insertBefore(node, placeholder);
                         // Remember frame's inserted nodes.
-                        for (i = n ? n[KEY_NEXT_SIBLING] : parent.firstChild; i !== placeholder; i = i[KEY_NEXT_SIBLING]) {
+                        for (i = n ? n[KEY_NEXT_SIBLING] : parent.firstChild;
+                             i !== placeholder;
+                             i = i[KEY_NEXT_SIBLING])
+                        {
                             mem.push(i);
                             i[KEY_FRAME] = frame;
                         }
@@ -1872,329 +1991,440 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function ProcessFrame(frame, refresh, formNode, formBody, overrideData) {
-        if ((frame._l && !frame._l.u) || (frame._r && !frame._r.u)) {
+    function LoadingRoot(handlers, forceWait, frame, overrideData) {
+        this.handlers = handlers;
+        this.wait = forceWait;
+        this.all = {};
+        if (frame) { this.mount(frame, overrideData); }
+    }
+
+
+    proto = LoadingRoot.prototype;
+
+    // LoadingRoot.prototype.mount().
+    proto.mount = function(frame, overrideData) {
+        var self = this,
+            loading = self.loading;
+
+        if (loading && (self.frame === frame)) {
+            loading.reconcile();
+        } else {
+            self.frame = frame;
+
+            if (loading) {
+                loading.remove();
+            }
+
+            self.loading = loading = (frame ?
+                new LoadingFrame(frame, undefined, self)
+                :
+                undefined);
+        }
+
+        if (loading) { loading.load(overrideData); }
+    };
+
+
+    // LoadingRoot.prototype.unmount().
+    proto.unmount = function() {
+        if (this.loading) { this.loading.remove(); }
+    };
+
+
+    function LoadingFrame(frame, parent, root, noReconcile) {
+        var self = this;
+
+        self.parent = parent;
+        self.frame = frame;
+        self.children = {};
+        self.root = root;
+        self.count = 0;
+        self.waiting = 0;
+
+        self.counters(1);
+
+        root.all[frame._id] = self;
+        if (parent) { parent.children[frame._id] = self; }
+
+        if (!noReconcile) {
+            self.reconcile();
+        }
+    }
+
+
+    proto = LoadingFrame.prototype;
+
+
+    // LoadingFrame.prototype.emit().
+    proto.emit = function(name) {
+        var handler = this.root.handlers[name];
+        if (handler) {
+            handler(this, this.frame);
+        }
+    };
+
+
+    // LoadingFrame.prototype.reconcile().
+    proto.reconcile = function() {
+        var self = this,
+            frame = self.frame,
+            children,
+            ids,
+            i,
+            frameChildren,
+            id;
+
+        if (frame._id in currentFrames) {
+            children = self.children;
+            ids = Object.keys(children);
+
+            for (i = 0; i < ids.length; i++) {
+                children[ids[i]].reconcile();
+            }
+
+            frameChildren = frame.children;
+            for (i = 0; i < frameChildren.length; i++) {
+                frame = frameChildren[i];
+                id = frame._id;
+                if ((id in currentFrames) && !(id in children)) {
+                    new LoadingFrame(frame, self, self.root);
+                }
+            }
+        } else if (!(frame.isForm && (self.parent.frame._id in currentFrames))) {
+            self.remove();
+        }
+    };
+
+
+    // LoadingFrame.prototype.load().
+    proto.load = function(overrideData) {
+        var self = this,
+            frame = self.frame,
+            src = overrideData || frame[KEY_DATASOURCE],
+            i,
+            d,
+            waitingCount = 1,
+            loading,
+            errors;
+
+        if (self.loaded) {
+            self.loadChildren();
+        }
+
+        if (self.loading || self.loaded) {
             return;
         }
 
-        if (frame._l) {
-            abortFrame(frame);
+        for (i = self; i; i = i.parent) {
+            i.emit('load');
         }
 
-        var skip = !refresh && ((!frame.isForm && (frame._data !== undefined)) || frame._l || frame._r) && !frame[KEY_DATAERROR],
-            self = this,
-            datas = self.datas = [],
-            dataSourceIsArray,
-            dataSource = overrideData || frame[KEY_DATASOURCE],
-            i,
-            d,
-            waiting = 0,
-            render = frame.render,
-            resolve,
-            done = function(index, data, /**/j, children, r, errors, prevDatas, stage) {
-                if (index !== undefined) {
-                    datas[index] = data;
-                    waiting--;
-                }
+        self.emit(STR_BEFORE);
 
-                if (!waiting && !self.rejected) {
-                    errors = frame[KEY_DATAERROR];
-                    children = frame.children;
+        loading = self.loading = [];
+        self.errors = undefined;
 
-                    if (!skip) {
-                        // Ignore errors during background refresh.
-                        if (refresh && errors) { frame[KEY_DATAERROR] = undefined; }
+        self.isArray = src[0];
+        src = src[1];
 
-                        frame._l = undefined;
-                        prevDatas = frame._data;
-                        frame._data = datas;
-
-                        stage = errors ? (refresh ? NULL : STR_ERROR) : STR_SUCCESS;
-
-                        // Initially, when refresh argument is passed, it equals
-                        // to 1. When some data is changed, it becomes 2 to
-                        // skip equality check for child frames and rerender
-                        // them anyway.
-                        if (stage && refresh === 1) {
-                            r = true;
-                            for (j = datas.length; r && j--; ) {
-                                d = dataSource[j];
-                                r = r && ((isInternalValue(4, d) && d.v.eq) || $H.eq).call(frame, datas[j], prevDatas[j]);
-                            }
-                            if (r) {
-                                stage = NULL;
-                            } else {
-                                refresh = 2;
-                            }
-                        }
-
-                        // Further stages might be delayed in case of `wait`
-                        // setting of the frame. Store these stages execution
-                        // in `frame._r`.
-                        frame._r = function(/**/defaultRenderParent) {
-                            frame._r = undefined;
-
-                            defaultRenderParent = getRenderParent(frame, frame[KEY_RENDER_PARENT]);
-
-                            if (stage) {
-                                if (processRender(stage, render, errors || datas, defaultRenderParent, frame, formNode, dataSourceIsArray)) {
-                                    return;
-                                }
-
-                                if (!refresh) {
-                                    if (frame.isForm && (stage === STR_SUCCESS) && frame.tags) {
-                                        API.refresh(frame.tags);
-                                    }
-
-                                    emitEvent(stage, frame, errors || datas);
-
-                                    if (processRender(STR_AFTER, render, errors ? [true] : [], defaultRenderParent, frame, formNode, dataSourceIsArray)) {
-                                        return;
-                                    }
-                                    emitEvent(STR_AFTER, frame);
-                                }
-                            }
-
-                            if (((j = frame.refresh)) && (j.r !== undefined) && (prevDatas || !errors)) {
-                                refreshFrame(frame, j.r, j);
-                            }
-                        };
-
-                        frame._r.u = refresh;
-
-                        if (frame.isForm) {
-                            setFormState(frame[KEY_PARENT], frame, FORM_STATE_VALID);
-                            frame._r();
-                        }
-
-                        if (frame.isNamed) {
-                            frame._r();
-                        }
-                    }
-
-                    // Update wait flags and call delayed callbacks if any.
-                    callDelayedStages(currentRootFrame, frame, errors || (!frame.wait && !refresh) ? frame._w2 : 1);
-
-                    for (j = 0; j < children.length; j++) {
-                        r = children[j];
-                        if (r._id in currentFrames) {
-                            if (!errors) {
-                                new ProcessFrame(r, refresh);
-                            } else {
-                                unprocessFrame(r, {});
-                                removeOldNodes();
-                            }
-                        }
-                    }
-                }
-            };
-
-        dataSourceIsArray = dataSource[0];
-        dataSource = dataSource[1];
-
-        if (!skip) {
-            frame._l = self;
-            self.u = refresh;
-            frame._w2 = d = frame._w;
-            frame[KEY_DATAERROR] = undefined;
-
-            if (!frame.wait && !refresh) {
-                // Update wait flags and call delayed callbacks if any.
-                callDelayedStages(currentRootFrame, frame, d);
-            }
-
-            i = ((i = (isFunction((i = frame.title)) ? i.call(frame, frame._p) : i))) === undefined
-                ?
-                defaultTitle
-                :
-                i;
-            if (i !== undefined) {
-                document.title = i;
-            }
-
-            if (!refresh) {
-                if (processRender(STR_BEFORE, render, [], getRenderParent(frame, frame[KEY_RENDER_PARENT]), frame, formNode, dataSourceIsArray)) {
-                    return;
-                }
-                emitEvent(STR_BEFORE, frame);
-            }
-
-            resolve = function(index) {
-                waiting++;
-                d.then(function(ok) {
-                    done(index, ok);
-                }, function(xhr, errors) {
-                    if (!((errors = frame[KEY_DATAERROR]))) {
-                        errors = frame[KEY_DATAERROR] = new Array(datas.length);
-                    }
-                    errors[index] = xhr;
-                    done(index);
-                });
-            };
-
-            for (i = 0; i < dataSource.length; i++) {
-                if ((d = dataSource[i])) {
-                    if (isInternalValue(2, d)) {
-                        // Static data.
-                        d = d.v;
+        for (i = 0; i < src.length; i++) {
+            if ((d = src[i])) {
+                if (isInternalValue(2, d)) {
+                    // Static data.
+                    d = d.v;
+                } else {
+                    if (isFunction(d)) {
+                        d = d.call(frame, frame._p);
                     } else {
-                        if (isFunction(d)) {
-                            d = d.call(frame, frame._p);
-                        } else {
-                            d = new AJAX(d, frame, formBody);
-                            if ('o' in d) { d = d.o; }
-                        }
+                        d = new AJAX(d, frame, self.body);
+                        if ('o' in d) { d = d.o; }
                     }
+                }
 
-                    datas.push(d);
+                waitingCount++;
 
-                    if (d && isFunction(d.then)) {
-                        resolve(i);
-                    }
+                loading.push(d);
+
+                if (d && isFunction(d.then)) {
+                    wait(i);
+                } else {
+                    done();
                 }
             }
         }
 
         done();
 
-        function callDelayedStages(frm, finished, finishedCount/**/, j) {
-            // XXX: Probably optimize this somehow, to avoid traversing the tree
-            //      from the root node.
-            if (frm) {
-                if (finishedCount) {
-                    for (j = finished; j && j._w2; j = j[KEY_PARENT]) {
-                        j._w2 -= finishedCount;
-                    }
+        function wait(index) {
+            d.then(function(data) {
+                loading[index] = data;
+                done();
+            }, function(xhr) {
+                if (!errors) {
+                    self.errors = errors = new Array(loading.length);
                 }
-
-                if (!frm._w2 && frm._r && (!((j = frm[KEY_PARENT])) || !j._r)) {
-                    frm._r();
-                }
-
-                traverseFrame(frm, callDelayedStages, undefined, true);
-            }
+                errors[index] = xhr;
+                done();
+            });
         }
-    }
 
+        function done() {
+            waitingCount--;
 
-    ProcessFrame.prototype.reject = function() {
-        var datas = this.datas,
-            i,
-            d;
+            if (!waitingCount && !self.aborted) {
+                self.loading = undefined;
 
-        this.rejected = true;
+                self.counters(-1);
 
-        for (i = datas.length; i--; ) {
-            d = datas[i];
-            if (isFunction(d.abort)) { d.abort(); }
-            if (isFunction(d.reject)) { d.reject(); }
+                if (errors) {
+                    self.remove(true);
+                } else {
+                    self.loaded = loading;
+                }
+
+                i = self.root;
+
+                d = [];
+
+                traverseLoading(i.loading, function(l) {
+                    if (!l.done &&
+                        !l.loading &&
+                        (l.loaded || l.errors) &&
+                        (!l.parent || l.parent.done) &&
+                        (!l.waiting || !(l.frame.wait || i.wait)))
+                    {
+                        l.done = true;
+                        l.emit(l.errors ? STR_ERROR : STR_SUCCESS);
+                    }
+
+                    if (l.done && !l.count) {
+                        d.push(l);
+                    }
+                });
+
+                while ((i = d.shift())) {
+                    i.emit('ready');
+                }
+
+                if (!errors) {
+                    self.loadChildren();
+                }
+            }
         }
     };
 
 
-    function unprocessFrame(frame, activeFrames, keepPlaceholders) {
-        var i,
-            nodesets,
-            nodes;
+    function traverseLoading(loading, callback/**/, children, keys, i) {
+        if (loading) {
+            callback(loading);
 
-        traverseFrame(frame, function(f) {
-            unprocessFrame(f, activeFrames);
-        }, undefined, true);
+            children = loading.children;
+            keys = Object.keys(children);
 
-        if (((i = frame._l)) && frame.isForm) {
-            unprocessFrame(frame[KEY_PARENT], activeFrames, true);
+            for (i = 0; i < keys.length; i++) {
+                traverseLoading(children[keys[i]], callback);
+            }
+        }
+    }
+
+
+    // LoadingFrame.prototype.submit().
+    proto.submit = function(formFrame, formNode, formBody) {
+        var self = this,
+            loading = new LoadingFrame(formFrame, self, self.root, true);
+
+        loading.form = formNode;
+        loading.body = formBody;
+
+        loading.load();
+    };
+
+
+    // LoadingFrame.prototype.loadChildren().
+    proto.loadChildren = function() {
+        if (this.loaded) {
+            var children = this.children,
+                i;
+
+            for (i in children) {
+                children[i].load();
+            }
+        }
+    };
+
+
+    // LoadingFrame.prototype.remove().
+    proto.remove = function(childrenOnly/**/, self, ids, i, root) {
+        self = this;
+        root = self.root;
+        ids = Object.keys(self.children);
+
+        for (i = ids.length; i--; ) {
+            self.children[ids[i]].remove();
         }
 
-        // Cancel the data loading (if any).
-        abortFrame(frame);
+        if (!childrenOnly) {
+            self.abort();
 
-        if ((i && !i.u) || (frame._r && !frame._r.u)) {
-            // It's not a background refresh.
-            emitEvent('stop', frame);
+            if (self.parent) {
+                delete self.parent.children[self.frame._id];
+            } else {
+                root.loading = undefined;
+            }
+
+            delete root.all[self.frame._id];
+            self.emit('remove');
+        }
+    };
+
+
+    // LoadingFrame.prototype.abort().
+    proto.abort = function() {
+        var self = this,
+            loading = self.loading,
+            i,
+            tmp;
+
+        self.aborted = true;
+
+        if (loading) {
+            for (i = loading.length; i--; ) {
+                tmp = loading[i];
+                if (isFunction(tmp.abort)) { tmp.abort(); }
+                if (isFunction(tmp.reject)) { tmp.reject(); }
+            }
+
+            self.counters(-1);
         }
 
-        // Reset the ready callback.
-        frame._r = undefined;
+        if (!self.done) {
+            self.emit('stop');
+        }
 
-        if (i !== undefined || frame._data !== undefined || Object.keys(frame._n).length) {
-            frame._l = frame._data = frame[KEY_DATAERROR] = undefined;
+        self.loading = self.loaded = self.errors = undefined;
+    };
 
-            if (!(frame._id in activeFrames)) {
-                emitEvent('leave', frame);
 
-                nodesets = frame._n;
-                keepPlaceholders = keepPlaceholders ? 1 : 0;
+    proto.counters = function(val/**/, forceWait, i, waitBreak) {
+        forceWait = this.root.wait;
+        for (i = this; i; i = i.parent) {
+            i.count += val;
+            if (!i.frame.wait && !forceWait) { waitBreak = true; }
+            if (!waitBreak) { i.waiting += val; }
+        }
+    };
 
-                for (i in nodesets) {
-                    nodes = nodesets[i];
-                    while (nodes.length > keepPlaceholders) {
-                        frame._d.push(nodes.pop());
+
+    function refreshFrame(frame, settings, noDelay, overrideData) {
+        var error,
+            refreshing,
+            cur = [],
+            delay = noDelay ? 0 : settings.r,
+            timeout,
+            id = frame._id,
+            renderQueue = [];
+
+        if (!(id in currentFrames) || currentLoading.all[id].count) {
+            return;
+        }
+
+        cancelRefresh(frame._id);
+
+        if (isFunction(delay)) { delay = delay.call(frame); }
+        delay = +delay;
+
+        currentRefreshing[id] = cur;
+
+        cur[0] = setTimeout(function() {
+            if (currentRefreshing[id] !== cur) {
+                return;
+            }
+
+            cur[0] = undefined;
+
+            timeout = settings.o;
+            if (isFunction(timeout)) { timeout = timeout.call(frame); }
+            timeout = +timeout;
+
+            if (!isNaN(timeout) && timeout > 0) {
+                cur[1] = setTimeout(function() {
+                    cur[1] = undefined;
+
+                    if (currentRefreshing[id] === cur) {
+                        refreshFrame(frame, settings, true, overrideData);
+                    }
+                }, timeout);
+            }
+
+            cur[2] = new LoadingRoot({
+                success: function(loading, readyFrame) {
+                    if (error || (currentRefreshing[id] !== cur)) {
+                        return;
+                    }
+
+                    var data = loading.loaded,
+                        curData = readyFrame._data,
+                        equal = true,
+                        i,
+                        tmp;
+
+                    if (curData || refreshing) {
+                        if (refreshing) {
+                            equal = false;
+                        } else {
+                            for (i = data.length; equal && i--; ) {
+                                tmp = readyFrame[KEY_DATASOURCE][1][i];
+                                equal = equal && ((isInternalValue(4, tmp) && tmp.v.eq) || $H.eq).call(readyFrame, data[i], curData[i]);
+                            }
+                        }
+
+                        if (!equal) {
+                            refreshing = true;
+                            renderQueue.push([loading, readyFrame]);
+                        }
+                    }
+                },
+
+                ready: function(loading, readyFrame/**/, item, l, f, except) {
+                    if (readyFrame._id === id &&
+                        currentRefreshing[id] === cur &&
+                        !error)
+                    {
+                        while ((item = renderQueue.shift())) {
+                            l = item[0];
+                            f = item[1];
+
+                            if ((except = processRender(STR_SUCCESS, (f._data = l.loaded), f, undefined, l.isArray))) {
+                                emitEvent(STR_EXCEPT, f, except);
+                                processRender(STR_EXCEPT, except, f);
+                                l.remove();
+                                return;
+                            }
+                        }
+
+                        if (frame._refresh) {
+                            refreshFrame(frame, frame._refresh);
+                        }
+                    }
+                },
+
+                error: function() {
+                    if (!error) {
+                        error = true;
+                        refreshFrame(frame, settings, noDelay, overrideData);
                     }
                 }
-
-                if (!keepPlaceholders) {
-                    frame._n = {};
-                }
-
-            }
-        }
-
-        if (!(frame._id in activeFrames)) {
-            // Reuse `nodes` and `nodesets` variables.
-            nodes = frame._p;
-            nodesets = Object.keys(nodes);
-            for (i = nodesets.length; i--; ) {
-                delete nodes[nodesets[i]];
-            }
-        }
+            }, true, frame, overrideData);
+        }, isNaN(delay) || delay < 0 ? 0 : delay);
     }
 
 
-    function abortFrame(frame/**/, tmp) {
-        // Reset auto refresh timer.
-        if ((tmp = frame._u)) {
-            clearTimeout(tmp);
-            frame._u = undefined;
-        }
-
-        // Reset auto refresh timeout timer.
-        if ((tmp = frame._o)) {
-            clearTimeout(tmp);
-            frame._o = undefined;
-        }
-
-        // Cancel the data loading (if any).
-        if ((tmp = frame._l)) {
-            tmp.reject();
-            frame._l = undefined;
-        }
-    }
-
-
-    function refreshFrame(frame, delay, settings, force, timeout, data/**/, r) {
-        if (isFunction(delay)) { delay = delay.call(frame); }
-
-        if (delay !== undefined && (!((r = frame._l)) || (r.u && force))) {
-            abortFrame(frame);
-
-            if (timeout && !settings.j) { delay -= timeout; }
-
-            // Auto refresh timer.
-            frame._u = setTimeout(function() {
-                frame._u = NULL;
-                abortFrame(frame);
-
-                // Timeout.
-                if ((timeout = settings.o || 0)) {
-                    timeout = isFunction(timeout) ? timeout.call(frame) : timeout;
-                    frame._o = setTimeout(function() {
-                        frame._o = NULL;
-                        refreshFrame(frame, settings.r, settings, false, timeout);
-                    }, timeout);
-                }
-
-                new ProcessFrame(frame, 1, undefined, undefined, data);
-            }, delay < 0 ? 0 : delay);
+    function cancelRefresh(id/**/, cur) {
+        if ((cur = currentRefreshing[id])) {
+            if (cur[0]) { clearTimeout(cur[0]); }
+            if (cur[1]) { clearTimeout(cur[1]); }
+            if (cur[2]) { cur[2].unmount(); }
+            delete currentRefreshing[id];
         }
     }
 
@@ -2260,7 +2490,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         return withFields ? [serialized, fields] : serialized;
     }
-
 
     return API;
 })(document, decodeURIComponent, encodeURIComponent, location, setTimeout, clearTimeout);

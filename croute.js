@@ -337,7 +337,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 i = i in newFrames;
 
                 if (i) {
-                    j = currentLoading.all[frame._id];
+                    j = currentLoading[frame._id];
 
                     if (j &&
                         (reloadCurrent ||
@@ -479,7 +479,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
                 form[KEY_DATASOURCE] = [false, [action]];
 
-                currentLoading.all[frame._id].submit(
+                currentLoading[frame._id].submit(
                     form,
                     formNode,
                     function(xhr/**/, xhrCallback) {
@@ -709,7 +709,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
     proto.reload = function() {
         var self = this,
-            loading = currentLoading.all[self._id];
+            loading = currentLoading[self._id];
 
         if (loading) {
             loading.remove();
@@ -847,7 +847,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if ((!activate && active) || tmp) {
                 delete currentFrames[id];
 
-                if ((i = currentLoading.all[id])) {
+                if ((i = currentLoading[id])) {
                     i.remove();
                 }
 
@@ -868,7 +868,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     }
                 }
 
-                tmp = currentLoading.all[parent._id];
+                tmp = currentLoading[parent._id];
                 tmp = new LoadingFrame(namedFrame, tmp, currentLoading, true);
                 tmp.load();
             }
@@ -1994,7 +1994,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     function LoadingRoot(handlers, forceWait, frame, overrideData) {
         this.handlers = handlers;
         this.wait = forceWait;
-        this.all = {};
         if (frame) { this.mount(frame, overrideData); }
     }
 
@@ -2043,7 +2042,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         self.counters(1);
 
-        root.all[frame._id] = self;
+        root[frame._id] = self;
         if (parent) { parent.children[frame._id] = self; }
 
         if (!noReconcile) {
@@ -2272,7 +2271,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 root.loading = undefined;
             }
 
-            delete root.all[self.frame._id];
+            delete root[self.frame._id];
             self.emit('remove');
         }
     };
@@ -2324,7 +2323,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             id = frame._id,
             renderQueue = [];
 
-        if (!(id in currentFrames) || currentLoading.all[id].count) {
+        if (!(id in currentFrames) || currentLoading[id].count) {
             return;
         }
 

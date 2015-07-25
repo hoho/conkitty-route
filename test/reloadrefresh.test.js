@@ -11,7 +11,8 @@ describe('Reload test', function() {
 
         window.TEMPLATES = {
             hello: function(name, data, params) { return '<h1>' + (typeof data === 'string' ? data : JSON.stringify(data)) + '</h1>'; },
-            world: function(name, data, params) { return '<div>' + data + '</div>'; }
+            world: function(name, data, params) { return '<div>' + data + '</div>'; },
+            p: function(name, data, params) { return '<p>' + this.id + ' ' + data + '</p>'; }
         };
 
         var dataCounter = 0;
@@ -29,6 +30,28 @@ describe('Reload test', function() {
                         data: function() { return new Promise(function(resolve) { setTimeout(function() { resolve('world' + ++dataCounter); }, 100); }); },
                         refresh: function() { events.push('refresh call'); return 300; },
                         render: 'world'
+                    }
+                }
+            })
+            .add('/refresh', {
+                frames: {
+                    '?p1=1': {
+                        id: 'p1',
+                        tags: 'tag1 tag2 tag3',
+                        data: function() { return ++dataCounter; },
+                        render: 'p'
+                    },
+                    '?p2=2': {
+                        id: 'p2',
+                        tags: 'tag2',
+                        data: function() { return ++dataCounter; },
+                        render: 'p'
+                    },
+                    '?p3=3': {
+                        id: 'p3',
+                        tags: 'tag3',
+                        data: function() { return ++dataCounter; },
+                        render: 'p'
                     }
                 }
             })
@@ -226,6 +249,70 @@ describe('Reload test', function() {
             expect(objectifyBody()).toEqual([
                 {name: 'h1', value: ['hello10']},
                 {name: 'div', value: ['world15']}
+            ]);
+
+            $CR.set('/refresh?p1=1&p2=2&p3=3');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['p1 16']},
+                {name: 'p', value: ['p2 17']},
+                {name: 'p', value: ['p3 18']}
+            ]);
+
+            $CR.refresh('tag1 tag2 tag3 tag4');
+
+            waitInit(50);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['p1 19']},
+                {name: 'p', value: ['p2 20']},
+                {name: 'p', value: ['p3 21']}
+            ]);
+
+            $CR.refresh('tag1');
+
+            waitInit(50);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['p1 22']},
+                {name: 'p', value: ['p2 20']},
+                {name: 'p', value: ['p3 21']}
+            ]);
+
+            $CR.refresh('tag2');
+
+            waitInit(50);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['p1 23']},
+                {name: 'p', value: ['p2 24']},
+                {name: 'p', value: ['p3 21']}
+            ]);
+
+            $CR.refresh('tag3');
+
+            waitInit(50);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['p1 25']},
+                {name: 'p', value: ['p2 24']},
+                {name: 'p', value: ['p3 26']}
             ]);
         });
     });

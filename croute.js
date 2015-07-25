@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.10.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.11.0, https://github.com/hoho/conkitty-route
  * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
@@ -211,7 +211,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if (frame.isForm && frame.tags) {
-                    API.refresh(frame.tags);
+                    API.refresh(Object.keys(frame.tags).join(' '));
                 }
             },
 
@@ -669,23 +669,13 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
         refresh: function(settings) {
             var ret = new InternalValue(5), // Magic number 5: Automatic background
-                r,                          // refresh timeout.
-                i,
-                t = settings.tags,
-                tags = {};
+                r;                          // refresh timeout.
 
-            if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number' && (!t || !isString(t))) {
+            if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
                 throwError('Wrong refresh');
             }
-            ret.o = settings.timeout;
 
-            if (t) {
-                t = t.split(whitespace);
-                for (i = t.length; i--; ) {
-                    tags[t[i]] = true;
-                }
-            }
-            ret.t = tags;
+            ret.o = settings.timeout;
 
             return ret;
         }
@@ -695,10 +685,11 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     API.refresh = function refresh(tags) {
         tags = tags.split(whitespace);
         traverseFrame(currentRootFrame, undefined, function(frame/**/, settings, frameTags, i) {
-            if ((frame._id in currentFrames) && ((settings = frame._refresh)) && ((frameTags = settings.t))) {
+            if ((frame._id in currentFrames) && !frame.isForm && ((frameTags = frame.tags))) {
+                settings = frame._refresh || {};
                 for (i = tags.length; i--; ) {
                     if (tags[i] in frameTags) {
-                        refreshFrame(frame, settings, true);
+                        refreshFrame(frame, {o: settings.o}, true);
                         break;
                     }
                 }
@@ -1205,7 +1196,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 self.type = frameSettings.type;
                 self[STR_SUBMIT] = frameSettings[STR_SUBMIT];
                 self.xhr = frameSettings.xhr;
-
             } else {
                 if (named) {
                     self.isNamed = true;
@@ -1246,14 +1236,17 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                         }
                     }
                 }
+
+                if ((tmp = frameSettings.refresh)) {
+                    self._refresh = isInternalValue(5, tmp) ? tmp : API.$.refresh({refresh: tmp});
+                }
             }
 
-            if ((i = tmp = frameSettings.refresh)) {
-                i = isInternalValue(5, i) ? i : API.$.refresh({refresh: i});
-                if (form) {
-                    self.tags = Object.keys(i.t).join(' ');
-                } else {
-                    self._refresh = i;
+            if ((tmp = frameSettings.tags)) {
+                tmp = tmp.split(whitespace);
+                self.tags = f = {};
+                for (i = tmp.length; i--; ) {
+                    f[tmp[i]] = true;
                 }
             }
         }
@@ -2410,7 +2403,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 error: function() {
                     if (!error) {
                         error = true;
-                        console.log(12312312);
                         refreshFrame(frame, settings, noDelay, overrideData);
                     }
                 }

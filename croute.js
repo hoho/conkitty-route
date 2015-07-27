@@ -190,8 +190,6 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             },
 
             success: function(loading, frame/**/, except) {
-                frame._data = loading.loaded;
-
                 if ((except = processRender(STR_SUCCESS, loading.loaded, frame, loading.form, loading.isArray))) {
                     emitEvent(STR_EXCEPT, frame, except);
                     processRender(STR_EXCEPT, except, frame, loading.form);
@@ -247,6 +245,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 if (((refresh = frame._refresh)) && refresh.r) {
                     refreshFrame(frame, refresh);
                 }
+            },
+
+            data: function(loading, frame) {
+                frame._data = loading.loaded;
             },
 
             remove: function(loading, frame/**/, nodesets, keepPlaceholders, i) {
@@ -2230,6 +2232,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                     self.remove(true);
                 } else {
                     self.loaded = loading;
+                    self.emit('data');
                 }
 
                 i = self.root;

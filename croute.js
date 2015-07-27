@@ -128,7 +128,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     API.set = function set(uri, reload, replace) {
         checkRunning(true);
         reloadCurrent = reload;
-        uri = createURLParingAnchor(uri);
+        uri = createURLParsingAnchor(uri);
         if (!replace) { replace = location.href === uri.href; }
         return $H.go(uri.href, undefined, replace);
     };
@@ -489,7 +489,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             }
 
             if (!form && formNode.method === 'get' && !formNode.target) {
-                data = createURLParingAnchor(formNode.action);
+                data = createURLParsingAnchor(formNode.action);
                 if (data.host === location.host) {
                     e.preventDefault();
                     action = data.pathname + data.search;
@@ -1592,7 +1592,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     }
 
 
-    function createURLParingAnchor(href/**/, a) {
+    function createURLParsingAnchor(href/**/, a) {
         a = document.createElement('a');
         a.href = href;
         // The next line is yet one more hello to Internet Explorer which
@@ -1621,7 +1621,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         }
 
         if (!child) {
-            i = createURLParingAnchor(uri);
+            i = createURLParsingAnchor(uri);
             if ((origin = i.protocol !== location.protocol || i.host !== location.host ? i.protocol + '//' + i.host : '')) {
                 uri = i.pathname + i.search;
                 if (((j = i.hash)) && j.length > 1) { uri += j; }

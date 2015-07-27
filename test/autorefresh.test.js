@@ -19,6 +19,8 @@ describe('Autorefresh test', function() {
             callNumber2 = 0,
             events = [];
 
+        var retryDataTimeouts = [0, 100, 100];
+
         $CR
             .add('/sub1/', {
                 id: 'frame0',
@@ -53,6 +55,16 @@ describe('Autorefresh test', function() {
                         }
                     }
                 }
+            })
+            .add('/retry', {
+                id: 'retry',
+                data: function() { events.push(this.id + ' data ' + (retryDataTimeouts[0] || 0)); return new Promise(function(resolve) { setTimeout(function() { resolve('ololo'); }, retryDataTimeouts.shift() || 0); }); },
+                refresh: $CR.$.refresh({
+                    refresh: function() { events.push(this.id + ' refresh'); return 100; },
+                    timeout: function() { events.push(this.id + ' timeout'); return 50;  },
+                    retry: function() { events.push(this.id + ' retry'); return 100; }
+                }),
+                render: 'Retry'
             })
             .add(null, {
                 id: 'not-found',
@@ -196,6 +208,35 @@ describe('Autorefresh test', function() {
                 'before not-found',
                 'success not-found',
                 'after not-found'
+            ]);
+            events = [];
+
+            $CR.set('/retry');
+
+            waitInit();
+        });
+
+        wait();
+
+        runs(function() {
+            expect(events).toEqual([
+                'leave not-found',
+                'before retry',
+                'retry data 0',
+                'busy undefined',
+                'success retry',
+                'after retry',
+                'retry refresh',
+                'idle undefined',
+                'retry timeout',
+                'retry data 100',
+                'retry retry',
+                'retry timeout',
+                'retry data 100',
+                'retry retry',
+                'retry timeout',
+                'retry data 0',
+                'retry refresh'
             ]);
             events = [];
         });

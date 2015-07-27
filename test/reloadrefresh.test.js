@@ -1,5 +1,5 @@
-describe('Reload test', function() {
-    it('runs reload test', function() {
+describe('Reload and refresh test', function() {
+    it('runs reload and refresh test', function() {
         var flag;
         var waitInit = function(timeout) {
             flag = false;

@@ -55,6 +55,43 @@ describe('Reload test', function() {
                     }
                 }
             })
+            .add('/pause', {
+                frames: {
+                    '?p1=1': {
+                        id: 'pause1',
+                        tags: 'tag1',
+                        data: function() { return ++dataCounter; },
+                        refresh: 100,
+                        render: 'p'
+                    },
+                    '?p2=2': {
+                        id: 'pause2',
+                        tags: 'tag2',
+                        data: function() { return ++dataCounter; },
+                        refresh: 100,
+                        render: 'p'
+                    },
+                    '?p3=3': {
+                        id: 'pause3',
+                        tags: 'tag3',
+                        data: function() { return ++dataCounter; },
+                        refresh: 100,
+                        render: 'p'
+                    },
+                    '?p4=4': {
+                        id: 'pause4',
+                        refresh: $CR.$.refresh({pause: 'tag1 tag3'}),
+                        data: function() { return ++dataCounter; },
+                        render: 'p'
+                    },
+                    '?p5=5': {
+                        id: 'pause5',
+                        refresh: $CR.$.refresh({pause: 'tag2'}),
+                        data: function() { return ++dataCounter; },
+                        render: 'p'
+                    }
+                }
+            })
             .run({callTemplate: testCallTemplate});
 
         $CR.on('before success error after stop except leave busy idle xhr', function(e) {
@@ -313,6 +350,74 @@ describe('Reload test', function() {
                 {name: 'p', value: ['p1 25']},
                 {name: 'p', value: ['p2 24']},
                 {name: 'p', value: ['p3 26']}
+            ]);
+
+            $CR.set('/pause?p1=1&p2=2&p3=3&p4=4&p5=5');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['pause1 27']},
+                {name: 'p', value: ['pause2 28']},
+                {name: 'p', value: ['pause3 29']},
+                {name: 'p', value: ['pause4 30']},
+                {name: 'p', value: ['pause5 31']}
+            ]);
+
+            waitInit(150);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['pause1 27']},
+                {name: 'p', value: ['pause2 28']},
+                {name: 'p', value: ['pause3 29']},
+                {name: 'p', value: ['pause4 30']},
+                {name: 'p', value: ['pause5 31']}
+            ]);
+
+            $CR.set('/pause?p1=1&p2=2&p3=3&p4=4');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['pause1 27']},
+                {name: 'p', value: ['pause2 28']},
+                {name: 'p', value: ['pause3 29']},
+                {name: 'p', value: ['pause4 30']}
+            ]);
+
+            waitInit(150);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['pause1 27']},
+                {name: 'p', value: ['pause2 32']},
+                {name: 'p', value: ['pause3 29']},
+                {name: 'p', value: ['pause4 30']}
+            ]);
+
+            $CR.set('/pause?p1=1&p2=2&p3=3&p5=5');
+
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['pause1 27']},
+                {name: 'p', value: ['pause2 32']},
+                {name: 'p', value: ['pause3 29']},
+                {name: 'p', value: ['pause5 33']}
+            ]);
+
+            waitInit(150);
+        });
+
+        wait();
+
+        runs(function() {
+            expect(objectifyBody()).toEqual([
+                {name: 'p', value: ['pause1 34']},
+                {name: 'p', value: ['pause2 32']},
+                {name: 'p', value: ['pause3 35']},
+                {name: 'p', value: ['pause5 33']}
             ]);
         });
     });

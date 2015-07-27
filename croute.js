@@ -20,6 +20,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         currentRootFrame,
         currentLoading,
         currentRefreshing = {},
+        currentPaused = {},
+        currentPausedTags = {},
 
         reloadCurrent,
 
@@ -241,9 +243,9 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 cancelRefresh(frame._id);
             },
 
-            ready: function(loading, frame) {
-                if (frame._refresh) {
-                    refreshFrame(frame, frame._refresh);
+            ready: function(loading, frame/**/, refresh) {
+                if (((refresh = frame._refresh)) && refresh.r) {
+                    refreshFrame(frame, refresh);
                 }
             },
 
@@ -276,19 +278,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 haveNewFrames,
                 newFramesCount = 0,
                 currentFramesCount = 0,
-                traverseCallback = function(f/**/, tmp, brk) {
-                    if (f._a) {
-                        newFrames[(tmp = f._id)] = f;
-                        newFramesCount++;
-                        if (!haveNewFrames && !(tmp in currentFrames)) {
-                            haveNewFrames = true;
-                        }
-                        if (isFunction((brk = f.break))) {
-                            brk = brk.call(f);
-                        }
-                        return !!brk;
-                    }
-                },
+                newPaused = {},
+                newPausedTags = {},
+                tmp,
+                oldPausedTags,
                 activateParallelFramesCallback = function(f/**/, parallel, k, s) {
                     // Check if there are parallel frames.
                     if ((parallel = f._g)) {
@@ -307,6 +300,28 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                                 break;
                             }
                         }
+                    }
+                },
+                traverseCallback = function(f/**/, tmp2, brk) {
+                    if (f._a) {
+                        newFrames[(tmp2 = f._id)] = f;
+                        newFramesCount++;
+
+                        if (!haveNewFrames && !(tmp2 in currentFrames)) {
+                            haveNewFrames = true;
+                        }
+
+                        if (isFunction((brk = f.break))) {
+                            brk = brk.call(f);
+                        }
+
+                        if (((tmp2 = f._refresh)) && ((tmp2 = tmp2.p))) {
+                            for (j in tmp2) {
+                                newPausedTags[j] = true;
+                            }
+                        }
+
+                        return !!brk;
                     }
                 };
 
@@ -366,9 +381,34 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }
 
+            for (i in newPausedTags) {
+                for (j in newFrames) {
+                    frame = newFrames[j];
+                    if (((tmp = frame.tags)) && (i in tmp)) {
+                        cancelRefresh(j);
+                        newPaused[j] = frame;
+                    }
+                }
+            }
+
             currentFrames = newFrames;
             reloadCurrent = undefined;
             currentRootFrame = newRootFrame;
+
+            oldPausedTags = currentPausedTags;
+            currentPausedTags = newPausedTags;
+            currentPaused = newPaused;
+
+            for (i in oldPausedTags) {
+                if (!(i in newPausedTags)) {
+                    for (j in newFrames) {
+                        frame = newFrames[j];
+                        if (((tmp = frame.tags)) && (i in tmp) && ((tmp = frame._refresh)) && tmp.r) {
+                            refreshFrame(frame, tmp);
+                        }
+                    }
+                }
+            }
 
             currentLoading.mount(newRootFrame);
 
@@ -668,14 +708,31 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         },
 
         refresh: function(settings) {
-            var ret = new InternalValue(5), // Magic number 5: Automatic background
-                r;                          // refresh timeout.
+            var ret = new InternalValue(5), // Magic number 5: Automatic background refresh timeout.
+                tmp,
+                i,
+                p;
 
-            if (!isFunction((r = ret.r = settings.refresh)) && typeof r !== 'number') {
-                throwError('Wrong refresh');
+            if (isFunction(settings) || (typeof settings === 'number')) {
+                settings = {refresh: settings};
             }
 
-            ret.o = settings.timeout;
+            if (settings) {
+                ret.r = settings.refresh;
+                ret.o = settings.timeout;
+
+                if ((tmp = settings.pause)) {
+                    tmp = tmp.split(whitespace);
+                    ret.p = p = {};
+                    for (i = tmp.length; i--; ) {
+                        p[tmp[i]] = true;
+                    }
+                }
+            }
+
+            if (!ret.r && !ret.o && !ret.p) {
+                throwError('Wrong refresh');
+            }
 
             return ret;
         }
@@ -1238,7 +1295,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
 
                 if ((tmp = frameSettings.refresh)) {
-                    self._refresh = isInternalValue(5, tmp) ? tmp : API.$.refresh({refresh: tmp});
+                    self._refresh = isInternalValue(5, tmp) ? tmp : API.$.refresh(tmp);
                 }
             }
 
@@ -2316,7 +2373,10 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             id = frame._id,
             renderQueue = [];
 
-        if (!(id in currentFrames) || currentLoading[id].count) {
+        if (!(id in currentFrames) ||
+            currentLoading[id].count ||
+            (!noDelay && (id in currentPaused)))
+        {
             return;
         }
 
@@ -2394,8 +2454,8 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                             }
                         }
 
-                        if (frame._refresh) {
-                            refreshFrame(frame, frame._refresh);
+                        if (((f = frame._refresh)) && f.r) {
+                            refreshFrame(frame, f);
                         }
                     }
                 },

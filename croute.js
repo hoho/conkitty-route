@@ -720,6 +720,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             if (settings) {
                 ret.r = settings.refresh;
                 ret.o = settings.timeout;
+                ret.a = settings.retry;
 
                 if ((tmp = settings.pause)) {
                     tmp = tmp.split(whitespace);
@@ -746,7 +747,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 settings = frame._refresh || {};
                 for (i = tags.length; i--; ) {
                     if (tags[i] in frameTags) {
-                        refreshFrame(frame, {o: settings.o}, true);
+                        refreshFrame(frame, {o: settings.o}, 0);
                         break;
                     }
                 }
@@ -767,7 +768,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
 
 
     proto.refresh = function(data) {
-        refreshFrame(this, {}, true, data === undefined ? undefined : adjustData(data));
+        refreshFrame(this, {}, 0, data === undefined ? undefined : adjustData(data));
     };
 
 
@@ -2364,26 +2365,29 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
     };
 
 
-    function refreshFrame(frame, settings, noDelay, overrideData) {
+    function refreshFrame(frame, settings, delay, overrideData) {
         var error,
             refreshing,
             cur = [],
-            delay = noDelay ? 0 : settings.r,
             timeout,
             id = frame._id,
             renderQueue = [];
 
+        if (delay === undefined) {
+            delay = settings.r;
+        }
+
+        if (isFunction(delay)) { delay = delay.call(frame); }
+        delay = +delay;
+
         if (!(id in currentFrames) ||
             currentLoading[id].count ||
-            (!noDelay && (id in currentPaused)))
+            (id in currentPaused))
         {
             return;
         }
 
         cancelRefresh(frame._id);
-
-        if (isFunction(delay)) { delay = delay.call(frame); }
-        delay = +delay;
 
         currentRefreshing[id] = cur;
 
@@ -2399,11 +2403,16 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
             timeout = +timeout;
 
             if (!isNaN(timeout) && timeout > 0) {
-                cur[1] = setTimeout(function() {
+                cur[1] = setTimeout(function(/**/retry) {
                     cur[1] = undefined;
 
                     if (currentRefreshing[id] === cur) {
-                        refreshFrame(frame, settings, true, overrideData);
+                        retry = settings.a;
+                        if (retry === undefined) { retry = settings.r; }
+
+                        if (retry !== undefined) {
+                            refreshFrame(frame, settings, retry, overrideData);
+                        }
                     }
                 }, timeout);
             }
@@ -2463,7 +2472,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 error: function() {
                     if (!error) {
                         error = true;
-                        refreshFrame(frame, settings, noDelay, overrideData);
+                        refreshFrame(frame, settings, delay, overrideData);
                     }
                 }
             }, true, frame, overrideData);

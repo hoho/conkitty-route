@@ -42,8 +42,7 @@ describe('Reload and refresh test', function() {
                         render: 'p'
                     },
                     '?p2=2': {
-                        id: 'p2',
-                        tags: 'tag2',
+                        id: 'tag2',
                         data: function() { return ++dataCounter; },
                         render: 'p'
                     },
@@ -292,7 +291,7 @@ describe('Reload and refresh test', function() {
 
             expect(objectifyBody()).toEqual([
                 {name: 'p', value: ['p1 16']},
-                {name: 'p', value: ['p2 17']},
+                {name: 'p', value: ['tag2 17']},
                 {name: 'p', value: ['p3 18']}
             ]);
 
@@ -306,7 +305,7 @@ describe('Reload and refresh test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 {name: 'p', value: ['p1 19']},
-                {name: 'p', value: ['p2 20']},
+                {name: 'p', value: ['tag2 20']},
                 {name: 'p', value: ['p3 21']}
             ]);
 
@@ -320,7 +319,7 @@ describe('Reload and refresh test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 {name: 'p', value: ['p1 22']},
-                {name: 'p', value: ['p2 20']},
+                {name: 'p', value: ['tag2 20']},
                 {name: 'p', value: ['p3 21']}
             ]);
 
@@ -334,7 +333,7 @@ describe('Reload and refresh test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 {name: 'p', value: ['p1 23']},
-                {name: 'p', value: ['p2 24']},
+                {name: 'p', value: ['tag2 24']},
                 {name: 'p', value: ['p3 21']}
             ]);
 
@@ -348,7 +347,7 @@ describe('Reload and refresh test', function() {
         runs(function() {
             expect(objectifyBody()).toEqual([
                 {name: 'p', value: ['p1 25']},
-                {name: 'p', value: ['p2 24']},
+                {name: 'p', value: ['tag2 24']},
                 {name: 'p', value: ['p3 26']}
             ]);
 

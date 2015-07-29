@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.11.0, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.11.1, https://github.com/hoho/conkitty-route
  * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
@@ -1302,11 +1302,18 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 }
             }
 
-            if ((tmp = frameSettings.tags)) {
-                tmp = tmp.split(whitespace);
+            if (((tmp = frameSettings.tags)) || ((i = self.id))) {
                 self.tags = f = {};
-                for (i = tmp.length; i--; ) {
-                    f[tmp[i]] = true;
+
+                if (i) {
+                    f[i] = true;
+                }
+
+                if (tmp) {
+                    tmp = tmp.split(whitespace);
+                    for (i = tmp.length; i--; ) {
+                        f[tmp[i]] = true;
+                    }
                 }
             }
         }

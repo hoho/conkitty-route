@@ -1,5 +1,5 @@
 /*!
- * conkitty-route v0.11.1, https://github.com/hoho/conkitty-route
+ * conkitty-route v0.12.0, https://github.com/hoho/conkitty-route
  * (c) 2014-2015 Marat Abdullin, MIT license
  */
 
@@ -1158,7 +1158,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
                 break;
 
             case isFunction(constraint):
-                ok = (((value = constraint.call(frame, value, newParams))) !== undefined) || expected.optional;
+                ok = (((value = constraint.call(frame, newParams, value))) !== undefined) || expected.optional;
                 break;
 
             case (value === undefined) && expected.optional:

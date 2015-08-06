@@ -62,12 +62,12 @@ describe('Stages test', function() {
                     '/:sub4/:subsub4/:subsubsub4': {
                         id: 'sub4-id',
                         params: {
-                            subsub4: function(val, newParams) {
+                            subsub4: function(newParams, val) {
                                 expect(newParams).toEqual({sub4: 'sub4'});
                                 expect(this.id).toEqual('sub4-id');
                                 return val === 'subsub4' ? val : undefined;
                             },
-                            subsubsub4: function(val, newParams) {
+                            subsubsub4: function(newParams, val) {
                                 expect(newParams).toEqual({sub4: 'sub4', subsub4: 'subsub4'});
                                 expect(this.id).toEqual('sub4-id');
                                 return val === 'subsubsub4' ? val : undefined;

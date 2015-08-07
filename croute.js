@@ -2390,7 +2390,7 @@ window.$CR = (function(document, decodeURIComponent, encodeURIComponent, locatio
         if (isFunction(delay)) { delay = delay.call(frame); }
         delay = +delay;
 
-        if (!(id in currentFrames) ||
+        if (!(id in currentLoading) ||
             currentLoading[id].count ||
             (id in currentPaused))
         {
